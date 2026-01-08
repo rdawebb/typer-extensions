@@ -1,11 +1,17 @@
 """Core AliasedTyper class extending typer.Typer with alias support"""
 
-from typing import Any, Callable, Optional, cast
+from typing import Any, Callable, Optional, Protocol, cast
 
 import typer
 import typer.main
 from click import Command, Context, Group
 from typer.core import TyperGroup
+
+
+class HasName(Protocol):
+    """Protocol for objects that have a name attribute"""
+
+    __name__: str
 
 
 class AliasedGroup(Group):
@@ -254,3 +260,50 @@ class AliasedTyper(typer.Typer):
             return group.get_command(ctx, effective_name)
 
         return None
+
+    def command_with_aliases(
+        self,
+        name: Optional[str | Callable[..., Any]] = None,
+        *,
+        aliases: Optional[list[str]] = None,
+        **kwargs: Any,
+    ) -> Callable[[Callable[..., Any]], Command]:
+        """Decorator to register a command with aliases, similar to Typer's @app.command decorator
+
+        Args:
+            name: The name of the command - if not provided, inferred from the function name
+            aliases: A list of aliases for the command
+            **kwargs: Additional keyword arguments for command registration
+                (e.g. help, hidden, deprecated, context_settings, etc.)
+
+        Returns:
+            A decorator that registers the command with the specified name and aliases
+        """
+        # Decorator used without parentheses (name inferred)
+        if callable(name):
+            func = name
+
+            return self._register_command_with_aliases(
+                func, name=cast(HasName, func).__name__, aliases=None, **kwargs
+            )
+
+        # Standard decorator with parentheses
+        def decorator(func: Callable[..., Any]) -> Command:
+            """Decorator to register a command with aliases
+
+            Args:
+                func: The command function
+
+            Returns:
+                The registered Click Command object
+            """
+            if isinstance(name, str) and name:
+                command_name = name
+            else:
+                command_name = cast(HasName, func).__name__
+
+            return self._register_command_with_aliases(
+                func, name=command_name, aliases=aliases, **kwargs
+            )
+
+        return decorator
