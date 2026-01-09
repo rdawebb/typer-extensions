@@ -19,6 +19,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 - Comprehensive integration tests for programmatic API usage
 - Unit tests for all programmatic API methods
 - `clean_output` pytest fixture for consistent test assertions across environments
+- Example scripts in the `examples/` directory demonstrating both decorator and programmatic approaches:
+  - `basic_usage.py`: Basic decorator syntax and command registration patterns
+  - `advanced_usage.py`: Advanced decorator patterns with Typer options, context, and deprecated commands
+  - `progammatic_usage.py`: Programmatic API usage, dynamic alias management, configuration loading, and plugin simulation
+- Justfile as modern replacement for Makefile with task automation
+- Helper scripts for development workflows (just_help.py, clean.py)
 
 
 ## [0.1.0] - 2026/01/08
@@ -42,4 +48,5 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 - Initial project structure with Makefile and development tooling
 
 
-[0.1.0](https://github.com/rdawebb/typer-aliases/releases/tag/v0.1.0-alpha)
+[Unreleased]: https://github.com/rdawebb/typer-aliases/compare/v0.1.0-alpha...HEAD)
+[0.1.0]: https://github.com/rdawebb/typer-aliases/releases/tag/v0.1.0-alpha)
