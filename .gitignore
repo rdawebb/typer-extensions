@@ -138,6 +138,7 @@ celerybeat.pid
 .env
 .envrc
 .venv
+.test-env
 env/
 venv/
 ENV/
@@ -210,6 +211,4 @@ __marimo__/
 .DS_Store
 
 # To be committed in future
-README.md
 CONTRIBUTING.md
-docs/

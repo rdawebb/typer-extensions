@@ -21,6 +21,7 @@ Code Quality:
 
 Maintenance:
   just clean                Remove build artifacts and cache
+  just release              Build & validate new release candidate
 
 Use 'just <recipe>' to execute a specific recipe
 """

@@ -30,5 +30,8 @@ check:
 pre:
   uv run prek run --all-files
 
+release:
+  @which python3 > /dev/null && python3 scripts/release.py || python scripts/release.py
+
 clean:
-  uv run python scripts/clean.py
+  @which python3 > /dev/null && uv run python3 scripts/clean.py || uv run python scripts/clean.py

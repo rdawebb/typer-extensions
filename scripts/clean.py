@@ -12,6 +12,7 @@ def remove_path(path: Path):
 
 
 def clean():
+    # Recursive patterns to search in subdirectories
     patterns = [
         ".pytest_cache",
         ".coverage",
@@ -25,6 +26,18 @@ def clean():
     for pattern in patterns:
         for path in Path(".").rglob(pattern):
             remove_path(path)
+
+    artifacts = [
+        Path("dist"),
+        Path("build"),
+        Path(".test-env"),
+    ]
+    for path in artifacts:
+        if path.exists():
+            remove_path(path)
+            print(f"Removed {path}")
+
+    print("\n🧹 Cleanup complete!\n")
 
 
 if __name__ == "__main__":

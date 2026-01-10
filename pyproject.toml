@@ -6,6 +6,7 @@ build-backend = "hatchling.build"
 name = "typer-aliases"
 version = "0.2.0"
 description = "Command aliases for Typer CLI applications"
+readme = "README.md"
 authors = [{name = "Rob Webb"}]
 requires-python = ">=3.9"
 license = {text = "MIT"}
@@ -51,7 +52,7 @@ Issues = "https://github.com/rdawebb/typer-aliases/issues"
 include = [
     "/src",
     "/tests",
-    "/README.MD",
+    "/README.md",
     "/LICENSE"
 ]
 
