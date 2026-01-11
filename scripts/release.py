@@ -1,4 +1,4 @@
-"""Build, test, and validate package release"""
+"""Build, test, and validate package ready for release"""
 
 import os
 import shutil
@@ -8,7 +8,15 @@ from pathlib import Path
 
 
 def run_command(cmd: list[str], description: str) -> bool:
-    """Run a command and report results."""
+    """Run a command and report results
+
+    Args:
+        cmd (list[str]): The command to run.
+        description (str): A description of the command for logging purposes.
+
+    Returns:
+        bool: True if the command succeeded, False otherwise.
+    """
     print(f"\n📌 {description}\n")
     try:
         subprocess.run(cmd, check=True)
@@ -19,7 +27,11 @@ def run_command(cmd: list[str], description: str) -> bool:
 
 
 def build() -> int:
-    """Execute release validation pipeline."""
+    """Execute pre-release validation pipeline
+
+    Returns:
+        int: The exit code of the pre-release validation pipeline.
+    """
     script_dir = Path(__file__).parent
     project_root = script_dir.parent
     os.chdir(project_root)
@@ -78,7 +90,7 @@ def build() -> int:
         return 1
 
     # Success
-    print("\n✨ Release validation complete!\n")
+    print("\n✨ Pre-release validation complete!\n")
     return 0
 
 

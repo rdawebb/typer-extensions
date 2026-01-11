@@ -195,6 +195,10 @@ typer.main.get_group_from_info = _aliased_get_group_from_info  # type: ignore[as
 class AliasedTyper(typer.Typer):
     """Typer application with alias support"""
 
+    # Expose Typer's Argument and Option
+    Argument = staticmethod(typer.Argument)
+    Option = staticmethod(typer.Option)
+
     def __init__(
         self,
         *args: Any,

@@ -27,7 +27,8 @@ Use 'just <recipe>' to execute a specific recipe
 """
 
 
-def print_help():
+def print_help() -> None:
+    """Print the help text for available development recipes"""
     print(HELP_TEXT)
 
 

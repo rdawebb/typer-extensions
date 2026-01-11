@@ -139,6 +139,8 @@ celerybeat.pid
 .envrc
 .venv
 .test-env
+.testpypi
+.pypi
 env/
 venv/
 ENV/

@@ -1,6 +1,6 @@
 """Advanced usage examples for typer-aliases
 
-Demonstrates various decorator patterns and features with a dummy Git-like CLI tool. Run with '--help' to see how aliases are displayed in the help text.
+This example demonstrates various decorator patterns and features with a dummy Git-like CLI tool. Run with '--help' to see how aliases are displayed in the help text.
 """
 
 import typer

@@ -43,3 +43,18 @@ def test_aliased_typer_config():
     )
     assert app._alias_case_sensitive is False
     assert app._show_aliases_in_help is False
+
+
+def test_aliased_typer_has_argument_and_option():
+    """Test that AliasedTyper exposes Typer's Argument and Option"""
+    import typer
+
+    app = typer_aliases.AliasedTyper()
+
+    # Should be accessible as class attributes
+    assert hasattr(app, "Argument")
+    assert hasattr(app, "Option")
+
+    # Should match Typer's
+    assert app.Argument == typer.Argument
+    assert app.Option == typer.Option

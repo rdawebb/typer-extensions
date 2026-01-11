@@ -4,15 +4,21 @@ import shutil
 from pathlib import Path
 
 
-def remove_path(path: Path):
+def remove_path(path: Path) -> None:
+    """Remove a file or directory
+
+    Args:
+        path (Path): The path to the file or directory to remove.
+    """
     if path.is_dir():
         shutil.rmtree(path, ignore_errors=True)
     elif path.is_file():
         path.unlink()
 
 
-def clean():
-    # Recursive patterns to search in subdirectories
+def clean() -> None:
+    """Clean up temporary files and directories"""
+    print("\n🧹 Cleaning up temporary files and directories...\n")
     patterns = [
         ".pytest_cache",
         ".coverage",
@@ -31,6 +37,8 @@ def clean():
         Path("dist"),
         Path("build"),
         Path(".test-env"),
+        Path(".pypi"),
+        Path(".testpypi"),
     ]
     for path in artifacts:
         if path.exists():

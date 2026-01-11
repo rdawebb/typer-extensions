@@ -5,18 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
-## [Unreleased]
+## [2.0.1] - 2026/01/11
 
 ### Added
 
-- Release validation script (`scripts/release.py`) for build, test, and package verification
-- `release` recipe in Justfile for automated release validation workflow
+- Pre-release validation script (`scripts/release.py`) for build, test, and package verification
+- `release` recipe in Justfile for automated pre-release validation workflow
+- Exposed `Argument` and `Option` as static methods on `AliasedTyper` for convenience
+- `examples/argument_option_usage.py` demonstrating use of Arguments and Options with aliased commands
+- Comprehensive unit tests for Typer's Argument and Option compatibility
+- Integration tests verifying Arguments and Options work identically with primary commands and aliases
 
 ### Changed
 
 - Improved `clean.py` script with build artifact management
 - Added `.test-env` to `.gitignore` for isolated test environments
 - Fixed README.md filename casing in `pyproject.toml`
+- Improved docstrings in `examples/` files
 
 ### Build
 
@@ -96,5 +101,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 - Initial project structure with Makefile and development tooling
 
 
+[Unreleased]: https://github.com/rdawebb/typer-aliases/compare/v0.1.0a1...HEAD
+[0.2.1]: https://github.com/rdawebb/typer-aliases/compare/v0.1.0a1...v0.2.1
 [0.2.0]: https://github.com/rdawebb/typer-aliases/compare/v0.1.0a1...v0.2.0
 [0.1.0]: https://github.com/rdawebb/typer-aliases/releases/tag/v0.1.0a1

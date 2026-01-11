@@ -1,6 +1,6 @@
 """Programmatic API usage examples for typer-aliases
 
-Demonstrates dynamic command and alias registration without decorators
+This example demonstrates dynamic command and alias registration without decorators. Run with '--help' to see how the available commands and their aliases are displayed in the help text.
 """
 
 from typer_aliases import AliasedTyper
