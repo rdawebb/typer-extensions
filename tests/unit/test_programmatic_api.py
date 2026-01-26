@@ -436,7 +436,7 @@ class TestListCommandsWithAliases:
         def delete_item():
             pass
 
-        mapping = app.list_commands()
+        mapping = app.list_commands_with_aliases()
 
         assert mapping == {"list": ["ls", "l"], "delete": ["rm"]}
 
@@ -452,7 +452,7 @@ class TestListCommandsWithAliases:
         def delete_item():
             pass
 
-        mapping = app.list_commands()
+        mapping = app.list_commands_with_aliases()
 
         assert mapping == {}
 
@@ -468,12 +468,12 @@ class TestListCommandsWithAliases:
         def delete_item():
             pass
 
-        mapping = app.list_commands()
+        mapping = app.list_commands_with_aliases()
         mapping["list"].append("modified")
         mapping["new"] = ["test"]
 
         # Original should be unchanged
-        original_mapping = app.list_commands()
+        original_mapping = app.list_commands_with_aliases()
         assert original_mapping == {"list": ["ls"], "delete": ["rm"]}
 
     def test_list_excludes_commands_without_aliases(self):
@@ -488,7 +488,7 @@ class TestListCommandsWithAliases:
         def say_hello():
             pass
 
-        mapping = app.list_commands()
+        mapping = app.list_commands_with_aliases()
 
         assert "list" in mapping
         assert "hello" not in mapping
@@ -508,13 +508,13 @@ class TestListCommandsWithAliases:
         # Add alias to list
         app.add_alias("list", "ls")
 
-        mapping = app.list_commands()
+        mapping = app.list_commands_with_aliases()
         assert mapping == {"list": ["ls"], "delete": ["rm"]}
 
         # Remove alias from delete
         app.remove_alias("rm")
 
-        mapping = app.list_commands()
+        mapping = app.list_commands_with_aliases()
         assert mapping == {"list": ["ls"]}
 
 
@@ -569,5 +569,5 @@ class TestProgrammaticAPIMixedUsage:
         app.add_command(delete_item, "delete", aliases=["rm"])
         app.add_alias("list", "l")
 
-        mapping = app.list_commands()
+        mapping = app.list_commands_with_aliases()
         assert mapping == {"list": ["ls", "l"], "delete": ["rm"]}

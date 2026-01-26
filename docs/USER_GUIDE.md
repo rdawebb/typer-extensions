@@ -406,7 +406,7 @@ app.add_command(delete_item, "delete", aliases=["rm"])
 Get complete overview of aliases:
 
 ```python
-# Get all commands with aliases
+# Get all aliased commands with aliases
 mapping = app.list_commands_with_aliases()
 print(mapping)
 # {"list": ["ls", "l"], "delete": ["rm", "remove"]}

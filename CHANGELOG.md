@@ -12,6 +12,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 - **BREAKING:** Renamed `@app.command_with_aliases()` decorator to `@app.command()` for simpler, more intuitive API
 - **BREAKING:** Renamed `add_aliased_command()` decorator to `add_command()` for consitency with standard Typer API
 - Updated all tests and examples to use new method names
+- Added `wcwidth` dependency for accurate Unicode and multi-byte character width calculations in help text formatting
+- Refactored `format_commands_section()` to `format_commands_with_aliases()` with signature returning `(formatted_commands, max_width)` tuple
+- Renamed `list_commands()` to `list_commands_with_aliases()` for API clarity
+- Improved help text alignment and padding when displaying commands with aliases
+- Enhanced test fixtures with better ANSI escape code handling and new `assert_formatted_command` assertion
+- Consolidated pre-commit hook configuration into single local repo section
 
 ### Added
 

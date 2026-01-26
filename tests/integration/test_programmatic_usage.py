@@ -278,7 +278,7 @@ class TestMixingDecoratorAndProgrammatic:
         assert delete_aliases == ["rm"]
 
         # Query all
-        all_aliases = app.list_commands()
+        all_aliases = app.list_commands_with_aliases()
         assert all_aliases == {"list": ["ls"], "delete": ["rm"]}
 
 

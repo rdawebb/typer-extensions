@@ -20,39 +20,32 @@ repos:
 
   - repo: local
     hooks:
-      # Lint
       - id: ruff-lint
-        entry: uv run ruff check --fix
+        entry: uv run ruff check --fix src tests scripts examples
         name: Check linting
         language: system
         types: [python]
-      # Format
+
       - id: ruff-format
-        entry: uv run ruff format
+        entry: uv run ruff format src tests scripts examples
         name: Check formatting
         language: system
         types: [python]
 
-  - repo: local
-    hooks:
-    - id: ty-type-check
-      name: Check type safety
-      entry: uv run ty check src tests
-      language: system
-      types: [python]
+      - id: ty-type-check
+        name: Check type safety
+        entry: uv run ty check src tests scripts examples
+        language: system
+        types: [python]
 
-  - repo: local
-    hooks:
-    - id: python-syntax-check
-      name: Check for Python syntax errors
-      entry: uv run python -m py_compile
-      language: system
-      types: [python]
+      - id: python-syntax-check
+        name: Check for Python syntax errors
+        entry: uv run python -m py_compile
+        language: system
+        types: [python]
 
-  - repo: local
-    hooks:
-    - id: run-tests
-      name: Run test suite
-      entry: uv run pytest
-      language: system
-      types: [python]
+      - id: run-tests
+        name: Run test suite
+        entry: uv run pytest tests
+        language: system
+        types: [python]

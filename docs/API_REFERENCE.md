@@ -452,7 +452,7 @@ print(original)  # Still ["ls", "l", "dir"]
 
 ### `app.list_commands_with_aliases()`
 
-Get all commands and their aliases.
+Get all aliased commands and their aliases.
 
 ```python
 app.list_commands_with_aliases() -> dict[str, list[str]]
@@ -522,6 +522,9 @@ app = ExtendedTyper(
     # ... all other Typer options ...
 )
 ```
+
+> ![NOTE]
+> For all available Typer options, see the [Typer documentation](https://typer.tiangolo.com/)
 
 ### Configuration Patterns
 

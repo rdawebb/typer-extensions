@@ -74,7 +74,7 @@ def show_all_aliases():
     print("\nConfigured Command Aliases")
     print("=" * 50)
 
-    aliases_map = app.list_commands()
+    aliases_map = app.list_commands_with_aliases()
 
     if not aliases_map:
         print("No aliases configured")
@@ -95,7 +95,7 @@ def register_plugins():
         print("Backing up data...")
         print("Backup complete!")
 
-    app.add_command(backup_data, "backup", aliases=["bak", "save"])
+    app.add_command(backup_data, "backup", aliases=["back", "save"])
 
     # Plugin 2: Export functionality
     def export_data(format: str = "json"):

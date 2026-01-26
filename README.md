@@ -60,7 +60,7 @@ from typer_extensions import ExtendedTyper
 
 app = ExtendedTyper()
 
-@app.command_with_aliases("list", aliases=["ls", "l"])
+@app.command("list", aliases=["ls", "l"])
 def list_items():
     """List all items."""
     print("Listing...")
@@ -124,12 +124,12 @@ from typer_extensions import ExtendedTyper
 
 app = ExtendedTyper()
 
-@app.command_with_aliases("list", aliases=["ls", "l"])
+@app.command("list", aliases=["ls", "l"])
 def list_items():
     """List all items."""
     print("Listing items...")
 
-@app.command_with_aliases("delete", aliases=["rm", "remove"])
+@app.command("delete", aliases=["rm", "remove"])
 def delete_item(name: str):
     """Delete an item."""
     print(f"Deleting {name}")
@@ -172,7 +172,7 @@ app = ExtendedTyper()
 # Existing commands, shell completion and help text configuration still work exactly as before.
 ```
 
-Once migrated, you can add aliases to new commands using `@app.command_with_aliases()`, or to existing commands using the programmatic API.
+Once migrated, you can add aliases to new commands using `@app.command(aliases=[])`, or to existing commands using the programmatic API.
 
 > [!TIP]
 > See [Migration Guide](docs/MIGRATION.md) for detailed migration strategies and patterns.
@@ -243,12 +243,12 @@ python examples/basic_usage.py ls
 
 ### Git-like CLI
 ```python
-@app.command_with_aliases("checkout", aliases=["co"])
+@app.command("checkout", aliases=["co"])
 def checkout(branch: str):
     """Switch branches."""
     ...
 
-@app.command_with_aliases("status", aliases=["st"])
+@app.command("status", aliases=["st"])
 def status():
     """Show status."""
     ...
@@ -256,12 +256,12 @@ def status():
 
 ### Package Manager
 ```python
-@app.command_with_aliases("install", aliases=["i", "add"])
+@app.command("install", aliases=["i", "add"])
 def install(package: str):
     """Install a package."""
     ...
 
-@app.command_with_aliases("remove", aliases=["rm", "uninstall"])
+@app.command("remove", aliases=["rm", "uninstall"])
 def remove(package: str):
     """Remove a package."""
     ...
@@ -287,12 +287,12 @@ else:
 
 ### Decorator Registration
 ```python
-@app.command_with_aliases(name, aliases=[...])
+@app.command(name, aliases=[...])
 ```
 
 ### Programmatic Registration
 ```python
-app.add_aliased_command(func, name, aliases=[...])
+app.add_command(func, name, aliases=[...])
 ```
 
 ### Alias Management
@@ -300,7 +300,7 @@ app.add_aliased_command(func, name, aliases=[...])
 app.add_alias(command, alias)            # Add alias
 app.remove_alias(alias) → bool           # Remove alias
 app.get_aliases(command) → list          # Query aliases
-app.list_commands_with_aliases() → dict  # All mappings
+app.list_commands() → dict               # All mappings
 ```
 
 ### Configuration
@@ -399,11 +399,11 @@ Contributions are welcome! Please open an issue, ask a question, or submit a pul
 🚧 **In Development:**
 - Dynamic config file loading with import/export
 - Shell completion enhancement and typo suggestions
-- Documentation site
+- Shared & chained subcommand aliases
 - Performance optimisations
 
 📋 **Planned Features:**
-- Shared & chained subcommand aliases
+- Documentation site
 - Per-alias help text
 - Dataclass, Pydantic & Attrs support
 - Custom themes and help text formatting

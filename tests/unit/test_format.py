@@ -1,8 +1,7 @@
 """Unit tests for formatters module."""
 
 from typer_extensions.format import (
-    format_command_with_aliases,
-    format_commands_section,
+    format_commands_with_aliases,
     truncate_aliases,
 )
 
@@ -52,102 +51,48 @@ class TestTruncateAliases:
         assert result == "a, b, +4 more"
 
 
-class TestFormatCommandWithAliases:
-    """Tests for format_command_with_aliases function."""
-
-    def test_no_aliases(self):
-        """Test command with no aliases shows name only."""
-        result = format_command_with_aliases("list", [])
-        assert result == "list"
-
-    def test_single_alias(self):
-        """Test command with single alias."""
-        result = format_command_with_aliases("list", ["ls"])
-        assert result == "list (ls)"
-
-    def test_multiple_aliases(self):
-        """Test command with multiple aliases."""
-        result = format_command_with_aliases("list", ["ls", "l"])
-        assert result == "list (ls, l)"
-
-    def test_many_aliases_default_truncation(self):
-        """Test that many aliases truncate at default limit."""
-        aliases = ["a", "b", "c", "d"]
-        result = format_command_with_aliases("cmd", aliases, max_num=3)
-        assert result == "cmd (a, b, c, +1 more)"
-
-    def test_custom_display_format_brackets(self):
-        """Test custom display format with brackets."""
-        result = format_command_with_aliases(
-            "list", ["ls", "l"], display_format="[{aliases}]"
-        )
-        assert result == "list [ls, l]"
-
-    def test_custom_display_format_pipe(self):
-        """Test custom display format with pipe."""
-        result = format_command_with_aliases(
-            "list", ["ls"], display_format="| {aliases}"
-        )
-        assert result == "list | ls"
-
-    def test_custom_separator(self):
-        """Test custom separator between aliases."""
-        result = format_command_with_aliases("list", ["a", "b", "c"], separator=" / ")
-        assert result == "list (a / b / c)"
-
-    def test_custom_max_num(self):
-        """Test custom max num limit."""
-        aliases = ["a", "b", "c", "d", "e"]
-        result = format_command_with_aliases("cmd", aliases, max_num=2)
-        assert result == "cmd (a, b, +3 more)"
-
-    def test_combined_custom_params(self):
-        """Test all custom parameters together."""
-        result = format_command_with_aliases(
-            "cmd",
-            ["a", "b", "c"],
-            display_format="[{aliases}]",
-            max_num=2,
-            separator="; ",
-        )
-        assert result == "cmd [a; b; +1 more]"
-
-    def test_long_command_name(self):
-        """Test with long command name."""
-        result = format_command_with_aliases("very-long-command-name", ["short"])
-        assert result == "very-long-command-name (short)"
-
-    def test_unicode_aliases(self):
-        """Test with unicode characters in aliases."""
-        result = format_command_with_aliases("list", ["ls", "列表"])
-        assert result == "list (ls, 列表)"
-
-
-class TestFormatCommandsSection:
-    """Tests for format_commands_section function."""
+class TestFormatCommandsWithAliases:
+    """Tests for format_commands_with_aliases function."""
 
     def test_no_commands(self):
         """Test empty command list."""
-        result = format_commands_section([], {})
+        result, max_len = format_commands_with_aliases([], {})
+
         assert result == []
+        assert max_len == 0
 
     def test_commands_without_aliases(self):
         """Test commands without any aliases."""
         commands = [("list", "List items"), ("delete", "Delete items")]
-        result = format_commands_section(commands, {})
+        result, max_len = format_commands_with_aliases(commands, {})
 
         assert result == commands
+
+    def test_single_command_with_alias(self):
+        """Test single command with alias."""
+        commands = [("list", "List items")]
+        aliases = {"list": ["ls"]}
+        result, max_len = format_commands_with_aliases(commands, aliases)
+
+        assert len(result) == 1
+        assert result[0][0].startswith("list")
+        assert result[0][1] == "List items"
 
     def test_all_commands_with_aliases(self):
         """Test all commands have aliases."""
         commands = [("list", "List items"), ("delete", "Delete items")]
         aliases = {"list": ["ls", "l"], "delete": ["rm"]}
-        result = format_commands_section(commands, aliases)
+        result, max_len = format_commands_with_aliases(commands, aliases)
 
-        assert result == [
-            ("list (ls, l)", "List items"),
-            ("delete (rm)", "Delete items"),
-        ]
+        assert len(result) == 2
+        assert result[0][0].startswith("list")
+        assert "(ls, l)" in result[0][0]
+        assert result[1][0].startswith("delete")
+        assert "(rm)" in result[1][0]
+
+        # Should be padded to the same length
+        assert len(result[0][0]) == len(result[1][0])
+        assert max_len == len(result[0][0])
 
     def test_mixed_aliased_and_non_aliased(self):
         """Test mix of commands with and without aliases."""
@@ -157,47 +102,96 @@ class TestFormatCommandsSection:
             ("create", "Create item"),
         ]
         aliases = {"list": ["ls"], "delete": ["rm"]}
-        result = format_commands_section(commands, aliases)
+        result, max_len = format_commands_with_aliases(commands, aliases)
 
-        assert result == [
-            ("list (ls)", "List items"),
-            ("delete (rm)", "Delete items"),
-            ("create", "Create item"),
-        ]
+        assert len(result) == 3
+        assert result[0][0].startswith("list")
+        assert result[1][0].startswith("delete")
+        assert result[2][0] == "create"
 
-    def test_custom_format_applied(self):
-        """Test custom display format is applied."""
+    def test_custom_display_format_square(self):
+        """Test custom display format with square brackets."""
         commands = [("list", "List items")]
-        aliases = {"list": ["ls"]}
-        result = format_commands_section(
+        aliases = {"list": ["ls", "l"]}
+        result, max_len = format_commands_with_aliases(
             commands, aliases, display_format="[{aliases}]"
         )
 
-        assert result == [("list [ls]", "List items")]
+        assert "[ls, l]" in result[0][0]
 
-    def test_truncation_applied(self):
-        """Test truncation is applied to long alias lists."""
+    def test_custom_display_format_arrow(self):
+        """Test custom display format with arrows."""
         commands = [("list", "List items")]
-        aliases = {"list": ["a", "b", "c", "d"]}
-        result = format_commands_section(commands, aliases, max_num=2)
+        aliases = {"list": ["ls", "l"]}
+        result, max_len = format_commands_with_aliases(
+            commands, aliases, display_format="<{aliases}>"
+        )
 
-        assert result == [("list (a, b, +2 more)", "List items")]
+        assert "<ls, l>" in result[0][0]
 
-    def test_custom_separator_applied(self):
+    def test_custom_separator(self):
         """Test custom separator is applied."""
         commands = [("list", "List items")]
-        aliases = {"list": ["a", "b"]}
-        result = format_commands_section(commands, aliases, separator=" | ")
+        aliases = {"list": ["ls", "l"]}
+        result, max_len = format_commands_with_aliases(
+            commands, aliases, separator=" | "
+        )
 
-        assert result == [("list (a | b)", "List items")]
+        assert "ls | l" in result[0][0]
+
+    def test_custom_max_num(self):
+        """Test custom max_num is applied."""
+        commands = [("list", "List items")]
+        aliases = {"list": ["ls", "l"]}
+        result, max_len = format_commands_with_aliases(commands, aliases, max_num=1)
+
+        assert "(ls, +1 more)" in result[0][0]
+
+    def test_combined_custom_params(self):
+        """Test combined custom parameters are applied."""
+        commands = [("cmd", "Command")]
+        aliases = {"cmd": ["a", "b", "c"]}
+        result, max_len = format_commands_with_aliases(
+            commands, aliases, display_format="[{aliases}]", separator=" / ", max_num=2
+        )
+
+        assert "[a / b / +1 more]" in result[0][0]
+
+    def test_alignment_padding(self):
+        """Test that commands are properly aligned with padding."""
+        commands = [("a", "Short"), ("verylongname", "Long help text")]
+        aliases = {"a": ["x"], "verylongname": ["vln"]}
+        result, max_len = format_commands_with_aliases(commands, aliases)
+
+        # Should be padded to the same length
+        assert len(result[0][0]) == len(result[1][0])
+
+    def test_long_command_name(self):
+        """Test long command name is handled properly."""
+        commands = [("verylongcommandname", "Long help text")]
+        aliases = {"verylongcommandname": ["vlcn"]}
+        result, max_len = format_commands_with_aliases(commands, aliases)
+
+        assert "verylongcommandname" in result[0][0]
+        assert "(vlcn)" in result[0][0]
+
+    def test_unicode_aliases(self):
+        """Test handling of unicode characters in aliases."""
+        commands = [("list", "List items")]
+        aliases = {"list": ["ls", "列表"]}
+        result, max_len = format_commands_with_aliases(commands, aliases)
+
+        assert "ls" in result[0][0]
+        assert "列表" in result[0][0]
 
     def test_none_help_text(self):
         """Test commands with None help text."""
         commands = [("list", None), ("delete", "Delete items")]
         aliases = {"list": ["ls"]}
-        result = format_commands_section(commands, aliases)
+        result, max_len = format_commands_with_aliases(commands, aliases)
 
-        assert result == [("list (ls)", None), ("delete", "Delete items")]
+        assert result[0][1] is None
+        assert result[1][1] == "Delete items"
 
     def test_preserves_command_order(self):
         """Test that command order is preserved."""
@@ -207,12 +201,22 @@ class TestFormatCommandsSection:
             ("mmm", "Middle"),
         ]
         aliases = {"zzz": ["z"], "aaa": ["a"]}
-        result = format_commands_section(commands, aliases)
+        result, max_len = format_commands_with_aliases(commands, aliases)
 
         # Order should be preserved, not alphabetised
         assert result[0][0].startswith("zzz")
         assert result[1][0].startswith("aaa")
         assert result[2][0] == "mmm"
+
+    def test_formatted_max_length_returned(self):
+        """Test that the formatted max length is correctly returned."""
+        commands = [("short", "Short"), ("verylongcommand", "Long")]
+        aliases = {"short": ["s"], "verylongcommand": ["vlc"]}
+        result, max_len = format_commands_with_aliases(commands, aliases)
+
+        # Should be the length of longest formatted command
+        assert max_len == len(result[0][0])
+        assert max_len == len(result[1][0])
 
 
 class TestFormattersEdgeCases:
@@ -226,13 +230,22 @@ class TestFormattersEdgeCases:
 
     def test_alias_with_spaces(self):
         """Test aliases containing spaces."""
-        result = format_command_with_aliases("cmd", ["alias one", "alias two"])
-        assert result == "cmd (alias one, alias two)"
+        commands = [("cmd", "Command")]
+        aliases = {"cmd": ["alias one", "alias two"]}
+        result, max_len = format_commands_with_aliases(commands, aliases)
+
+        assert "alias one" in result[0][0]
+        assert "alias two" in result[0][0]
 
     def test_alias_with_special_chars(self):
         """Test aliases with special characters."""
-        result = format_command_with_aliases("cmd", ["alias-1", "alias_2", "alias.3"])
-        assert result == "cmd (alias-1, alias_2, alias.3)"
+        commands = [("cmd", "Command")]
+        aliases = {"cmd": ["alias@one", "alias#two", "alias$three"]}
+        result, max_len = format_commands_with_aliases(commands, aliases)
+
+        assert "alias@one" in result[0][0]
+        assert "alias#two" in result[0][0]
+        assert "alias$three" in result[0][0]
 
     def test_empty_string_alias(self):
         """Test handling of empty string in alias list."""

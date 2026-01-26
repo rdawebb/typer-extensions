@@ -557,7 +557,7 @@ def test_l_command(cli_runner):
 **After (more concise):**
 ```python
 @pytest.mark.parametrize("cmd", ["list", "ls", "l"])
-def test_list_commands(cli_runner, cmd):
+def test_list_commands_with_aliases(cli_runner, cmd):
     result = cli_runner.invoke(app, [cmd])
     assert "Listing" in result.output
 ```

@@ -5,8 +5,8 @@ from typing import Any, Callable, Optional, Protocol, Union, cast
 
 import typer
 import typer.main
-import click
 from click import Command, Group
+from click.core import Context
 from typer.core import TyperGroup
 
 
@@ -17,7 +17,7 @@ class HasName(Protocol):
 
 
 class ExtendedGroup(TyperGroup):
-    """Custom Click Group that handles command aliases"""
+    """Custom Typer Group that handles command aliases"""
 
     def __init__(
         self,
@@ -29,12 +29,12 @@ class ExtendedGroup(TyperGroup):
 
         Args:
             extended_typer: Reference to the ExtendedTyper instance for alias resolution
-            *args, **kwargs: Arguments passed to Click Group
+            *args, **kwargs: Arguments passed to Typer Group
         """
         super().__init__(*args, **kwargs)
         self._extended_typer = extended_typer
 
-    def get_command(self, ctx: click.core.Context, cmd_name: str) -> Optional[Command]:
+    def get_command(self, ctx: Context, cmd_name: str) -> Optional[Command]:
         """Override Click's get_command to support aliases
 
         Args:
@@ -58,7 +58,7 @@ class ExtendedGroup(TyperGroup):
 
         return None
 
-    def format_help(self, ctx: click.core.Context, formatter: Any) -> None:
+    def format_help(self, ctx: Context, formatter: Any) -> None:
         """Override TyperGroup's format_help to inject aliases into Rich output
 
         Args:
@@ -91,43 +91,38 @@ class ExtendedGroup(TyperGroup):
                 console: The console instance for output
                 cmd_len: The length of the longest command name
             """
-            modified_commands: list[Command] = []
-            max_len = cmd_len
+            from .format import format_commands_with_aliases
 
-            for command in commands:
-                if (
-                    self._extended_typer
-                    and self._extended_typer.show_aliases_in_help
-                    and command.name in self._extended_typer._command_aliases
-                ):
-                    from .format import format_command_with_aliases
+            if (
+                self._extended_typer
+                and self._extended_typer.show_aliases_in_help
+                and self._extended_typer._command_aliases
+            ):
+                cmd_tuples = [
+                    (str(getattr(cmd, "name", "")), getattr(cmd, "help", None))
+                    for cmd in commands
+                ]
 
-                    formatted_name = format_command_with_aliases(
-                        command.name,
-                        self._extended_typer._command_aliases[command.name],
-                        display_format=self._extended_typer.alias_display_format,
-                        max_num=self._extended_typer.max_num_aliases,
-                        separator=self._extended_typer.alias_separator,
-                    )
+                formatted_tuples, max_len = format_commands_with_aliases(
+                    cmd_tuples,
+                    self._extended_typer._command_aliases,
+                    display_format=self._extended_typer.alias_display_format,
+                    max_num=self._extended_typer.max_num_aliases,
+                    separator=self._extended_typer.alias_separator,
+                )
 
-                    # Longest formatted name for correct column width
-                    max_len = max(max_len, len(formatted_name))
+                for i, (formatted_name, _) in enumerate(formatted_tuples):
+                    commands[i].name = formatted_name
 
-                    # Temporary command object with the formatted name
-                    cmd_copy = command
-                    cmd_copy.name = formatted_name
-
-                    modified_commands.append(cmd_copy)
-                else:
-                    modified_commands.append(command)
+                cmd_len = max_len
 
             # Call the original with modified commands & cmd_len
             original_print(
                 name=name,
-                commands=modified_commands,
+                commands=commands,
                 markup_mode=markup_mode,
                 console=console,
-                cmd_len=max_len,
+                cmd_len=cmd_len,
             )
 
         # Temporarily replace the function
@@ -304,13 +299,11 @@ class ExtendedTyper(typer.Typer):
         normalised_alias = self._normalise_name(alias)
         normalised_cmd = self._normalise_name(command_name)
 
-        # Check if alias is the same as command name
         if normalised_alias == normalised_cmd:
             raise ValueError(
                 f"Alias '{alias}' cannot be the same as command name '{command_name}'"
             )
 
-        # Check if alias is already registered
         if normalised_alias in self._alias_to_command:
             existing_cmd = self._alias_to_command[normalised_alias]
             raise ValueError(
@@ -553,10 +546,10 @@ class ExtendedTyper(typer.Typer):
             return self._command_aliases[command_name].copy()
         return []
 
-    def list_commands(self) -> dict[str, list[str]]:
-        """List all commands and their aliases
+    def list_commands_with_aliases(self) -> dict[str, list[str]]:
+        """List all aliased commands and their aliases
 
-        Returns a dictionary mapping command names to their aliases - only includes commands with aliases and returns a copy, so modifications won't affect the original
+        Only includes commands with aliases and returns a copy, so modifications won't affect the original
 
         Returns:
             A dictionary mapping command names to their aliases, or an empty dictionary if no commands have aliases
