@@ -215,6 +215,7 @@ __marimo__/
 
 # Development
 benchmark/
+dev/
 
 # To be committed in future
 CONTRIBUTING.md

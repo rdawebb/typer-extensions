@@ -106,11 +106,9 @@ class TestProgrammaticWithArguments:
 
     def test_programmatic_command_with_option(self, cli_runner):
         """Test programmatically registered command with option"""
-        import typer
-
         app = ExtendedTyper()
 
-        def list_items(verbose: bool = typer.Option(False, "--verbose", "-v")):
+        def list_items(verbose: bool = app.Option(False, "--verbose", "-v")):
             if verbose:
                 print("Listing (verbose)...")
             else:

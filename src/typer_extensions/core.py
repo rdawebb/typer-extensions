@@ -10,6 +10,9 @@ from click.core import Context
 from typer.core import TyperGroup
 
 
+_ALIAS_PATTERN = re.compile(r"^[\w\-]+$", re.UNICODE)
+
+
 class HasName(Protocol):
     """Protocol for objects that have a name attribute"""
 
@@ -50,89 +53,9 @@ class ExtendedGroup(TyperGroup):
         # Try to resolve as an active alias first
         primary_cmd = self._extended_typer._resolve_alias(cmd_name)
         if primary_cmd is not None:
-            return super().get_command(ctx, primary_cmd)
+            cmd_name = primary_cmd
 
-        cmd = super().get_command(ctx, cmd_name)
-        if cmd is not None:
-            return cmd
-
-        return None
-
-    def format_help(self, ctx: Context, formatter: Any) -> None:
-        """Override TyperGroup's format_help to inject aliases into Rich output
-
-        Args:
-            ctx: The Click context
-            formatter: The Click HelpFormatter instance
-        """
-        # Check if Rich formatting is enabled
-        if not hasattr(self, "rich_markup_mode") or self.rich_markup_mode is None:
-            return super().format_help(ctx, formatter)
-
-        from typer import rich_utils
-
-        # Store original _print_commands_panel
-        original_print = rich_utils._print_commands_panel
-
-        def custom_print_commands_panel(
-            *,
-            name: str,
-            commands: list[Command],
-            markup_mode: Any,
-            console: Any,
-            cmd_len: int,
-        ) -> None:
-            """Wrapper that modifies command names to include aliases
-
-            Args:
-                name: The name of the command group
-                commands: The list of commands in the group
-                markup_mode: The markup mode for the console output
-                console: The console instance for output
-                cmd_len: The length of the longest command name
-            """
-            from .format import format_commands_with_aliases
-
-            if (
-                self._extended_typer
-                and self._extended_typer.show_aliases_in_help
-                and self._extended_typer._command_aliases
-            ):
-                cmd_tuples = [
-                    (str(getattr(cmd, "name", "")), getattr(cmd, "help", None))
-                    for cmd in commands
-                ]
-
-                formatted_tuples, max_len = format_commands_with_aliases(
-                    cmd_tuples,
-                    self._extended_typer._command_aliases,
-                    display_format=self._extended_typer.alias_display_format,
-                    max_num=self._extended_typer.max_num_aliases,
-                    separator=self._extended_typer.alias_separator,
-                )
-
-                for i, (formatted_name, _) in enumerate(formatted_tuples):
-                    commands[i].name = formatted_name
-
-                cmd_len = max_len
-
-            # Call the original with modified commands & cmd_len
-            original_print(
-                name=name,
-                commands=commands,
-                markup_mode=markup_mode,
-                console=console,
-                cmd_len=cmd_len,
-            )
-
-        # Temporarily replace the function
-        rich_utils._print_commands_panel = custom_print_commands_panel  # type: ignore[attr-defined]
-        try:
-            # Call parent's format_help with custom_print_commands_panel
-            super().format_help(ctx, formatter)
-        finally:
-            # Restore original function
-            rich_utils._print_commands_panel = original_print
+        return super().get_command(ctx, cmd_name)
 
 
 # Store original function
@@ -158,25 +81,40 @@ def _extended_get_group_from_info(
     # If Typer instance is ExtendedTyper, wrap it in an ExtendedGroup
     if isinstance(typer_info.typer_instance, ExtendedTyper):
         extended_typer = typer_info.typer_instance
+
+        if not extended_typer._alias_to_command:
+            return group  # No aliases registered, return standard group
+
+        typer_group_kwargs = {
+            "name": group.name,
+            "callback": group.callback,
+            "params": group.params,
+            "help": group.help,
+            "epilog": group.epilog,
+            "short_help": group.short_help,
+            "options_metavar": group.options_metavar,
+            "subcommand_metavar": group.subcommand_metavar,
+            "chain": group.chain,
+            "result_callback": group.result_callback,
+            "context_settings": group.context_settings,
+        }
+
+        if hasattr(group, "__dict__"):
+            if "rich_markup_mode" in group.__dict__:
+                typer_group_kwargs["rich_markup_mode"] = group.__dict__[
+                    "rich_markup_mode"
+                ]
+            if "rich_help_panel" in group.__dict__:
+                typer_group_kwargs["rich_help_panel"] = group.__dict__[
+                    "rich_help_panel"
+                ]
+
         extended_group = ExtendedGroup(
-            name=group.name,
-            callback=group.callback,
-            params=group.params,
-            help=group.help,
-            epilog=group.epilog,
-            short_help=group.short_help,
-            options_metavar=group.options_metavar,
-            subcommand_metavar=group.subcommand_metavar,
-            chain=group.chain,
-            result_callback=group.result_callback,
-            context_settings=group.context_settings,
+            **typer_group_kwargs,
             extended_typer=extended_typer,
-            rich_markup_mode=group.rich_markup_mode,
-            rich_help_panel=group.rich_help_panel,
         )
 
-        for name, cmd in group.commands.items():
-            extended_group.add_command(cmd, name=name)
+        extended_group.commands = group.commands
 
         return extended_group
 
@@ -243,8 +181,6 @@ class ExtendedTyper(typer.Typer):
             max_num_aliases: Maximum number of aliases to display before truncating with '+ N more'
             **kwargs: Keyword arguments for Typer
         """
-        kwargs.setdefault("rich_markup_mode", "rich")
-        kwargs.setdefault("rich_help_panel", True)
         super().__init__(*args, **kwargs)
 
         # Sync with Typer's case_sensitive setting if not explicitly set
@@ -291,7 +227,7 @@ class ExtendedTyper(typer.Typer):
         if any(c.isspace() for c in alias):
             raise ValueError("Alias cannot contain whitespace")
 
-        if not re.match(r"^[\w\-]+$", alias, re.UNICODE):
+        if not _ALIAS_PATTERN.match(alias):
             raise ValueError(
                 "Alias must only contain alphanumeric characters, dashes, and underscores (Unicode allowed)"
             )
@@ -334,25 +270,19 @@ class ExtendedTyper(typer.Typer):
             **kwargs: Additional keyword arguments for command registration
 
         Returns:
-            The registered Click Command object
+            The registered command function
 
         Raises:
             ValueError: If any aliases conflict with existing commands/aliases
         """
         aliases = aliases or []
 
-        super().command(name, **kwargs)(func)
+        cmd = super().command(name, **kwargs)(func)
 
         for alias in aliases:
             self._register_alias(name, alias)
 
-        click_obj = typer.main.get_command(self)
-        if isinstance(click_obj, Group):
-            command = click_obj.commands[name]
-        else:
-            command = click_obj
-
-        return command
+        return cmd
 
     def _resolve_alias(self, name: str) -> Optional[str]:
         """Resolve a command/alias name to its primary command name

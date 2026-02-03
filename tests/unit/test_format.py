@@ -1,5 +1,7 @@
 """Unit tests for formatters module."""
 
+from unittest.mock import patch
+
 from typer_extensions.format import (
     format_commands_with_aliases,
     truncate_aliases,
@@ -263,3 +265,18 @@ class TestFormattersEdgeCases:
         result = truncate_aliases(["a", "b"], -1)
         # Should return empty, so only +N more
         assert "+2 more" in result
+
+    def test_calculate_width_import_error_fallback(self):
+        """Test calculate_width fallback when wcswidth raises ImportError
+
+        Covers lines 52-54: ImportError exception handler
+        """
+        from typer_extensions import format
+
+        # Patch wcswidth to raise ImportError
+        with patch(
+            "typer_extensions.format.wcswidth", side_effect=ImportError("Mock error")
+        ):
+            # Should fall back to len()
+            result = format.calculate_width("test string")
+            assert result == len("test string")

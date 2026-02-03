@@ -1,6 +1,5 @@
 """Integration tests for decorator usage in real CLI scenarios"""
 
-import typer
 from typer_extensions import ExtendedTyper, Context
 
 
@@ -118,7 +117,7 @@ class TestDecoratorWithTyperFeatures:
         app = ExtendedTyper()
 
         @app.command("list", aliases=["ls"])
-        def list_items(verbose: bool = typer.Option(False, "--verbose", "-v")):
+        def list_items(verbose: bool = app.Option(False, "--verbose", "-v")):
             """List items."""
             if verbose:
                 print("Listing items (verbose)...")
@@ -217,7 +216,7 @@ class TestDecoratorHelpDisplay:
         app = ExtendedTyper()
 
         @app.command("list", aliases=["ls"])
-        def list_items(verbose: bool = typer.Option(False, "--verbose")):
+        def list_items(verbose: bool = app.Option(False, "--verbose")):
             """List all items in the system."""
             pass
 
@@ -237,7 +236,7 @@ class TestDecoratorHelpDisplay:
         app = ExtendedTyper()
 
         @app.command("list", aliases=["ls"])
-        def list_items(verbose: bool = typer.Option(False, "--verbose")):
+        def list_items(verbose: bool = app.Option(False, "--verbose")):
             """List all items in the system."""
             pass
 
@@ -305,7 +304,7 @@ class TestDecoratorRealWorldScenarios:
             print("On branch main")
 
         @app.command("commit", aliases=["ci"])
-        def commit(message: str = typer.Option(..., "--message", "-m")):
+        def commit(message: str = app.Option(..., "--message", "-m")):
             """Commit changes."""
             print(f"Committed: {message}")
 

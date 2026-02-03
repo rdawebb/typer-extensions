@@ -58,3 +58,29 @@ def test_aliased_typer_has_argument_and_option():
     # Should match Typer's
     assert app.Argument == typer.Argument
     assert app.Option == typer.Option
+
+
+def test_getattr_fallback_to_typer():
+    """Test that __getattr__ provides forward compatibility with Typer"""
+    import typer
+
+    # Test accessing Typer attributes through typer_extensions
+    assert typer_extensions.Typer == typer.Typer
+    assert typer_extensions.Exit == typer.Exit
+    assert typer_extensions.Abort == typer.Abort
+
+
+def test_getattr_raises_for_nonexistent_attribute():
+    """Test that __getattr__ raises AttributeError for non-existent attributes"""
+    import pytest
+
+    with pytest.raises(AttributeError):
+        _ = typer_extensions.NonExistentAttribute
+
+
+def test_context_exported():
+    """Test that Context is properly exported from the package"""
+    from typer_extensions import Context
+
+    assert Context is not None
+    assert hasattr(Context, "__init__")

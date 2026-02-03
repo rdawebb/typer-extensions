@@ -21,6 +21,35 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ### Added
 
+- New `_rich_utils.py` module providing drop-in replacements for Typer's rich_utils functions
+  - Enhanced help text formatting with support for command aliases
+  - Graceful fallback when Rich library is unavailable
+  - Support for `TYPER_USE_RICH` environment variable to disable Rich entirely
+  - Proper handling of deprecated commands, multiline help, and complex formatting scenarios
+- New `_import_hook.py` module implementing dynamic import interception
+  - `TyperRichUtilsInterceptor` class for intercepting `typer.rich_utils` imports
+  - Dynamic module replacement before Typer initialisation
+  - Robust error handling and fallback mechanisms
+- New `_patch.py` module for monkey-patching Typer's rich utilities
+  - Version checking for Typer compatibility
+  - Patch state tracking and logging
+  - Environment variable-based opt-out (`TYPER_EXTENSIONS_RICH=0`)
+  - Graceful degradation if Typer already imported
+- 13 new comprehensive test files for enhanced functionality:
+  - `test_rich_utils.py`: Core Rich utilities functionality
+  - `test_rich_utils_coverage.py`: Edge cases with Rich enabled
+  - `test_rich_utils_edge_cases.py`: Complex formatting scenarios
+  - `test_rich_utils_fallbacks.py`: Fallback paths when Rich disabled
+  - `test_rich_utils_more_edge_cases.py`: Additional edge case coverage
+  - `test_import_hook.py`: Import hook interception logic
+  - `test_patch.py`: Monkey-patching application and state
+  - `test_patch_edge_cases.py`: Patching edge cases and error scenarios
+  - `test_init_coverage.py`: Module initialization coverage
+  - `test_init_error_handling.py`: Import error handling
+  - `test_init_module.py`: Module loading and setup
+  - `test_init_module_edge_cases.py`: Initialisation edge cases
+  - `test_rich_utils_integration.py`: Integration tests with Rich and Typer
+- Enhanced `test_smoke.py` with `__getattr__` fallback and `Context` export tests
 - Complete API Reference documentation (`docs/API_REFERENCE.md`)
 - Comprehensive User Guide with patterns and best practices (`docs/USER_GUIDE.md`)
 - Migration guide for switching from standard Typer (`docs/MIGRATION.md`)
@@ -32,6 +61,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ### Changed
 
+- Updated existing test files for compatibility with new Rich integration system
+- Enhanced integration tests in `test_basic.py`, `test_decorator_usage.py`, and `test_programmatic_usage.py`
+- Improved `tests/conftest.py` with enhanced fixtures for Rich integration testing
 - Refactored `scripts/release.py` to use module-level constants (TEST_ENV, DIST_DIR)
 - Updated `scripts/release.py` to use `uv venv` instead of `python3 -m venv`
 - Improved type hints throughout codebase

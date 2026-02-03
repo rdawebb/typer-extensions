@@ -73,12 +73,22 @@ class TestAddAliasedCommand:
             """Delete items."""
             pass
 
-        cmd = app.add_command(
+        app.add_command(
             list_items, "list", aliases=["ls"], help="Custom help", deprecated=True
         )
+        app.add_command(delete_item, "delete")
 
-        assert cmd is not None
-        assert cmd.deprecated is True
+        # Retrieve the registered Click command object
+        import typer
+        from click import Group
+
+        click_obj = typer.main.get_command(app)
+        if isinstance(click_obj, Group):
+            registered_cmd = click_obj.commands.get("list")
+
+            # Should be registered with the deprecated flag
+            assert registered_cmd is not None
+            assert registered_cmd.deprecated is True
 
     def test_add_multiple_commands(self):
         """Test adding multiple commands programmatically."""

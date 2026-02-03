@@ -1,10 +1,18 @@
 """Pytest configuration for the typer-aliases tests"""
 
+from __future__ import annotations
+
 import re
+import sys
+from pathlib import Path
 
 import pytest
 
 from typer.testing import CliRunner
+
+
+# Get the project root
+PROJECT_ROOT = Path(__file__).parent.parent
 
 
 def strip_ansi_codes(text: str) -> str:
@@ -60,3 +68,55 @@ def clean_output():
 def assert_formatted_cmd():
     """Fixture providing the assert_formatted_command function for use in tests"""
     return assert_formatted_command
+
+
+def pytest_configure(config):
+    """Register custom markers."""
+    config.addinivalue_line(
+        "markers",
+        "isolated: mark test to run in isolated subprocess (deselect with '-m \"not isolated\"')",
+    )
+
+
+@pytest.fixture
+def subprocess_runner():
+    """Fixture for running code in isolated subprocess."""
+
+    def run_code(code: str, env: dict | None = None):
+        """Execute Python code in a subprocess with optional environment variables.
+
+        Args:
+            code: Python code to execute
+            env: Optional dict of environment variables to set
+
+        Returns:
+            subprocess.CompletedProcess with stdout, stderr, and returncode
+        """
+        import subprocess as sp
+        import os
+
+        # Start with current environment
+        run_env = os.environ.copy()
+
+        # Update with any provided environment variables
+        if env:
+            run_env.update(env)
+
+        # Add src to Python path so the package can be imported
+        python_path = run_env.get("PYTHONPATH", "")
+        src_path = str(PROJECT_ROOT / "src")
+        if python_path:
+            python_path = f"{src_path}:{python_path}"
+        else:
+            python_path = src_path
+        run_env["PYTHONPATH"] = python_path
+
+        return sp.run(
+            [sys.executable, "-c", code],
+            capture_output=True,
+            text=True,
+            cwd=str(PROJECT_ROOT),
+            env=run_env,
+        )
+
+    return run_code

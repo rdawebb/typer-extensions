@@ -29,7 +29,7 @@ classifiers = [
 dependencies = [
     "click>=8.0.0,<9.0.0",
     "typer>=0.9.0",
-    "wcwidth>=0.3.0,<1.0.0"
+    "wcwidth>=0.5.0,<1.0.0"
 ]
 
 [project.optional-dependencies]
@@ -39,7 +39,7 @@ dev = [
     "pytest>=8.0.0,<10.0.0",
     "pytest-cov>=7.0.0,<8.0.0",
     "ruff>=0.14.14,<15.0.0",
-    "ty>=0.0.13,<0.1.0"
+    "ty>=0.0.14,<0.1.0"
 ]
 
 [project.urls]
@@ -48,6 +48,9 @@ Documentation = "https://github.com/rdawebb/typer-extensions#readme"
 Repository = "https://github.com/rdawebb/typer-extensions"
 Changelog = "https://github.com/rdawebb/typer-extensions/blob/main/CHANGELOG.md"
 Issues = "https://github.com/rdawebb/typer-extensions/issues"
+
+[tool.hatch.build]
+sources = ["src"]
 
 [tool.hatch.build.targets.sdist]
 include = [

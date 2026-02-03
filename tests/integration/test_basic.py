@@ -1,6 +1,6 @@
 """Integration tests for basic command invocation with aliases."""
 
-from typer_extensions import ExtendedTyper
+from typer_extensions import Context, ExtendedTyper
 
 
 class TestBasicInvocation:
@@ -192,18 +192,16 @@ class TestTyperCompatibility:
 
     def test_typer_context_works(self, cli_runner, clean_output):
         """Test that Typer context still works correctly."""
-        import typer
-
         app = ExtendedTyper()
 
         @app.command("list")
-        def list_items(ctx: typer.Context):
+        def list_items(ctx: Context):
             """List items."""
             assert ctx is not None
             print(f"Command: {ctx.info_name}")
 
         @app.command("delete")
-        def delete_items(ctx: typer.Context):
+        def delete_items(ctx: Context):
             """Delete items."""
             assert ctx is not None
             print(f"Command: {ctx.info_name}")
