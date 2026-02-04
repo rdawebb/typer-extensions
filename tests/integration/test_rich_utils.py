@@ -24,13 +24,13 @@ class TestRichUtilsFormatHelp:
             app.echo(f"Hello {name}!")
 
         result = cli_runner.invoke(app, ["--help"])
-        assert result.exit_code == 0
-        clean = clean_output(result.output)
+        clean_result = clean_output(result.output)
 
         # Help should contain command info
-        assert "hello" in clean
-        assert "Say hello" in clean
-        assert "name" in clean
+        assert result.exit_code == 0
+        assert "hello" in clean_result
+        assert "Say hello" in clean_result
+        assert "name" in clean_result
 
     def test_command_help_with_arguments(self, cli_runner, clean_output):
         """Test command help with arguments"""
@@ -42,10 +42,11 @@ class TestRichUtilsFormatHelp:
             app.echo(f"Hi {name}!")
 
         result = cli_runner.invoke(app, ["greet", "--help"])
+        clean_result = clean_output(result.output)
+
         assert result.exit_code == 0
-        clean = clean_output(result.output)
-        assert "Greet someone" in clean
-        assert "name" in clean
+        assert "Greet someone" in clean_result
+        assert "name" in clean_result
 
     def test_command_help_with_multiple_options(self, cli_runner, clean_output):
         """Test help with multiple options"""
@@ -61,13 +62,13 @@ class TestRichUtilsFormatHelp:
             app.echo(f"Config: {host}:{port}")
 
         result = cli_runner.invoke(app, ["configure", "--help"])
-        assert result.exit_code == 0
-        clean = clean_output(result.output)
+        clean_result = clean_output(result.output)
 
         # Should show all options
-        assert "host" in clean
-        assert "port" in clean
-        assert "debug" in clean
+        assert result.exit_code == 0
+        assert "host" in clean_result
+        assert "port" in clean_result
+        assert "debug" in clean_result
 
 
 class TestRichUtilsErrorFormatting:
@@ -98,7 +99,7 @@ class TestRichUtilsErrorFormatting:
         result = cli_runner.invoke(app, ["take_number", "not-a-number"])
         assert result.exit_code != 0
 
-    def test_deprecation_message_in_help(self, cli_runner):
+    def test_deprecation_message_in_help(self, cli_runner, clean_output):
         """Test deprecation markers in help text"""
         app = ExtendedTyper()
 
@@ -108,16 +109,18 @@ class TestRichUtilsErrorFormatting:
             app.echo("Old!")
 
         result = cli_runner.invoke(app, ["--help"])
+        clean_result = clean_output(result.output)
+
+        # Should indicate deprecation
         assert result.exit_code == 0
-        # Should indicate deprecation somehow
-        output_lower = result.output.lower()
+        output_lower = clean_result.lower()
         assert "deprecated" in output_lower
 
 
 class TestRichUtilsWithRichDisabled:
     """Tests for _rich_utils when Rich rendering is disabled."""
 
-    def test_help_works_with_rich_disabled(self, cli_runner):
+    def test_help_works_with_rich_disabled(self, cli_runner, clean_output):
         """Test that help still works when Rich output is disabled"""
         app = ExtendedTyper()
 
@@ -129,8 +132,10 @@ class TestRichUtilsWithRichDisabled:
         # Disable Rich output
         with patch.dict(os.environ, {"TYPER_USE_RICH": "0"}):
             result = cli_runner.invoke(app, ["--help"])
+            clean_result = clean_output(result.output)
+
             assert result.exit_code == 0
-            assert "simple" in result.output or "greet" in result.output
+            assert "simple" in clean_result or "greet" in clean_result
 
     def test_error_output_without_rich(self, cli_runner):
         """Test error output works without Rich"""
@@ -169,12 +174,12 @@ class TestRichUtilsHelpWithGroups:
         app.add_typer(db_app, name="db", help="Database commands")
 
         result = cli_runner.invoke(app, ["--help"])
-        assert result.exit_code == 0
-        clean = clean_output(result.output)
+        clean_result = clean_output(result.output)
 
         # Should show the db group
-        assert "db" in clean
-        assert "Database" in clean
+        assert result.exit_code == 0
+        assert "db" in clean_result
+        assert "Database" in clean_result
 
     def test_subcommand_help(self, cli_runner, clean_output):
         """Test help for subcommands within groups"""
@@ -193,11 +198,11 @@ class TestRichUtilsHelpWithGroups:
         app.add_typer(db_app, name="db")
 
         result = cli_runner.invoke(app, ["db", "connect", "--help"])
-        assert result.exit_code == 0
-        clean = clean_output(result.output)
+        clean_result = clean_output(result.output)
 
-        assert "host" in clean
-        assert "port" in clean
+        assert result.exit_code == 0
+        assert "host" in clean_result
+        assert "port" in clean_result
 
 
 class TestRichUtilsCustomHelpText:
@@ -222,8 +227,10 @@ class TestRichUtilsCustomHelpText:
             app.echo(f"Processing: {title}")
 
         result = cli_runner.invoke(app, ["document", "--help"])
+        clean_result = clean_output(result.output)
+
         assert result.exit_code == 0
-        assert "title" in result.output
+        assert "title" in clean_result
 
     def test_help_text_with_special_characters(self, cli_runner, clean_output):
         """Test help text with special characters"""
@@ -240,8 +247,10 @@ class TestRichUtilsCustomHelpText:
             app.echo(f"Pattern: {pattern}")
 
         result = cli_runner.invoke(app, ["special", "--help"])
+        clean_result = clean_output(result.output)
+
         assert result.exit_code == 0
-        assert "special" in result.output or "Match" in result.output
+        assert "special" in clean_result or "Match" in clean_result
 
 
 class TestRichUtilsAbortAndExit:
@@ -305,7 +314,7 @@ class TestRichUtilsVersionDisplay:
         assert result.exit_code == 0
         # Should have help but not version by default
 
-    def test_explicit_version_callback(self, cli_runner):
+    def test_explicit_version_callback(self, cli_runner, clean_output):
         """Test with explicit version in help"""
         app = ExtendedTyper()
 
@@ -325,8 +334,10 @@ class TestRichUtilsVersionDisplay:
             app.echo("Goodbye!")
 
         result = cli_runner.invoke(app, ["hello", "--version"])
+        clean_result = clean_output(result.output)
+
         assert result.exit_code == 0
-        assert "Version 1.0.0" in result.output
+        assert "Version 1.0.0" in clean_result
 
 
 class TestRichUtilsAliasesInHelp:
@@ -342,13 +353,13 @@ class TestRichUtilsAliasesInHelp:
             app.echo("Items:")
 
         result = cli_runner.invoke(app, ["--help"])
-        assert result.exit_code == 0
-        clean = clean_output(result.output)
+        clean_result = clean_output(result.output)
 
         # Should show the command
-        assert "list" in clean
+        assert result.exit_code == 0
+        assert "list" in clean_result
 
-    def test_alias_command_works(self, cli_runner):
+    def test_alias_command_works(self, cli_runner, clean_output):
         """Test that commands with aliases work properly"""
         app = ExtendedTyper()
 
@@ -364,5 +375,7 @@ class TestRichUtilsAliasesInHelp:
 
         # Test original command
         result = cli_runner.invoke(app, ["create"])
+        clean_result = clean_output(result.output)
+
         assert result.exit_code == 0
-        assert "Created" in result.output
+        assert "Created" in clean_result

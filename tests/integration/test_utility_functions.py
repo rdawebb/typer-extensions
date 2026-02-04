@@ -8,7 +8,7 @@ from typer_extensions import ExtendedTyper
 class TestUtilityFunctions:
     """Tests for common Typer utility functions in ExtendedTyper"""
 
-    def test_prompt_integration(self, cli_runner):
+    def test_prompt_integration(self, cli_runner, clean_output):
         """Test prompt working with commands and aliases."""
         app = ExtendedTyper()
 
@@ -25,18 +25,24 @@ class TestUtilityFunctions:
             app.echo(f"Goodbye, {name}!")
 
         result = cli_runner.invoke(app, ["greet"], input="Alice\n")
+        clean_result = clean_output(result.output)
+
         assert result.exit_code == 0
-        assert "Hello, Alice!" in result.output
+        assert "Hello, Alice!" in clean_result
 
         result = cli_runner.invoke(app, ["bye"], input="Bob\n")
+        clean_result = clean_output(result.output)
+
         assert result.exit_code == 0
-        assert "Goodbye, Bob!" in result.output
+        assert "Goodbye, Bob!" in clean_result
 
         result = cli_runner.invoke(app, ["farewell"], input="Charlie\n")
-        assert result.exit_code == 0
-        assert "Goodbye, Charlie!" in result.output
+        clean_result = clean_output(result.output)
 
-    def test_prompt_with_default(self, cli_runner):
+        assert result.exit_code == 0
+        assert "Goodbye, Charlie!" in clean_result
+
+    def test_prompt_with_default(self, cli_runner, clean_output):
         """Test prompt working with default values."""
         app = ExtendedTyper()
 
@@ -52,10 +58,12 @@ class TestUtilityFunctions:
             pass
 
         result = cli_runner.invoke(app, ["greet"], input="\n")
-        assert result.exit_code == 0
-        assert "Hello, World!" in result.output
+        clean_result = clean_output(result.output)
 
-    def test_prompt_type_conversion(self, cli_runner):
+        assert result.exit_code == 0
+        assert "Hello, World!" in clean_result
+
+    def test_prompt_type_conversion(self, cli_runner, clean_output):
         """Test prompt working with type conversion"""
         app = ExtendedTyper()
 
@@ -72,10 +80,12 @@ class TestUtilityFunctions:
 
         # Valid int
         result = cli_runner.invoke(app, ["ask_age"], input="30\n")
-        assert result.exit_code == 0
-        assert "You are 30 years old." in result.output
+        clean_result = clean_output(result.output)
 
-    def test_confirm_integration(self, cli_runner):
+        assert result.exit_code == 0
+        assert "You are 30 years old." in clean_result
+
+    def test_confirm_integration(self, cli_runner, clean_output):
         """Test confirm working with commands and aliases."""
         app = ExtendedTyper()
 
@@ -96,18 +106,24 @@ class TestUtilityFunctions:
                 app.echo("File not deleted.")
 
         result = cli_runner.invoke(app, ["save_file"], input="y\n")
+        clean_result = clean_output(result.output)
+
         assert result.exit_code == 0
-        assert "File saved." in result.output
+        assert "File saved." in clean_result
 
         result = cli_runner.invoke(app, ["rm"], input="n\n")
+        clean_result = clean_output(result.output)
+
         assert result.exit_code == 0
-        assert "File not deleted." in result.output
+        assert "File not deleted." in clean_result
 
         result = cli_runner.invoke(app, ["del"], input="y\n")
-        assert result.exit_code == 0
-        assert "File deleted." in result.output
+        clean_result = clean_output(result.output)
 
-    def test_confirm_case_insensitivity(self, cli_runner):
+        assert result.exit_code == 0
+        assert "File deleted." in clean_result
+
+    def test_confirm_case_insensitivity(self, cli_runner, clean_output):
         """Test confirm working with case insensitivity."""
         app = ExtendedTyper()
 
@@ -126,20 +142,26 @@ class TestUtilityFunctions:
 
         # Uppercase "Y"
         result = cli_runner.invoke(app, ["save_file"], input="Y\n")
+        clean_result = clean_output(result.output)
+
         assert result.exit_code == 0
-        assert "File saved." in result.output
+        assert "File saved." in clean_result
 
         # Full word "no"
         result = cli_runner.invoke(app, ["save_file"], input="no\n")
+        clean_result = clean_output(result.output)
+
         assert result.exit_code == 0
-        assert "File not saved." in result.output
+        assert "File not saved." in clean_result
 
         # Invalid input, then lowercase "y"
         result = cli_runner.invoke(app, ["save_file"], input="maybe\ny\n")
-        assert result.exit_code == 0
-        assert "File saved." in result.output
+        clean_result = clean_output(result.output)
 
-    def test_getchar_integration(self, cli_runner):
+        assert result.exit_code == 0
+        assert "File saved." in clean_result
+
+    def test_getchar_integration(self, cli_runner, clean_output):
         """Test getchar working with commands and aliases."""
         app = ExtendedTyper()
 
@@ -155,18 +177,24 @@ class TestUtilityFunctions:
             pass
 
         result = cli_runner.invoke(app, ["getchar"], input="A\n")
+        clean_result = clean_output(result.output)
+
         assert result.exit_code == 0
-        assert "You pressed: A" in result.output
+        assert "You pressed: A" in clean_result
 
         result = cli_runner.invoke(app, ["char"], input="B\n")
+        clean_result = clean_output(result.output)
+
         assert result.exit_code == 0
-        assert "You pressed: B" in result.output
+        assert "You pressed: B" in clean_result
 
         result = cli_runner.invoke(app, ["key"], input="C\n")
-        assert result.exit_code == 0
-        assert "You pressed: C" in result.output
+        clean_result = clean_output(result.output)
 
-    def test_getchar_special_unicode(self, cli_runner):
+        assert result.exit_code == 0
+        assert "You pressed: C" in clean_result
+
+    def test_getchar_special_unicode(self, cli_runner, clean_output):
         """Test getchar working with special unicode characters."""
         app = ExtendedTyper()
 
@@ -183,25 +211,33 @@ class TestUtilityFunctions:
 
         # Space
         result = cli_runner.invoke(app, ["getchar"], input=" \n")
+        clean_result = clean_output(result.output)
+
         assert result.exit_code == 0
-        assert "You pressed:  " in result.output
+        assert "You pressed:  " in clean_result
 
         # Emoji
         result = cli_runner.invoke(app, ["getchar"], input="😀\n")
+        clean_result = clean_output(result.output)
+
         assert result.exit_code == 0
-        assert "You pressed: 😀" in result.output
+        assert "You pressed: 😀" in clean_result
 
         # Unicode
         result = cli_runner.invoke(app, ["getchar"], input="ñ\n")
+        clean_result = clean_output(result.output)
+
         assert result.exit_code == 0
-        assert "You pressed: ñ" in result.output
+        assert "You pressed: ñ" in clean_result
 
         # Non-Latin characters
         result = cli_runner.invoke(app, ["getchar"], input="蛇\n")
-        assert result.exit_code == 0
-        assert "You pressed: 蛇" in result.output
+        clean_result = clean_output(result.output)
 
-    def test_launch_integration(self, cli_runner):
+        assert result.exit_code == 0
+        assert "You pressed: 蛇" in clean_result
+
+    def test_launch_integration(self, cli_runner, clean_output):
         """Test launch working with commands and aliases."""
         app = ExtendedTyper()
 
@@ -218,20 +254,26 @@ class TestUtilityFunctions:
 
         with patch.object(ExtendedTyper, "launch") as mock_launch:
             result = cli_runner.invoke(app, ["launch"])
+            clean_result = clean_output(result.output)
+
             assert result.exit_code == 0
-            assert "Launched!" in result.output
+            assert "Launched!" in clean_result
 
             result = cli_runner.invoke(app, ["start"])
+            clean_result = clean_output(result.output)
+
             assert result.exit_code == 0
-            assert "Launched!" in result.output
+            assert "Launched!" in clean_result
 
             result = cli_runner.invoke(app, ["run"])
+            clean_result = clean_output(result.output)
+
             assert result.exit_code == 0
-            assert "Launched!" in result.output
+            assert "Launched!" in clean_result
 
             assert mock_launch.call_count == 3
 
-    def test_launch_filepath_and_empty(self, cli_runner):
+    def test_launch_filepath_and_empty(self, cli_runner, clean_output):
         """Test launch working with file paths and empty inputs."""
         app = ExtendedTyper()
 
@@ -249,18 +291,22 @@ class TestUtilityFunctions:
 
         with patch.object(ExtendedTyper, "launch") as mock_launch:
             result = cli_runner.invoke(app, ["file"])
+            clean_result = clean_output(result.output)
+
             assert result.exit_code == 0
-            assert "Opened file." in result.output
+            assert "Opened file." in clean_result
 
             result = cli_runner.invoke(app, ["empty"])
+            clean_result = clean_output(result.output)
+
             assert result.exit_code == 0
-            assert "Launched empty string." in result.output
+            assert "Launched empty string." in clean_result
 
             assert mock_launch.call_count == 2
             mock_launch.assert_any_call("/tmp/test.txt")
             mock_launch.assert_any_call("")
 
-    def test_run_integration(self, cli_runner):
+    def test_run_integration(self, cli_runner, clean_output):
         """Test run working with commands and aliases."""
         app = ExtendedTyper()
 
@@ -275,16 +321,22 @@ class TestUtilityFunctions:
             app.echo("Process started.")
 
         result = cli_runner.invoke(app, ["greet"])
+        clean_result = clean_output(result.output)
+
         assert result.exit_code == 0
-        assert "Hello!" in result.output
+        assert "Hello!" in clean_result
 
         result = cli_runner.invoke(app, ["execute"])
+        clean_result = clean_output(result.output)
+
         assert result.exit_code == 0
-        assert "Process started." in result.output
+        assert "Process started." in clean_result
 
         result = cli_runner.invoke(app, ["start"])
+        clean_result = clean_output(result.output)
+
         assert result.exit_code == 0
-        assert "Process started." in result.output
+        assert "Process started." in clean_result
 
     def test_run_command_raises(self, cli_runner):
         """Test run command raises an error."""

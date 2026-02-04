@@ -308,8 +308,7 @@ class TestDecoratorReturnValue:
 
         decorated = app.command("list", aliases=["ls"])(original_func)
 
-        # The decorated result should be a Command, but we can verify
-        # it was created from the original function
+        # The decorated result should be a Command
         assert decorated is not None
 
 

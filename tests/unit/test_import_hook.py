@@ -177,7 +177,7 @@ class TestTyperRichUtilsInterceptor:
                 assert result.__name__ == "typer.rich_utils"
             except Exception:
                 # If it fails due to actual import of _rich_utils, that's OK
-                # The test is checking that the method structure works
+                # This is only checking the method structure
                 pass
 
     def test_load_module_old_protocol_raises_for_other_modules(self):

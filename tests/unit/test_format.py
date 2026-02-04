@@ -11,46 +11,62 @@ from typer_extensions.format import (
 class TestTruncateAliases:
     """Tests for truncate_aliases function."""
 
-    def test_empty_list(self):
+    def test_empty_list(self, clean_output):
         """Test that empty list returns empty string."""
         result = truncate_aliases([], 3)
-        assert result == ""
+        clean_result = clean_output(result)
 
-    def test_within_limit(self):
+        assert clean_result == ""
+
+    def test_within_limit(self, clean_output):
         """Test aliases within limit show all."""
         result = truncate_aliases(["a", "b"], 3)
-        assert result == "a, b"
+        clean_result = clean_output(result)
 
-    def test_at_exact_limit(self):
+        assert clean_result == "a, b"
+
+    def test_at_exact_limit(self, clean_output):
         """Test aliases at exact limit show all."""
         result = truncate_aliases(["a", "b", "c"], 3)
-        assert result == "a, b, c"
+        clean_result = clean_output(result)
 
-    def test_over_limit(self):
+        assert clean_result == "a, b, c"
+
+    def test_over_limit(self, clean_output):
         """Test aliases over limit truncate with +N more."""
         result = truncate_aliases(["a", "b", "c", "d"], 2)
-        assert result == "a, b, +2 more"
+        clean_result = clean_output(result)
 
-    def test_custom_separator(self):
+        assert clean_result == "a, b, +2 more"
+
+    def test_custom_separator(self, clean_output):
         """Test custom separator between aliases."""
         result = truncate_aliases(["a", "b", "c"], 3, separator=" | ")
-        assert result == "a | b | c"
+        clean_result = clean_output(result)
 
-    def test_truncate_with_custom_separator(self):
+        assert clean_result == "a | b | c"
+
+    def test_truncate_with_custom_separator(self, clean_output):
         """Test truncation with custom separator."""
         result = truncate_aliases(["a", "b", "c", "d"], 2, separator="; ")
-        assert result == "a; b; +2 more"
+        clean_result = clean_output(result)
 
-    def test_single_alias(self):
+        assert clean_result == "a; b; +2 more"
+
+    def test_single_alias(self, clean_output):
         """Test single alias returns just that alias."""
         result = truncate_aliases(["only"], 3)
-        assert result == "only"
+        clean_result = clean_output(result)
 
-    def test_many_aliases_truncated(self):
+        assert clean_result == "only"
+
+    def test_many_aliases_truncated(self, clean_output):
         """Test many aliases show correct count."""
         aliases = ["a", "b", "c", "d", "e", "f"]
         result = truncate_aliases(aliases, 2)
-        assert result == "a, b, +4 more"
+        clean_result = clean_output(result)
+
+        assert clean_result == "a, b, +4 more"
 
 
 class TestFormatCommandsWithAliases:
@@ -224,11 +240,13 @@ class TestFormatCommandsWithAliases:
 class TestFormattersEdgeCases:
     """Tests for edge cases and special scenarios."""
 
-    def test_very_long_alias_list(self):
+    def test_very_long_alias_list(self, clean_output):
         """Test with very long list of aliases."""
         aliases = [f"alias{i}" for i in range(100)]
         result = truncate_aliases(aliases, 3)
-        assert result == "alias0, alias1, alias2, +97 more"
+        clean_result = clean_output(result)
+
+        assert clean_result == "alias0, alias1, alias2, +97 more"
 
     def test_alias_with_spaces(self):
         """Test aliases containing spaces."""
@@ -249,22 +267,28 @@ class TestFormattersEdgeCases:
         assert "alias#two" in result[0][0]
         assert "alias$three" in result[0][0]
 
-    def test_empty_string_alias(self):
+    def test_empty_string_alias(self, clean_output):
         """Test handling of empty string in alias list."""
         # Should be prevented in practice, but tested defensively
         result = truncate_aliases(["a", "", "b"], 3)
-        assert result == "a, , b"
+        clean_result = clean_output(result)
 
-    def test_max_num_zero(self):
+        assert clean_result == "a, , b"
+
+    def test_max_num_zero(self, clean_output):
         """Test max_num of 0 shows +N more immediately."""
         result = truncate_aliases(["a", "b"], 0)
-        assert result == "+2 more"
+        clean_result = clean_output(result)
 
-    def test_max_num_negative(self):
+        assert clean_result == "+2 more"
+
+    def test_max_num_negative(self, clean_output):
         """Test negative max_num (edge case, treat as 0)."""
         result = truncate_aliases(["a", "b"], -1)
+        clean_result = clean_output(result)
+
         # Should return empty, so only +N more
-        assert "+2 more" in result
+        assert "+2 more" in clean_result
 
     def test_calculate_width_import_error_fallback(self):
         """Test calculate_width fallback when wcswidth raises ImportError
