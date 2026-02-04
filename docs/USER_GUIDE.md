@@ -46,7 +46,7 @@ Run it:
 ```bash
 $ python app.py --help
 Commands:
-  hello (hi, hey)  Greet someone.
+  hello   (hi, hey)    Greet someone.
 
 $ python app.py hello Alice
 Hello, Alice!
@@ -235,19 +235,19 @@ app = ExtendedTyper()  # Default: "({aliases})"
 **Brackets:**
 ```python
 app = ExtendedTyper(alias_display_format="[{aliases}]")
-# Shows: "list [ls, l]"
+# Shows: "list   [ls, l]"
 ```
 
 **Pipe separator:**
 ```python
 app = ExtendedTyper(alias_display_format="| {aliases}")
-# Shows: "list | ls, l"
+# Shows: "list   | ls, l"
 ```
 
 **Custom:**
 ```python
 app = ExtendedTyper(alias_display_format="<{aliases}>")
-# Shows: "list <ls, l>"
+# Shows: "list   <ls, l>"
 ```
 
 ### Separator
@@ -257,19 +257,19 @@ Control how multiple aliases are joined.
 **Comma (default):**
 ```python
 app = ExtendedTyper(alias_separator=", ")
-# Shows: "list (ls, l, dir)"
+# Shows: "list   (ls, l, dir)"
 ```
 
 **Pipe:**
 ```python
 app = ExtendedTyper(alias_separator=" | ")
-# Shows: "list (ls | l | dir)"
+# Shows: "list   (ls | l | dir)"
 ```
 
 **Slash:**
 ```python
 app = ExtendedTyper(alias_separator=" / ")
-# Shows: "list (ls / l / dir)"
+# Shows: "list   (ls / l / dir)"
 ```
 
 ### Truncation
@@ -279,8 +279,8 @@ Limit displayed aliases for long lists.
 **Default (3 inline):**
 ```python
 app = ExtendedTyper(max_num_aliases=3)
-# 4 aliases: "list (ls, l, dir, +1 more)"
-# 3 aliases: "list (ls, l, dir)"
+# 4 aliases: "list   (ls, l, dir, +1 more)"
+# 3 aliases: "list   (ls, l, dir)"
 ```
 
 **More inline:**
@@ -292,7 +292,7 @@ app = ExtendedTyper(max_num_aliases=5)
 **Fewer inline:**
 ```python
 app = ExtendedTyper(max_num_aliases=1)
-# 3 aliases: "list (ls, +2 more)"
+# 3 aliases: "list   (ls, +2 more)"
 ```
 
 ### Case Sensitivity

@@ -139,22 +139,24 @@ class ExtendedTyper(typer.Typer):
     Argument = staticmethod(typer.Argument)
     Option = staticmethod(typer.Option)
 
-    # Expose common Typer utility functions
+    # Expose Typer/Click utility functions
+    clear = staticmethod(typer.clear)
+    confirm = staticmethod(typer.confirm)
     echo = staticmethod(typer.echo)
     echo_via_pager = staticmethod(typer.echo_via_pager)
-    secho = staticmethod(typer.secho)
-    style = staticmethod(typer.style)
-    prompt = staticmethod(typer.prompt)
-    confirm = staticmethod(typer.confirm)
+    edit = staticmethod(typer.edit)
     getchar = staticmethod(typer.getchar)
-    clear = staticmethod(typer.clear)
-    pause = staticmethod(typer.pause)
-    progressbar = staticmethod(typer.progressbar)
-    launch = staticmethod(typer.launch)
-    open_file = staticmethod(typer.open_file)
     get_app_dir = staticmethod(typer.get_app_dir)
     get_terminal_size = staticmethod(typer.get_terminal_size)
+    launch = staticmethod(typer.launch)
+    open_file = staticmethod(typer.open_file)
+    pause = staticmethod(typer.pause)
+    progressbar = staticmethod(typer.progressbar)
+    prompt = staticmethod(typer.prompt)
     run = staticmethod(typer.run)
+    secho = staticmethod(typer.secho)
+    style = staticmethod(typer.style)
+    unstyle = staticmethod(typer.unstyle)
 
     _alias_case_sensitive: bool
 

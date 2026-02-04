@@ -69,7 +69,7 @@ def list_items():
 **Help output:**
 ```
 Commands:
-  list (ls, l)  List all items.
+  list   (ls, l)     List all items.
 ```
 
 **All work identically:**
@@ -142,8 +142,8 @@ if __name__ == "__main__":
 ```bash
 $ python app.py --help
 Commands:
-  list (ls, l)         List all items.
-  delete (rm, remove)  Delete an item.
+  list     (ls, l)          List all items.
+  delete   (rm, remove)     Delete an item.
 
 $ python app.py ls
 Listing items...
@@ -388,7 +388,7 @@ Contributions are welcome! Please open an issue, ask a question, or submit a pul
 
 ## Project Status
 
-**Current Version:** 0.2.1 (Beta)
+**Current Version:** 0.2.2 (Beta)
 
 ✅ **Core Features Complete:**
 - Alias registration (decorator + programmatic)

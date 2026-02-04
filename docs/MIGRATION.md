@@ -487,12 +487,12 @@ if __name__ == "__main__":
 **Help output:**
 ```
 Commands:
-  delete   Delete an item.
-  l        List all items.
-  list     List all items.
-  ls       List all items.
-  rm       Delete an item.
-  remove   Delete an item.
+  delete     Delete an item.
+  l          List all items.
+  list       List all items.
+  ls         List all items.
+  rm         Delete an item.
+  remove     Delete an item.
 ```
 
 **Issues:**
@@ -524,8 +524,8 @@ if __name__ == "__main__":
 **Help output:**
 ```
 Commands:
-  list (ls, l)         List all items.
-  delete (rm, remove)  Delete an item.
+  list     (ls, l)          List all items.
+  delete   (rm, remove)     Delete an item.
 ```
 
 **Benefits:**
