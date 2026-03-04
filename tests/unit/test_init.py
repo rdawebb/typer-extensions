@@ -94,7 +94,7 @@ class TestGetAttrFallback:
         import typer_extensions
 
         with pytest.raises(AttributeError):
-            _ = typer_extensions.DoesNotExist12345_Hopefully
+            _ = typer_extensions.DoesNotExist12345
 
     def test_getattr_with_common_typer_exports(self):
         """Test __getattr__ with a variety of common Typer exports."""

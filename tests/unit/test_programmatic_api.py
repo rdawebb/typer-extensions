@@ -4,7 +4,6 @@ This module tests both the programmatic registration of commands (add_command) a
 """
 
 import pytest
-from typer_extensions import ExtendedTyper
 
 
 # =============================================================================
@@ -15,17 +14,10 @@ from typer_extensions import ExtendedTyper
 class TestAddCommand:
     """Tests for add_command() method."""
 
-    def test_add_command(self):
+    def test_add_command(self, app, unreg_commands):
         """Test adding command with aliases programmatically."""
-        app = ExtendedTyper()
 
-        def list_items():
-            """List items."""
-            print("listing")
-
-        def delete_item():
-            """Delete items."""
-            pass
+        list_items, _ = unreg_commands
 
         app.add_command(list_items, "list", aliases=["ls", "l"])
 
@@ -34,51 +26,30 @@ class TestAddCommand:
         assert app._alias_to_command["ls"] == "list"
         assert app._alias_to_command["l"] == "list"
 
-    def test_add_command_without_aliases(self):
+    def test_add_command_without_aliases(self, app, unreg_commands):
         """Test adding command without aliases."""
-        app = ExtendedTyper()
 
-        def list_items():
-            """List items."""
-            pass
-
-        def delete_item():
-            """Delete items."""
-            pass
+        list_items, _ = unreg_commands
 
         app.add_command(list_items, "list", aliases=None)
 
         assert "list" not in app._command_aliases
         assert len(app._alias_to_command) == 0
 
-    def test_add_command_inferred_name(self):
+    def test_add_command_inferred_name(self, app, unreg_commands):
         """Test adding command with inferred name."""
-        app = ExtendedTyper()
 
-        def list_items():
-            """List items."""
-            pass
-
-        def delete_item():
-            """Delete items."""
-            pass
+        list_items, _ = unreg_commands
 
         app.add_command(list_items, aliases=["ls"])
 
         assert "list_items" in app._command_aliases
         assert app._alias_to_command["ls"] == "list_items"
 
-    def test_add_command_with_kwargs(self):
+    def test_add_command_with_kwargs(self, app, unreg_commands):
         """Test that kwargs are passed through."""
-        app = ExtendedTyper()
 
-        def list_items():
-            """List items."""
-            pass
-
-        def delete_item():
-            """Delete items."""
-            pass
+        list_items, delete_item = unreg_commands
 
         app.add_command(
             list_items, "list", aliases=["ls"], help="Custom help", deprecated=True
@@ -95,15 +66,10 @@ class TestAddCommand:
             assert registered_cmd is not None
             assert registered_cmd.deprecated is True
 
-    def test_add_multiple_commands(self):
+    def test_add_multiple_commands(self, app, unreg_commands):
         """Test adding multiple commands programmatically."""
-        app = ExtendedTyper()
 
-        def list_items():
-            pass
-
-        def delete_item():
-            pass
+        list_items, delete_item = unreg_commands
 
         app.add_command(list_items, "list", aliases=["ls"])
         app.add_command(delete_item, "delete", aliases=["rm"])
@@ -115,15 +81,12 @@ class TestAddCommand:
 class TestProgrammaticCommandInvocation:
     """Tests for invoking programmatically registered commands."""
 
-    def test_invoke_programmatic_command(self, cli_runner, clean_output):
+    def test_invoke_programmatic_command(
+        self, app, clean_output, cli_runner, unreg_commands
+    ):
         """Test invoking command registered programmatically."""
-        app = ExtendedTyper()
 
-        def list_items():
-            print("Listing items...")
-
-        def delete_item():
-            print("Deleting item...")
+        list_items, delete_item = unreg_commands
 
         app.add_command(list_items, "list", aliases=["ls"])
         app.add_command(delete_item, "delete", aliases=["rm", "del"])
@@ -139,62 +102,6 @@ class TestProgrammaticCommandInvocation:
 
         assert result.exit_code == 0
         assert "Listing items..." in clean_result
-
-
-class TestProgrammaticWithArguments:
-    """Tests for programmatic commands with arguments and options."""
-
-    def test_programmatic_command_with_argument(self, cli_runner, clean_output):
-        """Test programmatically registered command with argument."""
-        app = ExtendedTyper()
-
-        def greet(name: str):
-            print(f"Hello, {name}!")
-
-        def farewell(name: str):
-            print(f"Goodbye, {name}!")
-
-        app.add_command(greet, "greet", aliases=["hi"])
-        app.add_command(farewell, "farewell", aliases=["bye"])
-
-        result = cli_runner.invoke(app, ["greet", "World"])
-        clean_result = clean_output(result.output)
-
-        assert result.exit_code == 0
-        assert "Hello, World!" in clean_result
-
-        result = cli_runner.invoke(app, ["hi", "Alice"])
-        clean_result = clean_output(result.output)
-
-        assert result.exit_code == 0
-        assert "Hello, Alice!" in clean_result
-
-    def test_programmatic_command_with_option(self, cli_runner, clean_output):
-        """Test programmatically registered command with option."""
-        app = ExtendedTyper()
-
-        def list_items(verbose: bool = app.Option(False, "--verbose", "-v")):
-            if verbose:
-                print("Listing (verbose)...")
-            else:
-                print("Listing...")
-
-        def delete_item():
-            print("Deleting item...")
-
-        app.add_command(list_items, "list", aliases=["ls"])
-        app.add_command(delete_item, "delete", aliases=["rm", "del"])
-
-        result = cli_runner.invoke(app, ["ls"])
-        clean_result = clean_output(result.output)
-
-        assert "Listing..." in clean_result
-        assert "verbose" not in clean_result
-
-        result = cli_runner.invoke(app, ["ls", "--verbose"])
-        clean_result = clean_output(result.output)
-
-        assert "verbose" in clean_result
 
 
 # =============================================================================
@@ -205,131 +112,74 @@ class TestProgrammaticWithArguments:
 class TestAddAlias:
     """Tests for add_alias() method."""
 
-    def test_add_alias_to_existing_command(self):
+    def test_add_alias_to_existing_command(self, app_with_commands):
         """Test adding alias to command registered with standard decorator."""
-        app = ExtendedTyper()
 
-        @app.command("list")
-        def list_items():
-            """List items."""
-            pass
+        app_with_commands.add_alias("list", "ls")
 
-        @app.command("delete")
-        def delete_items():
-            """Delete items."""
-            pass
+        assert "list" in app_with_commands._command_aliases
+        assert "ls" in app_with_commands._command_aliases["list"]
+        assert app_with_commands._alias_to_command["ls"] == "list"
 
-        app.add_alias("list", "ls")
-
-        assert "list" in app._command_aliases
-        assert "ls" in app._command_aliases["list"]
-        assert app._alias_to_command["ls"] == "list"
-
-    def test_add_alias_to_decorated_command(self):
+    def test_add_alias_to_decorated_command(self, app_with_aliases):
         """Test adding alias to command registered with decorator."""
-        app = ExtendedTyper()
 
-        @app.command("list", aliases=["ls"])
-        def list_items():
-            """List items."""
-            pass
+        app_with_aliases.add_alias("list", "lst")
 
-        @app.command("delete", aliases=["rm"])
-        def delete_item():
-            """Delete items."""
-            pass
+        assert app_with_aliases._command_aliases["list"] == ["ls", "l", "lst"]
+        assert app_with_aliases._alias_to_command["lst"] == "list"
 
-        app.add_alias("list", "l")
-
-        assert app._command_aliases["list"] == ["ls", "l"]
-        assert app._alias_to_command["l"] == "list"
-
-    def test_add_multiple_aliases(self):
+    def test_add_multiple_aliases(self, app_with_commands):
         """Test adding multiple aliases one at a time."""
-        app = ExtendedTyper()
 
-        @app.command("list")
-        def list_items():
-            pass
+        app_with_commands.add_alias("list", "ls")
+        app_with_commands.add_alias("list", "l")
+        app_with_commands.add_alias("list", "dir")
 
-        @app.command("delete")
-        def delete_items():
-            pass
+        assert app_with_commands._command_aliases["list"] == ["ls", "l", "dir"]
+        assert all(
+            app_with_commands._alias_to_command[a] == "list" for a in ["ls", "l", "dir"]
+        )
 
-        app.add_alias("list", "ls")
-        app.add_alias("list", "l")
-        app.add_alias("list", "dir")
-
-        assert app._command_aliases["list"] == ["ls", "l", "dir"]
-        assert all(app._alias_to_command[a] == "list" for a in ["ls", "l", "dir"])
-
-    def test_add_alias_nonexistent_command_raises(self):
+    def test_add_alias_nonexistent_command_raises(self, app_with_commands):
         """Test that adding alias to non-existent command raises error."""
-        app = ExtendedTyper()
-
-        @app.command("list")
-        def list_items():
-            pass
-
-        @app.command("delete")
-        def delete_items():
-            pass
 
         with pytest.raises(ValueError, match="Command 'nonexistent' does not exist"):
-            app.add_alias("nonexistent", "ne")
+            app_with_commands.add_alias("nonexistent", "ne")
 
-    def test_add_duplicate_alias_raises(self):
+    def test_add_duplicate_alias_raises(self, app_with_commands):
         """Test that adding duplicate alias raises error."""
-        app = ExtendedTyper()
 
-        @app.command("list")
-        def list_items():
-            pass
-
-        @app.command("delete")
-        def delete_items():
-            pass
-
-        app.add_alias("list", "ls")
+        app_with_commands.add_alias("list", "ls")
 
         with pytest.raises(ValueError, match="already registered"):
-            app.add_alias("delete", "ls")
+            app_with_commands.add_alias("delete", "ls")
 
-    def test_add_alias_case_insensitive(self):
+    def test_add_alias_case_insensitive(self, app_case_insensitive):
         """Test adding alias with case insensitivity."""
-        app = ExtendedTyper(alias_case_sensitive=False)
 
-        @app.command("list")
+        @app_case_insensitive.command("list")
         def list_items():
             pass
 
-        @app.command("delete")
+        @app_case_insensitive.command("delete")
         def delete_items():
             pass
 
-        app.add_alias("list", "ls")
+        app_case_insensitive.add_alias("list", "ls")
 
         with pytest.raises(ValueError, match="already registered"):
-            app.add_alias("delete", "LS")
+            app_case_insensitive.add_alias("delete", "LS")
 
-    def test_invoke_after_add_alias(self, cli_runner, clean_output):
+    def test_invoke_after_add_alias(self, app_with_commands, clean_output, cli_runner):
         """Test that newly added alias works for invocation."""
-        app = ExtendedTyper()
 
-        @app.command("list")
-        def list_items():
-            print("Listing items...")
-
-        @app.command("delete")
-        def delete_items():
-            print("Deleting items...")
-
-        result = cli_runner.invoke(app, ["list"])
+        result = cli_runner.invoke(app_with_commands, ["list"])
         assert result.exit_code == 0
 
-        app.add_alias("list", "ls")
+        app_with_commands.add_alias("list", "ls")
 
-        result = cli_runner.invoke(app, ["ls"])
+        result = cli_runner.invoke(app_with_commands, ["ls"])
         clean_result = clean_output(result.output)
 
         assert result.exit_code == 0
@@ -339,290 +189,162 @@ class TestAddAlias:
 class TestRemoveAlias:
     """Tests for remove_alias() method."""
 
-    def test_remove_existing_alias(self):
+    def test_remove_existing_alias(self, app_with_aliases):
         """Test removing an existing alias."""
-        app = ExtendedTyper()
 
-        @app.command("list", aliases=["ls", "l"])
-        def list_items():
-            pass
-
-        @app.command("delete", aliases=["rm"])
-        def delete_item():
-            pass
-
-        result = app.remove_alias("ls")
+        result = app_with_aliases.remove_alias("ls")
 
         assert result is True
-        assert "ls" not in app._alias_to_command
-        assert app._command_aliases["list"] == ["l"]
+        assert "ls" not in app_with_aliases._alias_to_command
+        assert app_with_aliases._command_aliases["list"] == ["l"]
 
-    def test_remove_nonexistent_alias_returns_false(self):
+    def test_remove_nonexistent_alias_returns_false(self, app_with_commands):
         """Test that removing non-existent alias returns False."""
-        app = ExtendedTyper()
 
-        @app.command("list")
-        def list_items():
-            pass
-
-        @app.command("delete")
-        def delete_item():
-            pass
-
-        result = app.remove_alias("nonexistent")
+        result = app_with_commands.remove_alias("nonexistent")
 
         assert result is False
 
-    def test_remove_alias_leaves_others(self):
+    def test_remove_alias_leaves_others(self, app_with_aliases):
         """Test that removing one alias doesn't affect others."""
-        app = ExtendedTyper()
 
-        @app.command("list", aliases=["ls", "l", "dir"])
-        def list_items():
-            pass
+        app_with_aliases.remove_alias("l")
 
-        @app.command("delete", aliases=["rm"])
-        def delete_item():
-            pass
+        assert app_with_aliases._command_aliases["list"] == ["ls"]
+        assert app_with_aliases._alias_to_command["ls"] == "list"
+        assert "l" not in app_with_aliases._alias_to_command
 
-        app.remove_alias("l")
-
-        assert app._command_aliases["list"] == ["ls", "dir"]
-        assert app._alias_to_command["ls"] == "list"
-        assert app._alias_to_command["dir"] == "list"
-        assert "l" not in app._alias_to_command
-
-    def test_remove_last_alias(self):
+    def test_remove_last_alias(self, app_with_aliases):
         """Test removing the last alias for a command."""
-        app = ExtendedTyper()
 
-        @app.command("list", aliases=["ls"])
-        def list_items():
-            pass
+        app_with_aliases.remove_alias("ls")
+        app_with_aliases.remove_alias("l")
 
-        @app.command("delete", aliases=["rm"])
-        def delete_item():
-            pass
+        assert "list" not in app_with_aliases._command_aliases
+        assert "ls" not in app_with_aliases._alias_to_command
+        assert "l" not in app_with_aliases._alias_to_command
 
-        app.remove_alias("ls")
-
-        assert "list" not in app._command_aliases
-        assert "ls" not in app._alias_to_command
-
-    def test_remove_alias_case_insensitive(self):
+    def test_remove_alias_case_insensitive(self, app_case_insensitive):
         """Test removing alias with case insensitivity."""
-        app = ExtendedTyper(alias_case_sensitive=False)
 
-        @app.command("list", aliases=["ls"])
+        @app_case_insensitive.command("list", aliases=["ls"])
         def list_items():
             pass
 
-        @app.command("delete", aliases=["rm"])
+        @app_case_insensitive.command("delete", aliases=["rm"])
         def delete_item():
             pass
 
-        result = app.remove_alias("LS")
+        result = app_case_insensitive.remove_alias("LS")
 
         assert result is True
-        assert "ls" not in app._alias_to_command
+        assert "ls" not in app_case_insensitive._alias_to_command
 
-    def test_remove_same_alias_twice(self):
+    def test_remove_same_alias_twice(self, app_with_aliases):
         """Test idempotency of remove_alias."""
-        app = ExtendedTyper()
 
-        @app.command("list", aliases=["ls"])
-        def list_items():
-            pass
-
-        @app.command("delete", aliases=["rm"])
-        def delete_item():
-            pass
-
-        result1 = app.remove_alias("ls")
-        result2 = app.remove_alias("ls")
+        result1 = app_with_aliases.remove_alias("ls")
+        result2 = app_with_aliases.remove_alias("ls")
 
         assert result1 is True
         assert result2 is False
 
-    def test_invoke_fails_after_remove_alias(self, cli_runner):
+    def test_invoke_fails_after_remove_alias(self, app_with_aliases, cli_runner):
         """Test that removed alias no longer works."""
-        app = ExtendedTyper()
 
-        @app.command("list", aliases=["ls", "l"])
-        def list_items():
-            print("Listing items...")
-
-        @app.command("delete", aliases=["rm", "del"])
-        def delete_items():
-            print("Deleting items...")
-
-        result = cli_runner.invoke(app, ["ls"])
+        result = cli_runner.invoke(app_with_aliases, ["ls"])
         assert result.exit_code == 0
 
-        app.remove_alias("ls")
+        app_with_aliases.remove_alias("ls")
 
-        result = cli_runner.invoke(app, ["ls"])
+        result = cli_runner.invoke(app_with_aliases, ["ls"])
         assert result.exit_code != 0
 
-        result = cli_runner.invoke(app, ["l"])
+        result = cli_runner.invoke(app_with_aliases, ["l"])
         assert result.exit_code == 0
 
 
 class TestGetAliases:
     """Tests for get_aliases() method."""
 
-    def test_get_aliases_existing_command(self):
+    def test_get_aliases_existing_command(self, app_with_aliases):
         """Test getting aliases for command with aliases."""
-        app = ExtendedTyper()
 
-        @app.command("list", aliases=["ls", "l", "dir"])
-        def list_items():
-            pass
+        aliases = app_with_aliases.get_aliases("list")
 
-        @app.command("delete")
-        def delete_item():
-            pass
+        assert aliases == ["ls", "l"]
 
-        aliases = app.get_aliases("list")
-
-        assert aliases == ["ls", "l", "dir"]
-
-    def test_get_aliases_no_aliases_returns_empty(self):
+    def test_get_aliases_no_aliases_returns_empty(self, app_with_commands):
         """Test that command without aliases returns empty list."""
-        app = ExtendedTyper()
 
-        @app.command("list")
-        def list_items():
-            pass
-
-        @app.command("delete")
-        def delete_item():
-            pass
-
-        aliases = app.get_aliases("list")
+        aliases = app_with_commands.get_aliases("list")
 
         assert aliases == []
 
-    def test_get_aliases_nonexistent_command_returns_empty(self):
+    def test_get_aliases_nonexistent_command_returns_empty(self, app):
         """Test that non-existent command returns empty list."""
-        app = ExtendedTyper()
 
         aliases = app.get_aliases("nonexistent")
 
         assert aliases == []
 
-    def test_get_aliases_returns_copy(self):
+    def test_get_aliases_returns_copy(self, app_with_aliases):
         """Test that get_aliases returns a copy, not reference."""
-        app = ExtendedTyper()
 
-        @app.command("list", aliases=["ls", "l"])
-        def list_items():
-            pass
-
-        @app.command("delete")
-        def delete_item():
-            pass
-
-        aliases = app.get_aliases("list")
+        aliases = app_with_aliases.get_aliases("list")
         aliases.append("modified")
 
-        original_aliases = app.get_aliases("list")
+        original_aliases = app_with_aliases.get_aliases("list")
         assert original_aliases == ["ls", "l"]
         assert "modified" not in original_aliases
 
-    def test_get_aliases_after_add(self):
+    def test_get_aliases_after_add(self, app_with_commands):
         """Test getting aliases after dynamically adding one."""
-        app = ExtendedTyper()
 
-        @app.command("list")
-        def list_items():
-            pass
+        app_with_commands.add_alias("list", "ls")
+        app_with_commands.add_alias("list", "l")
 
-        @app.command("delete")
-        def delete_items():
-            pass
-
-        app.add_alias("list", "ls")
-        app.add_alias("list", "l")
-
-        aliases = app.get_aliases("list")
+        aliases = app_with_commands.get_aliases("list")
         assert aliases == ["ls", "l"]
 
-    def test_get_aliases_after_remove(self):
+    def test_get_aliases_after_remove(self, app_with_aliases):
         """Test getting aliases after removing one."""
-        app = ExtendedTyper()
 
-        @app.command("list", aliases=["ls", "l", "dir"])
-        def list_items():
-            pass
+        app_with_aliases.remove_alias("l")
 
-        @app.command("delete")
-        def delete_item():
-            pass
-
-        app.remove_alias("l")
-
-        aliases = app.get_aliases("list")
-        assert aliases == ["ls", "dir"]
+        aliases = app_with_aliases.get_aliases("list")
+        assert aliases == ["ls"]
 
 
 class TestListCommandsWithAliases:
     """Tests for list_commands_with_aliases() method."""
 
-    def test_list_all_commands_with_aliases(self):
+    def test_list_all_commands_with_aliases(self, app_with_aliases):
         """Test listing all commands that have aliases."""
-        app = ExtendedTyper()
 
-        @app.command("list", aliases=["ls", "l"])
-        def list_items():
-            pass
-
-        @app.command("delete", aliases=["rm"])
-        def delete_item():
-            pass
-
-        mapping = app.list_commands_with_aliases()
+        mapping = app_with_aliases.list_commands_with_aliases()
 
         assert mapping == {"list": ["ls", "l"], "delete": ["rm"]}
 
-    def test_list_empty_when_no_aliases(self):
+    def test_list_empty_when_no_aliases(self, app_with_commands):
         """Test that list is empty when no commands have aliases."""
-        app = ExtendedTyper()
 
-        @app.command("list")
-        def list_items():
-            pass
-
-        @app.command("delete")
-        def delete_item():
-            pass
-
-        mapping = app.list_commands_with_aliases()
+        mapping = app_with_commands.list_commands_with_aliases()
 
         assert mapping == {}
 
-    def test_list_returns_copy(self):
+    def test_list_returns_copy(self, app_with_aliases):
         """Test that list returns a copy of the data."""
-        app = ExtendedTyper()
 
-        @app.command("list", aliases=["ls"])
-        def list_items():
-            pass
-
-        @app.command("delete", aliases=["rm"])
-        def delete_item():
-            pass
-
-        mapping = app.list_commands_with_aliases()
+        mapping = app_with_aliases.list_commands_with_aliases()
         mapping["list"].append("modified")
         mapping["new"] = ["test"]
 
-        original_mapping = app.list_commands_with_aliases()
-        assert original_mapping == {"list": ["ls"], "delete": ["rm"]}
+        original_mapping = app_with_aliases.list_commands_with_aliases()
+        assert original_mapping == {"list": ["ls", "l"], "delete": ["rm"]}
 
-    def test_list_excludes_commands_without_aliases(self):
+    def test_list_excludes_commands_without_aliases(self, app):
         """Test that commands without aliases are excluded."""
-        app = ExtendedTyper()
 
         @app.command("list", aliases=["ls"])
         def list_items():
@@ -637,9 +359,8 @@ class TestListCommandsWithAliases:
         assert "list" in mapping
         assert "hello" not in mapping
 
-    def test_list_after_dynamic_changes(self):
+    def test_list_after_dynamic_changes(self, app):
         """Test listing after dynamically adding/removing aliases."""
-        app = ExtendedTyper()
 
         @app.command("list")
         def list_items():
@@ -668,168 +389,120 @@ class TestListCommandsWithAliases:
 class TestDynamicAliasWorkflows:
     """Tests for dynamic alias management workflows."""
 
-    def test_dynamic_alias_workflow(self, cli_runner):
+    def test_dynamic_alias_workflow(self, app_with_commands, cli_runner):
         """Test a complete workflow of dynamic alias management."""
-        app = ExtendedTyper()
 
-        @app.command("list")
-        def list_items():
-            print("Listing...")
-
-        @app.command("delete")
-        def delete_items():
-            print("Deleting items...")
-
-        result = cli_runner.invoke(app, ["ls"])
+        result = cli_runner.invoke(app_with_commands, ["ls"])
         assert result.exit_code != 0
 
-        app.add_alias("list", "ls")
-        result = cli_runner.invoke(app, ["ls"])
+        app_with_commands.add_alias("list", "ls")
+        result = cli_runner.invoke(app_with_commands, ["ls"])
         assert result.exit_code == 0
 
-        app.add_alias("list", "l")
-        result = cli_runner.invoke(app, ["l"])
+        app_with_commands.add_alias("list", "l")
+        result = cli_runner.invoke(app_with_commands, ["l"])
         assert result.exit_code == 0
 
-        app.remove_alias("ls")
-        result = cli_runner.invoke(app, ["ls"])
+        app_with_commands.remove_alias("ls")
+        result = cli_runner.invoke(app_with_commands, ["ls"])
         assert result.exit_code != 0
 
-        result = cli_runner.invoke(app, ["l"])
+        result = cli_runner.invoke(app_with_commands, ["l"])
         assert result.exit_code == 0
 
-    def test_plugin_system_simulation(self, cli_runner, clean_output):
+    def test_plugin_system_simulation(
+        self, app_with_commands, clean_output, cli_runner
+    ):
         """Test simulating a plugin system with dynamic commands."""
-        app = ExtendedTyper()
-
-        @app.command("help")
-        def show_help():
-            print("Help text")
-
-        @app.command("version")
-        def show_version():
-            print("Version 1.0")
 
         def plugin_command():
             print("Plugin command executed")
 
-        app.add_command(plugin_command, "plugin-cmd", aliases=["pc", "plugin"])
+        app_with_commands.add_command(
+            plugin_command, "plugin-cmd", aliases=["pc", "plugin"]
+        )
 
-        result = cli_runner.invoke(app, ["plugin-cmd"])
+        result = cli_runner.invoke(app_with_commands, ["plugin-cmd"])
         clean_result = clean_output(result.output)
 
         assert result.exit_code == 0
         assert "Plugin command" in clean_result
 
-        result = cli_runner.invoke(app, ["pc"])
+        result = cli_runner.invoke(app_with_commands, ["pc"])
         assert result.exit_code == 0
 
-        app.remove_alias("pc")
-        app.remove_alias("plugin")
+        app_with_commands.remove_alias("pc")
+        app_with_commands.remove_alias("plugin")
 
-        result = cli_runner.invoke(app, ["pc"])
+        result = cli_runner.invoke(app_with_commands, ["pc"])
         assert result.exit_code != 0
 
 
 class TestAliasReregistration:
     """Tests for re-adding aliases that have been removed."""
 
-    def test_re_add_removed_alias(self, cli_runner, clean_output):
+    def test_re_add_removed_alias(self, app_with_commands, clean_output, cli_runner):
         """Test that a removed alias can be re-added and work again."""
-        app = ExtendedTyper()
 
-        @app.command("list")
-        def list_items():
-            print("Listing items...")
-
-        @app.command("delete")
-        def delete_items():
-            print("Deleting items...")
-
-        app.add_alias("list", "ls")
-        result = cli_runner.invoke(app, ["ls"])
+        app_with_commands.add_alias("list", "ls")
+        result = cli_runner.invoke(app_with_commands, ["ls"])
         clean_result = clean_output(result.output)
 
         assert result.exit_code == 0
         assert "Listing items..." in clean_result
 
-        app.remove_alias("ls")
-        result = cli_runner.invoke(app, ["ls"])
+        app_with_commands.remove_alias("ls")
+        result = cli_runner.invoke(app_with_commands, ["ls"])
         assert result.exit_code != 0
 
-        app.add_alias("list", "ls")
-        result = cli_runner.invoke(app, ["ls"])
+        app_with_commands.add_alias("list", "ls")
+        result = cli_runner.invoke(app_with_commands, ["ls"])
         clean_result = clean_output(result.output)
 
         assert result.exit_code == 0
         assert "Listing items..." in clean_result
 
-    def test_re_add_removed_alias_to_different_command(self, cli_runner, clean_output):
+    def test_re_add_removed_alias_to_different_command(
+        self, app_with_commands, clean_output, cli_runner
+    ):
         """Test that a removed alias can be added to a different command."""
-        app = ExtendedTyper()
 
-        @app.command("list")
-        def list_items():
-            print("Listing items...")
-
-        @app.command("delete")
-        def delete_items():
-            print("Deleting items...")
-
-        app.add_alias("list", "ls")
-        result = cli_runner.invoke(app, ["ls"])
+        app_with_commands.add_alias("list", "ls")
+        result = cli_runner.invoke(app_with_commands, ["ls"])
         clean_result = clean_output(result.output)
 
         assert result.exit_code == 0
         assert "Listing items..." in clean_result
 
-        app.remove_alias("ls")
-        result = cli_runner.invoke(app, ["ls"])
+        app_with_commands.remove_alias("ls")
+        result = cli_runner.invoke(app_with_commands, ["ls"])
         assert result.exit_code != 0
 
-        app.add_alias("delete", "ls")
-        result = cli_runner.invoke(app, ["ls"])
+        app_with_commands.add_alias("delete", "ls")
+        result = cli_runner.invoke(app_with_commands, ["ls"])
         clean_result = clean_output(result.output)
 
         assert result.exit_code == 0
-        assert "Deleting items..." in clean_result
+        assert "Deleting item..." in clean_result
 
-    def test_cannot_add_active_alias(self, cli_runner):
+    def test_cannot_add_active_alias(self, app_with_commands):
         """Test that adding an alias that's currently active raises error."""
-        app = ExtendedTyper()
 
-        @app.command("list")
-        def list_items():
-            print("Listing items...")
-
-        @app.command("delete")
-        def delete_items():
-            print("Deleting items...")
-
-        app.add_alias("list", "ls")
+        app_with_commands.add_alias("list", "ls")
 
         with pytest.raises(ValueError, match="already registered"):
-            app.add_alias("delete", "ls")
+            app_with_commands.add_alias("delete", "ls")
 
-    def test_re_add_multiple_times(self, cli_runner):
+    def test_re_add_multiple_times(self, app_with_commands, cli_runner):
         """Test that an alias can be removed and re-added multiple times."""
-        app = ExtendedTyper()
-
-        @app.command("list")
-        def list_items():
-            print("Listing items...")
-
-        @app.command("delete")
-        def delete_items():
-            print("Deleting items...")
 
         for _ in range(3):
-            app.add_alias("list", "ls")
-            result = cli_runner.invoke(app, ["ls"])
+            app_with_commands.add_alias("list", "ls")
+            result = cli_runner.invoke(app_with_commands, ["ls"])
             assert result.exit_code == 0
 
-            app.remove_alias("ls")
-            result = cli_runner.invoke(app, ["ls"])
+            app_with_commands.remove_alias("ls")
+            result = cli_runner.invoke(app_with_commands, ["ls"])
             assert result.exit_code != 0
 
 
@@ -841,9 +514,8 @@ class TestAliasReregistration:
 class TestMixingDecoratorAndProgrammatic:
     """Tests for mixing decorator and programmatic approaches."""
 
-    def test_both_approaches_coexist(self, cli_runner):
+    def test_both_approaches_coexist(self, app, cli_runner):
         """Test that both approaches work together."""
-        app = ExtendedTyper()
 
         @app.command("list", aliases=["ls"])
         def list_items():
@@ -866,37 +538,24 @@ class TestMixingDecoratorAndProgrammatic:
         result = cli_runner.invoke(app, ["rm"])
         assert result.exit_code == 0
 
-    def test_add_alias_to_decorated_command(self, cli_runner, clean_output):
+    def test_add_alias_to_decorated_command(
+        self, app_with_aliases, clean_output, cli_runner
+    ):
         """Test adding alias to command registered with decorator."""
-        app = ExtendedTyper()
 
-        @app.command("list", aliases=["ls"])
-        def list_items():
-            print("Listing...")
+        app_with_aliases.add_alias("list", "lst")
 
-        @app.command("delete", aliases=["rm", "del"])
-        def delete_item():
-            """Delete an item."""
-            print("Deleting item...")
-
-        app.add_alias("list", "l")
-
-        for cmd in ["list", "ls", "l"]:
-            result = cli_runner.invoke(app, [cmd])
+        for cmd in ["list", "ls", "l", "lst"]:
+            result = cli_runner.invoke(app_with_aliases, [cmd])
             clean_result = clean_output(result.output)
 
             assert result.exit_code == 0
-            assert "Listing..." in clean_result
+            assert "Listing items..." in clean_result
 
-    def test_add_alias_to_programmatic_command(self):
+    def test_add_alias_to_programmatic_command(self, app, unreg_commands):
         """Test adding alias to programmatically registered command."""
-        app = ExtendedTyper()
 
-        def list_items():
-            pass
-
-        def delete_item():
-            pass
+        list_items, delete_item = unreg_commands
 
         app.add_command(list_items, "list", aliases=["ls"])
         app.add_command(delete_item, "delete", aliases=["rm"])
@@ -905,26 +564,16 @@ class TestMixingDecoratorAndProgrammatic:
         aliases = app.get_aliases("list")
         assert aliases == ["ls", "l"]
 
-    def test_remove_alias_from_decorated_command(self):
+    def test_remove_alias_from_decorated_command(self, app_with_aliases):
         """Test removing alias from decorated command."""
-        app = ExtendedTyper()
 
-        @app.command("list", aliases=["ls", "l"])
-        def list_items():
-            pass
-
-        @app.command("delete", aliases=["rm"])
-        def delete_item():
-            pass
-
-        result = app.remove_alias("ls")
+        result = app_with_aliases.remove_alias("ls")
 
         assert result is True
-        assert app.get_aliases("list") == ["l"]
+        assert app_with_aliases.get_aliases("list") == ["l"]
 
-    def test_query_mixed_commands(self):
+    def test_query_mixed_commands(self, app):
         """Test querying aliases from mixed registration methods."""
-        app = ExtendedTyper()
 
         @app.command("list", aliases=["ls"])
         def list_items():
@@ -944,9 +593,8 @@ class TestMixingDecoratorAndProgrammatic:
         all_aliases = app.list_commands_with_aliases()
         assert all_aliases == {"list": ["ls"], "delete": ["rm"]}
 
-    def test_query_after_mixed_operations(self):
+    def test_query_after_mixed_operations(self, app):
         """Test querying after mix of decorator and programmatic."""
-        app = ExtendedTyper()
 
         @app.command("list", aliases=["ls"])
         def list_items():
@@ -970,13 +618,12 @@ class TestMixingDecoratorAndProgrammatic:
 class TestHelpWithProgrammaticAPI:
     """Tests for help display with programmatic API."""
 
-    def test_help_shows_programmatic_commands(self, cli_runner, clean_output):
+    def test_help_shows_programmatic_commands(
+        self, app, clean_output, cli_runner, unreg_commands
+    ):
         """Test that help shows programmatically registered commands."""
-        app = ExtendedTyper()
 
-        def list_items():
-            """List all items."""
-            pass
+        list_items, _ = unreg_commands
 
         app.add_command(
             list_items, "list", aliases=["ls"], help="List items in the system"
@@ -988,29 +635,20 @@ class TestHelpWithProgrammaticAPI:
 
         assert "list" in clean_result
 
-    def test_command_help_after_add_alias(self, cli_runner, clean_output):
+    def test_command_help_after_add_alias(
+        self, app_with_commands, clean_output, cli_runner
+    ):
         """Test that command help works after adding alias."""
-        app = ExtendedTyper()
 
-        @app.command("list")
-        def list_items():
-            """List all items."""
-            pass
+        app_with_commands.add_alias("list", "ls")
 
-        @app.command("delete")
-        def delete_items():
-            """Delete an item."""
-            pass
-
-        app.add_alias("list", "ls")
-
-        result = cli_runner.invoke(app, ["list", "--help"])
+        result = cli_runner.invoke(app_with_commands, ["list", "--help"])
         assert result.exit_code == 0
         clean_result = clean_output(result.output)
 
         assert "List all items" in clean_result
 
-        result = cli_runner.invoke(app, ["ls", "--help"])
+        result = cli_runner.invoke(app_with_commands, ["ls", "--help"])
         assert result.exit_code == 0
         clean_result = clean_output(result.output)
 
@@ -1025,67 +663,42 @@ class TestHelpWithProgrammaticAPI:
 class TestRealWorldUsagePatterns:
     """Tests for real-world usage patterns."""
 
-    def test_configuration_based_aliases(self, cli_runner):
+    def test_configuration_based_aliases(self, app_with_commands, cli_runner):
         """Test adding aliases based on configuration."""
-        app = ExtendedTyper()
-
-        @app.command("list")
-        def list_items():
-            print("Listing...")
-
-        @app.command("delete")
-        def delete_items():
-            print("Deleting items...")
 
         config_aliases = {"list": ["ls", "l", "dir"]}
 
         for cmd, aliases in config_aliases.items():
             for alias in aliases:
-                app.add_alias(cmd, alias)
+                app_with_commands.add_alias(cmd, alias)
 
         for alias in ["ls", "l", "dir"]:
-            result = cli_runner.invoke(app, [alias])
+            result = cli_runner.invoke(app_with_commands, [alias])
             assert result.exit_code == 0
 
-    def test_user_customisation_workflow(self, cli_runner):
+    def test_user_customisation_workflow(self, app_with_aliases, cli_runner):
         """Test workflow where user customises aliases."""
-        app = ExtendedTyper()
 
-        @app.command("checkout", aliases=["co"])
-        def checkout(branch: str):
-            print(f"Checked out {branch}")
+        app_with_aliases.add_alias("list", "lst")
+        app_with_aliases.remove_alias("ls")
 
-        @app.command("merge", aliases=["m"])
-        def merge(branch: str):
-            print(f"Merged {branch} into current branch.")
-
-        app.add_alias("checkout", "c")
-        app.remove_alias("co")
-
-        result = cli_runner.invoke(app, ["c", "main"])
+        result = cli_runner.invoke(app_with_aliases, ["lst"])
         assert result.exit_code == 0
 
-        result = cli_runner.invoke(app, ["co", "main"])
+        result = cli_runner.invoke(app_with_aliases, ["ls"])
         assert result.exit_code != 0
 
-    def test_backwards_compatibility_aliases(self, cli_runner, clean_output):
+    def test_backwards_compatibility_aliases(
+        self, app_with_commands, clean_output, cli_runner
+    ):
         """Test maintaining backwards compatibility with old command names."""
-        app = ExtendedTyper()
 
-        @app.command("add")
-        def add_item(name: str):
-            print(f"Added {name}")
+        app_with_commands.add_alias("delete", "remove")
+        app_with_commands.add_alias("delete", "del")
 
-        @app.command("remove")
-        def remove_item(name: str):
-            print(f"Removed {name}")
-
-        app.add_alias("remove", "delete")
-        app.add_alias("remove", "del")
-
-        for cmd in ["remove", "delete", "del"]:
-            result = cli_runner.invoke(app, [cmd, "test"])
+        for cmd in ["delete", "remove", "del"]:
+            result = cli_runner.invoke(app_with_commands, [cmd])
             clean_result = clean_output(result.output)
 
             assert result.exit_code == 0
-            assert "Removed test" in clean_result
+            assert "Deleting item..." in clean_result

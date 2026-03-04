@@ -113,7 +113,7 @@ def format_commands_with_aliases(
             padded_aliases = aliases_display + " " * (max_aliases_length - alias_width)
 
             formatted_cmd = f"{padded_cmd}   {padded_aliases}"
-            formatted_cmd_length = len(formatted_cmd)
+            formatted_cmd_length = calculate_width(formatted_cmd)
             max_formatted_length = max(max_formatted_length, formatted_cmd_length)
         else:
             formatted_cmd = cmd_name

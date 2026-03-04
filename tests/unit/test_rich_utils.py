@@ -281,76 +281,68 @@ class TestRichToHtml:
 class TestGetHelpText:
     """Tests for _get_help_text function."""
 
-    def test_get_help_text_with_none_help_text(self):
+    def test_get_help_text_with_none_help_text(self, mock_cmd):
         """Test _get_help_text with None/empty help text."""
-        obj = Mock()
-        obj.help = None
-        obj.deprecated = False
+        mock_cmd.help = None
+        mock_cmd.deprecated = False
 
         result = _rich_utils._get_help_text(
-            obj=obj, markup_mode=_rich_utils.MARKUP_MODE_RICH
+            obj=mock_cmd, markup_mode=_rich_utils.MARKUP_MODE_RICH
         )
         assert result is not None or result == ""
 
-    def test_get_help_text_with_deprecated_flag(self):
+    def test_get_help_text_with_deprecated_flag(self, mock_cmd):
         """Test _get_help_text with deprecated=True."""
-        obj = Mock()
-        obj.help = "Test help text"
-        obj.deprecated = True
+        mock_cmd.help = "Test help text"
+        mock_cmd.deprecated = True
 
         result = _rich_utils._get_help_text(
-            obj=obj, markup_mode=_rich_utils.MARKUP_MODE_RICH
+            obj=mock_cmd, markup_mode=_rich_utils.MARKUP_MODE_RICH
         )
         assert result is not None
 
-    def test_get_help_text_with_markdown_multiline(self):
+    def test_get_help_text_with_markdown_multiline(self, mock_cmd):
         """Test _get_help_text with markdown mode and multiline help."""
-        cmd = click.Command("test")
-        cmd.help = "First paragraph\n\nSecond paragraph\n\nThird paragraph"
+        mock_cmd.help = "First paragraph\n\nSecond paragraph\n\nThird paragraph"
 
-        result = _rich_utils._get_help_text(obj=cmd, markup_mode="markdown")
+        result = _rich_utils._get_help_text(obj=mock_cmd, markup_mode="markdown")
         assert result is not None
 
-    def test_get_help_text_with_formfeed_markdown(self):
+    def test_get_help_text_with_formfeed_markdown(self, mock_cmd):
         """Test _get_help_text with formfeed in markdown mode."""
-        cmd = click.Command("test")
-        cmd.help = "Visible part\fHidden part after formfeed"
+        mock_cmd.help = "Visible part\fHidden part after formfeed"
 
-        result = _rich_utils._get_help_text(obj=cmd, markup_mode="markdown")
+        result = _rich_utils._get_help_text(obj=mock_cmd, markup_mode="markdown")
         assert result is not None
 
-    def test_get_help_text_with_newlines_in_first_line_rich_mode(self):
+    def test_get_help_text_with_newlines_in_first_line_rich_mode(self, mock_cmd):
         """Test _get_help_text with newlines in first line for rich mode."""
-        cmd = click.Command("test")
-        cmd.help = "First\nline\nwith\nnewlines\n\nSecond paragraph"
+        mock_cmd.help = "First\nline\nwith\nnewlines\n\nSecond paragraph"
 
-        result = _rich_utils._get_help_text(obj=cmd, markup_mode="rich")
+        result = _rich_utils._get_help_text(obj=mock_cmd, markup_mode="rich")
         assert result is not None
 
-    def test_get_help_text_with_breaklines_marker(self):
+    def test_get_help_text_with_breaklines_marker(self, mock_cmd):
         """Test _get_help_text with \\b marker (preserve line breaks)."""
-        cmd = click.Command("test")
-        cmd.help = "\\bFirst line\nSecond line\nThird line"
+        mock_cmd.help = "\\bFirst line\nSecond line\nThird line"
 
-        result = _rich_utils._get_help_text(obj=cmd, markup_mode="rich")
+        result = _rich_utils._get_help_text(obj=mock_cmd, markup_mode="rich")
         assert result is not None
 
-    def test_help_with_form_feed(self):
+    def test_help_with_form_feed(self, mock_cmd):
         """Test help text with form feed character."""
-        obj = Mock(spec=click.Command)
-        obj.help = "First part\fSecond part that should be hidden"
-        obj.deprecated = False
+        mock_cmd.help = "First part\fSecond part that should be hidden"
+        mock_cmd.deprecated = False
 
-        result = _rich_utils._get_help_text(obj=obj, markup_mode="rich")
+        result = _rich_utils._get_help_text(obj=mock_cmd, markup_mode="rich")
         assert result is not None
 
-    def test_help_with_literal_break(self):
+    def test_help_with_literal_break(self, mock_cmd):
         """Test help text with literal break marker."""
-        obj = Mock(spec=click.Command)
-        obj.help = "\\b\nLine 1\nLine 2"
-        obj.deprecated = False
+        mock_cmd.help = "\\b\nLine 1\nLine 2"
+        mock_cmd.deprecated = False
 
-        result = _rich_utils._get_help_text(obj=obj, markup_mode="rich")
+        result = _rich_utils._get_help_text(obj=mock_cmd, markup_mode="rich")
         assert result is not None
 
 
@@ -362,53 +354,45 @@ class TestGetHelpText:
 class TestGetParameterHelp:
     """Tests for _get_parameter_help function."""
 
-    def test_get_parameter_help_option_with_default(self):
+    def test_get_parameter_help_option_with_default(self, mock_ctx, mock_opt):
         """Test _get_parameter_help with option having default value."""
-        opt = click.Option(
-            ["-n", "--name"], default="John", show_default=True, help="Name"
+        mock_opt.default = "default_value"
+
+        result = _rich_utils._get_parameter_help(
+            param=mock_opt, ctx=mock_ctx, markup_mode="rich"
         )
-
-        ctx = Mock()
-        ctx.show_default = False
-        ctx.auto_envvar_prefix = None
-
-        result = _rich_utils._get_parameter_help(param=opt, ctx=ctx, markup_mode="rich")
         assert result is not None
 
-    def test_get_parameter_help_option_with_multiple_envvars(self):
+    def test_get_parameter_help_option_with_multiple_envvars(self, mock_ctx, mock_opt):
         """Test _get_parameter_help with option having multiple env vars."""
-        opt = click.Option(
-            ["-t", "--token"], envvar=["TOKEN", "API_KEY"], help="API token"
+        mock_opt.envvar = ["var1", "var2"]
+
+        result = _rich_utils._get_parameter_help(
+            param=mock_opt, ctx=mock_ctx, markup_mode="rich"
         )
-
-        ctx = Mock()
-        ctx.show_default = False
-        ctx.auto_envvar_prefix = None
-
-        result = _rich_utils._get_parameter_help(param=opt, ctx=ctx, markup_mode="rich")
         assert result is not None
 
-    def test_get_parameter_help_with_no_help_text(self):
+    def test_get_parameter_help_with_no_help_text(self, mock_ctx, mock_opt):
         """Test _get_parameter_help with no help text."""
-        opt = click.Option(["-q", "--quiet"])
+        mock_opt.help = None
 
-        ctx = Mock()
-        ctx.auto_envvar_prefix = None
-
-        result = _rich_utils._get_parameter_help(param=opt, ctx=ctx, markup_mode="rich")
+        result = _rich_utils._get_parameter_help(
+            param=mock_opt, ctx=mock_ctx, markup_mode="rich"
+        )
         assert result is not None
 
-    def test_get_parameter_help_with_auto_envvar_prefix(self):
+    def test_get_parameter_help_with_auto_envvar_prefix(self, mock_ctx, mock_opt):
         """Test _get_parameter_help with auto_envvar_prefix."""
-        opt = click.Option(["-a", "--api-key"], allow_from_autoenv=True, help="API key")
+        mock_opt.allow_from_autoenv = True
 
-        ctx = Mock()
-        ctx.auto_envvar_prefix = "MYAPP"
+        mock_ctx.auto_envvar_prefix = "TestApp"
 
-        result = _rich_utils._get_parameter_help(param=opt, ctx=ctx, markup_mode="rich")
+        result = _rich_utils._get_parameter_help(
+            param=mock_opt, ctx=mock_ctx, markup_mode="rich"
+        )
         assert result is not None
 
-    def test_get_parameter_help_with_callable_default(self):
+    def test_get_parameter_help_with_callable_default(self, mock_ctx):
         """Test _get_parameter_help with callable default value."""
 
         def default_func():
@@ -416,62 +400,54 @@ class TestGetParameterHelp:
 
         opt = click.Option(["-d", "--dynamic"], default=default_func, show_default=True)
 
-        ctx = Mock()
-        ctx.show_default = False
-        ctx.auto_envvar_prefix = None
-
-        result = _rich_utils._get_parameter_help(param=opt, ctx=ctx, markup_mode="rich")
-        assert result is not None
-
-    def test_get_parameter_help_with_required_option(self):
-        """Test _get_parameter_help with required option."""
-        opt = click.Option(["-r", "--required"], required=True, help="Required field")
-
-        ctx = Mock()
-        ctx.auto_envvar_prefix = None
-
-        result = _rich_utils._get_parameter_help(param=opt, ctx=ctx, markup_mode="rich")
-        assert result is not None
-
-    def test_get_parameter_help_with_multiple_paragraphs(self):
-        """Test _get_parameter_help with multi-paragraph help text."""
-        opt = click.Option(
-            ["-c", "--config"],
-            help="First paragraph\n\nSecond paragraph with more details\n\nThird paragraph",
-        )
-        ctx = Mock()
-        ctx.auto_envvar_prefix = None
-
-        result = _rich_utils._get_parameter_help(param=opt, ctx=ctx, markup_mode="rich")
-        assert result is not None
-
-    def test_get_parameter_help_with_breaklines_marker(self):
-        """Test _get_parameter_help with \\b marker."""
-        opt = click.Option(
-            ["-f", "--format"], help="\\bLine 1\nLine 2\nLine 3", metavar="FORMAT"
-        )
-        ctx = Mock()
-        ctx.auto_envvar_prefix = None
-
-        result = _rich_utils._get_parameter_help(param=opt, ctx=ctx, markup_mode="rich")
-        assert result is not None
-
-    def test_get_parameter_help_with_range_constraint(self):
-        """Test _get_parameter_help with click.IntRange."""
-        opt = click.Option(
-            ["-p", "--port"],
-            type=click.IntRange(1, 65535),
-            help="Port number",
-        )
-        ctx = Mock()
-        ctx.auto_envvar_prefix = None
+        mock_ctx.show_default = False
+        mock_ctx.auto_envvar_prefix = None
 
         result = _rich_utils._get_parameter_help(
-            param=opt, ctx=ctx, markup_mode="markdown"
+            param=opt, ctx=mock_ctx, markup_mode="rich"
         )
         assert result is not None
 
-    def test_typer_argument_with_default_value(self):
+    def test_get_parameter_help_with_required_option(self, mock_ctx, mock_opt):
+        """Test _get_parameter_help with required option."""
+        mock_opt.required = True
+
+        result = _rich_utils._get_parameter_help(
+            param=mock_opt, ctx=mock_ctx, markup_mode="rich"
+        )
+        assert result is not None
+
+    def test_get_parameter_help_with_multiple_paragraphs(self, mock_ctx, mock_opt):
+        """Test _get_parameter_help with multi-paragraph help text."""
+        mock_opt.help = (
+            "First paragraph\n\nSecond paragraph with more details\n\nThird paragraph"
+        )
+
+        result = _rich_utils._get_parameter_help(
+            param=mock_opt, ctx=mock_ctx, markup_mode="rich"
+        )
+        assert result is not None
+
+    def test_get_parameter_help_with_breaklines_marker(self, mock_ctx, mock_opt):
+        """Test _get_parameter_help with \\b marker."""
+        mock_opt.help = "\\bLine 1\nLine 2\nLine 3"
+
+        result = _rich_utils._get_parameter_help(
+            param=mock_opt, ctx=mock_ctx, markup_mode="rich"
+        )
+        assert result is not None
+
+    def test_get_parameter_help_with_range_constraint(self, mock_ctx, mock_opt):
+        """Test _get_parameter_help with click.IntRange."""
+        mock_opt.type = click.IntRange(1, 65535)
+        mock_opt.help = "Port number"
+
+        result = _rich_utils._get_parameter_help(
+            param=mock_opt, ctx=mock_ctx, markup_mode="rich"
+        )
+        assert result is not None
+
+    def test_typer_argument_with_default_value(self, mock_ctx):
         """TyperArgument with default_value_from_help."""
         from typer.core import TyperArgument
 
@@ -481,105 +457,100 @@ class TestGetParameterHelp:
         setattr(param, "default_value_from_help", "42")
         param.envvar = None
 
-        ctx = Mock()
-
         result = _rich_utils._get_parameter_help(
-            param=param, ctx=ctx, markup_mode="rich"
+            param=param, ctx=mock_ctx, markup_mode="rich"
         )
         assert result is not None
 
-    def test_parameter_help_with_backspace_escape(self):
+    def test_parameter_help_with_backspace_escape(self, mock_ctx, mock_opt):
         """Help text starting with \\b escape (no linebreak removal)."""
-        param = Mock(spec=click.Option)
-        param.name = "test"
-        param.help = "\bThis is verbatim\ntext with newlines"
-        param.required = False
-        param.default = None
-        param.show_default = False
-        param.envvar = None
-
-        ctx = Mock()
-        ctx.show_default = False
+        mock_opt.help = "\bThis is verbatim\ntext with newlines"
 
         result = _rich_utils._get_parameter_help(
-            param=param, ctx=ctx, markup_mode="rich"
+            param=mock_opt, ctx=mock_ctx, markup_mode="rich"
         )
         assert result is not None
 
-    def test_list_default_value(self):
+    def test_list_default_value(self, mock_ctx, mock_opt):
         """Parameter with list/tuple default."""
-        param = Mock(spec=click.Option)
-        param.name = "test_option"
-        param.help = "Test option"
-        param.required = False
-        param.default = ["val1", "val2", "val3"]
-        param.show_default = True
-        param.envvar = None
-
-        ctx = Mock()
-        ctx.show_default = False
+        mock_opt.default = ["val1", "val2", "val3"]
+        mock_opt.show_default = True
 
         result = _rich_utils._get_parameter_help(
-            param=param, ctx=ctx, markup_mode="rich"
+            param=mock_opt, ctx=mock_ctx, markup_mode="rich"
         )
         assert result is not None
 
-    def test_tuple_default_value(self):
+    def test_tuple_default_value(self, mock_ctx, mock_opt):
         """Parameter with tuple default."""
-        param = Mock(spec=click.Option)
-        param.name = "test_option"
-        param.help = "Test option"
-        param.required = False
-        param.default = (1, 2, 3)
-        param.show_default = True
-        param.envvar = None
-
-        ctx = Mock()
-        ctx.show_default = False
+        mock_opt.default = (1, 2, 3)
+        mock_opt.show_default = True
 
         result = _rich_utils._get_parameter_help(
-            param=param, ctx=ctx, markup_mode="rich"
+            param=mock_opt, ctx=mock_ctx, markup_mode="rich"
         )
         assert result is not None
 
-    def test_empty_default_string_not_added(self):
+    def test_empty_default_string_not_added(self, mock_ctx, mock_opt):
         """Empty default string is not added to help."""
-        param = Mock(spec=click.Option)
-        param.name = "test_option"
-        param.help = "Test option"
-        param.required = False
-        param.default = ""
-        param.show_default = True
-        param.envvar = None
-
-        ctx = Mock()
-        ctx.show_default = False
+        mock_opt.default = ""
 
         result = _rich_utils._get_parameter_help(
-            param=param, ctx=ctx, markup_mode="rich"
+            param=mock_opt, ctx=mock_ctx, markup_mode="rich"
         )
         assert result is not None
 
-    def test_callable_default_parameter(self):
-        """Test that callable defaults show as '(dynamic)'."""
+    def test_callable_default_parameter(self, unreg_commands):
+        """Test with callable default parameter."""
+        from unittest.mock import MagicMock
 
-        def default_func():
-            return "dynamic"
+        list_items, _ = unreg_commands
 
-        param = Mock(spec=click.Option)
-        param.name = "test"
-        param.help = "Test option"
-        param.required = False
-        param.default = default_func
-        param.show_default = True
-        param.envvar = None
-
-        ctx = Mock()
-        ctx.show_default = False
-
-        result = _rich_utils._get_parameter_help(
-            param=param, ctx=ctx, markup_mode="rich"
+        opt = click.Option(
+            ["-d", "--dynamic"], default=list_items, show_default=True, help="Dynamic"
         )
+
+        ctx = MagicMock()
+        ctx.show_default = False
+        ctx.auto_envvar_prefix = None
+
+        result = _rich_utils._get_parameter_help(param=opt, ctx=ctx, markup_mode="rich")
+        # Should return help text with dynamic default
+        assert result is not None
+
+    def test_non_callable_default_parameter(self):
+        """Test with non-callable default parameter."""
+        from unittest.mock import MagicMock
+
+        opt = click.Option(
+            ["-v", "--value"],
+            default="default_value",
+            show_default=True,
+            help="A value",
+        )
+
+        ctx = MagicMock()
+        ctx.show_default = False
+        ctx.auto_envvar_prefix = None
+
+        result = _rich_utils._get_parameter_help(param=opt, ctx=ctx, markup_mode="rich")
+        # Should return help text with string default
+        assert result is not None
+
+    def test_empty_string_default_parameter(self):
+        """Test with empty string default parameter."""
+        from unittest.mock import MagicMock
+
+        opt = click.Option(
+            ["-v", "--value"], default="", show_default=True, help="A value"
+        )
+
+        ctx = MagicMock()
+        ctx.show_default = False
+        ctx.auto_envvar_prefix = None
+
+        result = _rich_utils._get_parameter_help(param=opt, ctx=ctx, markup_mode="rich")
+        # Should return help text (default not added if empty string)
         assert result is not None
 
 
@@ -591,94 +562,89 @@ class TestGetParameterHelp:
 class TestPrintOptionsPanel:
     """Tests for _print_options_panel function."""
 
-    def test_print_options_panel_empty_params(self):
+    def test_print_options_panel_empty_params(self, mock_ctx):
         """Test _print_options_panel with empty parameter list."""
-        ctx = Mock()
         console = _rich_utils._get_rich_console()
         assert console is not None
 
         result = _rich_utils._print_options_panel(
             name="Options",
             params=[],
-            ctx=ctx,
+            ctx=mock_ctx,
             markup_mode="rich",
             console=console,
         )
         assert result is None
 
-    def test_print_options_panel_with_options(self):
+    def test_print_options_panel_with_options(self, mock_ctx):
         """Test _print_options_panel with option parameters."""
         opt = click.Option(["-v", "--verbose"], help="Verbose output")
 
-        ctx = Mock()
-        ctx.auto_envvar_prefix = None
+        mock_ctx.auto_envvar_prefix = None
         console = _rich_utils._get_rich_console()
         assert console is not None
 
         result = _rich_utils._print_options_panel(
             name="Options",
             params=[opt],
-            ctx=ctx,
+            ctx=mock_ctx,
             markup_mode="rich",
             console=console,
         )
         assert result is None
 
-    def test_print_options_panel_with_negative_option(self):
+    def test_print_options_panel_with_negative_option(self, mock_ctx):
         """Test _print_options_panel with negative option."""
         opt = click.Option(["--no-verbose"], help="Disable verbose")
 
-        ctx = Mock()
-        ctx.auto_envvar_prefix = None
+        mock_ctx.auto_envvar_prefix = None
         console = _rich_utils._get_rich_console()
         assert console is not None
 
         result = _rich_utils._print_options_panel(
             name="Options",
             params=[opt],
-            ctx=ctx,
+            ctx=mock_ctx,
             markup_mode="rich",
             console=console,
         )
         assert result is None
 
-    def test_print_options_panel_with_envvar(self):
+    def test_print_options_panel_with_envvar(self, mock_ctx):
         """Test _print_options_panel with environment variable."""
         opt = click.Option(["-t", "--token"], envvar="API_TOKEN", help="API token")
 
-        ctx = Mock()
-        ctx.auto_envvar_prefix = None
+        mock_ctx.auto_envvar_prefix = None
         console = _rich_utils._get_rich_console()
         assert console is not None
 
         result = _rich_utils._print_options_panel(
             name="Options",
             params=[opt],
-            ctx=ctx,
+            ctx=mock_ctx,
             markup_mode="rich",
             console=console,
         )
         assert result is None
 
-    def test_print_options_panel_with_metavar(self):
+    def test_print_options_panel_with_metavar(self, mock_ctx):
         """Test _print_options_panel with custom metavar."""
         opt = click.Option(["-f", "--file"], metavar="FILENAME", help="Input file")
 
-        ctx = Mock()
-        ctx.auto_envvar_prefix = None
+        mock_ctx.auto_envvar_prefix = None
         console = _rich_utils._get_rich_console()
         assert console is not None
 
         result = _rich_utils._print_options_panel(
             name="Options",
             params=[opt],
-            ctx=ctx,
+            ctx=mock_ctx,
             markup_mode="rich",
             console=console,
         )
         assert result is None
 
-    def test_highlighter_none_negative(self):
+    def test_highlighter_none_negative(self, mock_ctx):
         """Test negative_highlighter is None."""
         param = Mock(spec=click.Option)
         param.name = "no-feature"
@@ -689,7 +655,6 @@ class TestPrintOptionsPanel:
         param.envvar = None
         param.default = None
 
-        ctx = Mock()
         console = Mock()
         console.print = Mock()
 
@@ -699,12 +664,12 @@ class TestPrintOptionsPanel:
                     _rich_utils._print_options_panel(
                         name="Options",
                         params=[param],
-                        ctx=ctx,
+                        ctx=mock_ctx,
                         markup_mode="rich",
                         console=console,
                     )
 
-    def test_highlighter_none_positive(self):
+    def test_highlighter_none_positive(self, mock_ctx):
         """Test highlighter is None."""
         param = Mock(spec=click.Option)
         param.name = "feature"
@@ -715,7 +680,6 @@ class TestPrintOptionsPanel:
         param.envvar = None
         param.default = None
 
-        ctx = Mock()
         console = Mock()
         console.print = Mock()
 
@@ -725,13 +689,13 @@ class TestPrintOptionsPanel:
                     _rich_utils._print_options_panel(
                         name="Options",
                         params=[param],
-                        ctx=ctx,
+                        ctx=mock_ctx,
                         markup_mode="rich",
                         console=console,
                     )
 
-    def test_param_with_metavar(self):
-        """Test Parameter with metavar."""
+    def test_param_with_metavar(self, mock_ctx):
+        """Test parameter with metavar."""
         param = Mock(spec=click.Option)
         param.name = "output"
         param.opts = ["--output"]
@@ -742,20 +706,19 @@ class TestPrintOptionsPanel:
         param.default = None
         param.metavar = "FILE"
 
-        ctx = Mock()
         console = Mock()
         console.print = Mock()
 
         _rich_utils._print_options_panel(
             name="Options",
             params=[param],
-            ctx=ctx,
+            ctx=mock_ctx,
             markup_mode="rich",
             console=console,
         )
 
-    def test_param_with_type_name(self):
-        """Test Parameter with type.name."""
+    def test_param_with_type_name(self, mock_ctx):
+        """Test parameter with type.name."""
         param = Mock(spec=click.Option)
         param.name = "count"
         param.opts = ["--count"]
@@ -771,20 +734,19 @@ class TestPrintOptionsPanel:
 
         delattr(param, "metavar") if hasattr(param, "metavar") else None
 
-        ctx = Mock()
         console = Mock()
         console.print = Mock()
 
         _rich_utils._print_options_panel(
             name="Options",
             params=[param],
-            ctx=ctx,
+            ctx=mock_ctx,
             markup_mode="rich",
             console=console,
         )
 
-    def test_required_parameter_indicator(self):
-        """Test Required parameter indicator."""
+    def test_required_parameter_indicator(self, mock_ctx):
+        """Test required parameter indicator."""
         param = Mock(spec=click.Option)
         param.name = "required_opt"
         param.opts = ["--required"]
@@ -794,20 +756,19 @@ class TestPrintOptionsPanel:
         param.envvar = None
         param.default = None
 
-        ctx = Mock()
         console = Mock()
         console.print = Mock()
 
         _rich_utils._print_options_panel(
             name="Options",
             params=[param],
-            ctx=ctx,
+            ctx=mock_ctx,
             markup_mode="rich",
             console=console,
         )
 
-    def test_empty_options_table(self):
-        """Test lines 499->456, 502->exit: No rows in options table."""
+    def test_empty_options_table(self, mock_ctx):
+        """Test no rows in options table."""
         param = Mock(spec=click.Option)
         param.name = "test"
         param.opts = ["--test"]
@@ -817,7 +778,6 @@ class TestPrintOptionsPanel:
         param.envvar = None
         param.default = None
 
-        ctx = Mock()
         console = Mock()
         console.print = Mock()
 
@@ -825,7 +785,7 @@ class TestPrintOptionsPanel:
             _rich_utils._print_options_panel(
                 name="Options",
                 params=[param],
-                ctx=ctx,
+                ctx=mock_ctx,
                 markup_mode="rich",
                 console=console,
             )
@@ -836,7 +796,7 @@ class TestPrintOptionsPanel:
                 for call in console.print.call_args_list:
                     assert not isinstance(call[0][0] if call[0] else None, Panel)
 
-    def test_option_with_secondary_opts(self):
+    def test_option_with_secondary_opts(self, mock_ctx):
         """Test option with secondary options."""
         param = Mock(spec=click.Option)
         param.name = "verbose"
@@ -847,14 +807,13 @@ class TestPrintOptionsPanel:
         param.envvar = None
         param.default = None
 
-        ctx = Mock()
         console = Mock()
         console.print = Mock()
 
         _rich_utils._print_options_panel(
             name="Options",
             params=[param],
-            ctx=ctx,
+            ctx=mock_ctx,
             markup_mode="rich",
             console=console,
         )
@@ -868,17 +827,15 @@ class TestPrintOptionsPanel:
 class TestPrintCommandsPanel:
     """Tests for _print_commands_panel function."""
 
-    def test_print_commands_panel_with_commands(self):
+    def test_print_commands_panel_with_commands(self, mock_cmd):
         """Test _print_commands_panel with commands."""
-        cmd = click.Command("test")
-        cmd.help = "Test command"
 
         console = _rich_utils._get_rich_console()
         assert console is not None
 
         result = _rich_utils._print_commands_panel(
             name="Commands",
-            commands=[cmd],
+            commands=[mock_cmd],
             markup_mode="rich",
             console=console,
             cmd_len=10,
@@ -886,18 +843,18 @@ class TestPrintCommandsPanel:
         )
         assert result is None
 
-    def test_print_commands_panel_with_deprecated_command(self):
+    def test_print_commands_panel_with_deprecated_command(self, mock_cmd):
         """Test _print_commands_panel with deprecated command."""
-        cmd = click.Command("old")
-        cmd.help = "Deprecated command"
-        cmd.deprecated = True
+        mock_cmd.name = "old"
+        mock_cmd.help = "Deprecated command"
+        mock_cmd.deprecated = True
 
         console = _rich_utils._get_rich_console()
         assert console is not None
 
         result = _rich_utils._print_commands_panel(
             name="Commands",
-            commands=[cmd],
+            commands=[mock_cmd],
             markup_mode="rich",
             console=console,
             cmd_len=10,
@@ -905,10 +862,10 @@ class TestPrintCommandsPanel:
         )
         assert result is None
 
-    def test_print_commands_panel_with_extended_typer(self):
+    def test_print_commands_panel_with_extended_typer(self, mock_cmd):
         """Test _print_commands_panel with extended_typer for aliases."""
-        cmd = click.Command("deploy")
-        cmd.help = "Deploy the application"
+        mock_cmd.name = "deploy"
+        mock_cmd.help = "Deploy the application"
 
         extended_typer = Mock()
         extended_typer.show_aliases_in_help = True
@@ -919,7 +876,7 @@ class TestPrintCommandsPanel:
 
         result = _rich_utils._print_commands_panel(
             name="Commands",
-            commands=[cmd],
+            commands=[mock_cmd],
             markup_mode="rich",
             console=console,
             cmd_len=10,
@@ -927,17 +884,17 @@ class TestPrintCommandsPanel:
         )
         assert result is None
 
-    def test_print_commands_panel_with_multiline_help(self):
+    def test_print_commands_panel_with_multiline_help(self, mock_cmd):
         """Test _print_commands_panel with multiline help text."""
-        cmd = click.Command("complex")
-        cmd.help = "First line\n\nSecond paragraph\nWith continuation"
+        mock_cmd.name = "complex"
+        mock_cmd.help = "First line\n\nSecond paragraph\nWith continuation"
 
         console = _rich_utils._get_rich_console()
         assert console is not None
 
         result = _rich_utils._print_commands_panel(
             name="Commands",
-            commands=[cmd],
+            commands=[mock_cmd],
             markup_mode="rich",
             console=console,
             cmd_len=20,
@@ -945,17 +902,17 @@ class TestPrintCommandsPanel:
         )
         assert result is None
 
-    def test_print_commands_panel_with_multiline_help_markdown(self):
+    def test_print_commands_panel_with_multiline_help_markdown(self, mock_cmd):
         """Test _print_commands_panel with multiline help in markdown mode."""
-        cmd = click.Command("complex")
-        cmd.help = "First line\n\nSecond paragraph\n\nThird paragraph"
+        mock_cmd.name = "complex"
+        mock_cmd.help = "First line\n\nSecond paragraph\n\nThird paragraph"
 
         console = _rich_utils._get_rich_console()
         assert console is not None
 
         result = _rich_utils._print_commands_panel(
             name="Commands",
-            commands=[cmd],
+            commands=[mock_cmd],
             markup_mode="markdown",
             console=console,
             cmd_len=20,
@@ -963,17 +920,17 @@ class TestPrintCommandsPanel:
         )
         assert result is None
 
-    def test_print_commands_panel_empty_help(self):
+    def test_print_commands_panel_empty_help(self, mock_cmd):
         """Test _print_commands_panel with command that has no help."""
-        cmd = click.Command("nohelp")
-        cmd.help = None
+        mock_cmd.name = "nohelp"
+        mock_cmd.help = None
 
         console = _rich_utils._get_rich_console()
         assert console is not None
 
         result = _rich_utils._print_commands_panel(
             name="Commands",
-            commands=[cmd],
+            commands=[mock_cmd],
             markup_mode="rich",
             console=console,
             cmd_len=10,
@@ -1006,19 +963,17 @@ class TestPrintCommandsPanel:
 class TestRichFormatHelp:
     """Tests for rich_format_help function."""
 
-    def test_rich_format_help_with_no_params(self):
+    def test_rich_format_help_with_no_params(self, mock_ctx):
         """Test rich_format_help with no parameters."""
         obj = MagicMock()
         obj.params = []
         obj.help = None
         obj.get_usage.return_value = "test command [OPTIONS]"
 
-        ctx = MagicMock()
-
-        result = _rich_utils.rich_format_help(obj=obj, ctx=ctx, markup_mode="rich")
+        result = _rich_utils.rich_format_help(obj=obj, ctx=mock_ctx, markup_mode="rich")
         assert result is None
 
-    def test_rich_format_help_with_epilog(self):
+    def test_rich_format_help_with_epilog(self, mock_ctx):
         """Test rich_format_help with epilog text."""
         obj = MagicMock()
         obj.params = []
@@ -1026,12 +981,10 @@ class TestRichFormatHelp:
         obj.help = None
         obj.get_usage.return_value = "test command [OPTIONS]"
 
-        ctx = MagicMock()
-
-        result = _rich_utils.rich_format_help(obj=obj, ctx=ctx, markup_mode="rich")
+        result = _rich_utils.rich_format_help(obj=obj, ctx=mock_ctx, markup_mode="rich")
         assert result is None
 
-    def test_rich_format_help_with_option_groups(self):
+    def test_rich_format_help_with_option_groups(self, mock_ctx):
         """Test rich_format_help with grouped options."""
         opt1 = click.Option(["-v", "--verbose"], help="Verbose output")
         setattr(opt1, "rich_help_panel", "Display Options")
@@ -1044,12 +997,10 @@ class TestRichFormatHelp:
         obj.help = None
         obj.get_usage.return_value = "test command [OPTIONS]"
 
-        ctx = MagicMock()
-
-        result = _rich_utils.rich_format_help(obj=obj, ctx=ctx, markup_mode="rich")
+        result = _rich_utils.rich_format_help(obj=obj, ctx=mock_ctx, markup_mode="rich")
         assert result is None
 
-    def test_rich_format_help_with_required_options(self):
+    def test_rich_format_help_with_required_options(self, mock_ctx):
         """Test rich_format_help with required options."""
         opt = click.Option(["-r", "--required"], required=True, help="Required option")
 
@@ -1058,12 +1009,10 @@ class TestRichFormatHelp:
         obj.help = None
         obj.get_usage.return_value = "test command [OPTIONS]"
 
-        ctx = MagicMock()
-
-        result = _rich_utils.rich_format_help(obj=obj, ctx=ctx, markup_mode="rich")
+        result = _rich_utils.rich_format_help(obj=obj, ctx=mock_ctx, markup_mode="rich")
         assert result is None
 
-    def test_rich_format_help_with_arguments(self):
+    def test_rich_format_help_with_arguments(self, mock_ctx):
         """Test rich_format_help with argument parameters."""
         arg = click.Argument(["input"])
 
@@ -1072,12 +1021,10 @@ class TestRichFormatHelp:
         obj.help = None
         obj.get_usage.return_value = "test command [INPUT]"
 
-        ctx = MagicMock()
-
-        result = _rich_utils.rich_format_help(obj=obj, ctx=ctx, markup_mode="rich")
+        result = _rich_utils.rich_format_help(obj=obj, ctx=mock_ctx, markup_mode="rich")
         assert result is None
 
-    def test_rich_format_help_with_hidden_params(self):
+    def test_rich_format_help_with_hidden_params(self, mock_cmd):
         """Test rich_format_help with hidden parameters."""
         cmd = click.Command("test")
         cmd.help = "Test command"
@@ -1140,7 +1087,7 @@ class TestRichFormatHelp:
             result = _rich_utils.rich_format_help(obj=cmd, ctx=ctx, markup_mode="rich")
             assert result is None
 
-    def test_parameter_not_argument_or_option(self):
+    def test_parameter_not_argument_or_option(self, mock_ctx):
         """Test Parameter that is neither Argument nor Option."""
         custom_param = Mock()
         custom_param.__class__ = type("CustomParam", (), {})
@@ -1154,16 +1101,15 @@ class TestRichFormatHelp:
         obj.deprecated = False
         obj.get_usage = Mock(return_value="test-command")
 
-        ctx = Mock()
-        ctx.command = obj
+        mock_ctx.command = obj
 
         console = Mock()
         console.print = Mock()
 
         with patch.object(_rich_utils, "_get_rich_console", return_value=console):
-            _rich_utils.rich_format_help(obj=obj, ctx=ctx, markup_mode="rich")
+            _rich_utils.rich_format_help(obj=obj, ctx=mock_ctx, markup_mode="rich")
 
-    def test_custom_argument_panel(self):
+    def test_custom_argument_panel(self, mock_ctx):
         """Test non-default argument panel name."""
         arg = Mock(spec=click.Argument)
         arg.name = "file"
@@ -1176,32 +1122,52 @@ class TestRichFormatHelp:
         obj.deprecated = False
         obj.get_usage = Mock(return_value="test-command")
 
-        ctx = Mock()
-        ctx.command = obj
+        mock_ctx.command = obj
 
         console = Mock()
         console.print = Mock()
 
         with patch.object(_rich_utils, "_get_rich_console", return_value=console):
             with patch.object(_rich_utils, "_print_options_panel") as mock_print:
-                _rich_utils.rich_format_help(obj=obj, ctx=ctx, markup_mode="rich")
+                _rich_utils.rich_format_help(obj=obj, ctx=mock_ctx, markup_mode="rich")
 
                 calls = mock_print.call_args_list
                 panel_names = [call[1]["name"] for call in calls if "name" in call[1]]
                 assert "Input Arguments" in panel_names
 
-    def test_custom_command_panel(self):
+    def test_custom_command_panel(self, mock_cmd, mock_ctx):
         """Test non-default command panel."""
-        cmd = Mock(spec=click.Command)
-        cmd.name = "special"
-        cmd.help = "Special command"
-        cmd.hidden = False
-        cmd.deprecated = False
-        cmd.rich_help_panel = "Special Commands"
+        # Create a default command
+        default_cmd = Mock(spec=click.Command)
+        default_cmd.name = "default"
+        default_cmd.help = "Default command"
+        default_cmd.hidden = False
+
+        # Create a hidden command (to test the hidden branch)
+        hidden_cmd = Mock(spec=click.Command)
+        hidden_cmd.name = "hidden"
+        hidden_cmd.help = "Hidden command"
+        hidden_cmd.hidden = True
+
+        # Create a special command with custom panel
+        special_cmd = Mock(spec=click.Command)
+        special_cmd.name = "special"
+        special_cmd.help = "Special command"
+        special_cmd.hidden = False
+        special_cmd.rich_help_panel = "Special Commands"
+
+        def get_command_side_effect(_, cmd_name):
+            if cmd_name == "default":
+                return default_cmd
+            elif cmd_name == "hidden":
+                return hidden_cmd
+            elif cmd_name == "special":
+                return special_cmd
+            return None
 
         obj = Mock(spec=click.Group)
-        obj.list_commands = Mock(return_value=["special"])
-        obj.get_command = Mock(return_value=cmd)
+        obj.list_commands = Mock(return_value=["default", "hidden", "special"])
+        obj.get_command = Mock(side_effect=get_command_side_effect)
         obj.get_params = Mock(return_value=[])
         obj.help = "Test group"
         obj.epilog = None
@@ -1209,38 +1175,35 @@ class TestRichFormatHelp:
         obj._extended_typer = None
         obj.get_usage = Mock(return_value="test-group")
 
-        ctx = Mock()
-        ctx.command = obj
+        mock_ctx.command = obj
 
         console = Mock()
         console.print = Mock()
 
         with patch.object(_rich_utils, "_get_rich_console", return_value=console):
             with patch.object(_rich_utils, "_print_commands_panel") as mock_print:
-                _rich_utils.rich_format_help(obj=obj, ctx=ctx, markup_mode="rich")
+                _rich_utils.rich_format_help(obj=obj, ctx=mock_ctx, markup_mode="rich")
 
                 calls = mock_print.call_args_list
                 panel_names = [call[1]["name"] for call in calls if "name" in call[1]]
                 assert "Special Commands" in panel_names
 
-    def test_hidden_command_not_shown(self):
+    def test_hidden_command_not_shown(self, mock_cmd, mock_ctx):
         """Test that hidden commands are properly filtered in formatting."""
-        hidden_cmd = Mock(spec=click.Command)
+        hidden_cmd = mock_cmd
         hidden_cmd.name = "hidden"
         hidden_cmd.help = "Hidden command"
         hidden_cmd.hidden = True
-        hidden_cmd.deprecated = False
 
-        visible_cmd = Mock(spec=click.Command)
+        visible_cmd = mock_cmd
         visible_cmd.name = "visible"
         visible_cmd.help = "Visible command"
         visible_cmd.hidden = False
-        visible_cmd.deprecated = False
 
         obj = Mock(spec=click.Group)
         obj.list_commands = Mock(return_value=["hidden", "visible"])
 
-        def get_command_side_effect(ctx, name):
+        def get_command_side_effect(_, name):
             if name == "hidden":
                 return hidden_cmd
             return visible_cmd
@@ -1253,14 +1216,13 @@ class TestRichFormatHelp:
         obj._extended_typer = None
         obj.get_usage = Mock(return_value="test-group")
 
-        ctx = Mock()
-        ctx.command = obj
+        mock_ctx.command = obj
 
         console = Mock()
         console.print = Mock()
 
         with patch.object(_rich_utils, "_get_rich_console", return_value=console):
-            _rich_utils.rich_format_help(obj=obj, ctx=ctx, markup_mode="rich")
+            _rich_utils.rich_format_help(obj=obj, ctx=mock_ctx, markup_mode="rich")
 
 
 # =============================================================================
@@ -1328,16 +1290,15 @@ class TestRichFormatError:
             _rich_utils.rich_format_error(exc)
             assert console.print.called
 
-    def test_error_without_help_option(self):
+    def test_error_without_help_option(self, mock_ctx):
         """Test error formatting when command has no help option."""
         exc = click.ClickException("Test error")
 
-        ctx = Mock()
         cmd = Mock()
         cmd.get_help_option = Mock(return_value=None)
         cmd.command_path = "myapp"
-        ctx.command = cmd
-        object.__setattr__(exc, "ctx", ctx)
+        mock_ctx.command = cmd
+        object.__setattr__(exc, "ctx", mock_ctx)
 
         with patch.object(_rich_utils, "_get_rich_console") as mock_console:
             console = Mock()

@@ -1,121 +1,128 @@
 """Integration tests for basic command invocation with aliases."""
 
-from typer_extensions import Context, ExtendedTyper
-
 
 class TestBasicInvocation:
     """Tests for invoking commands via primary name and aliases."""
 
-    def test_invoke_command_by_primary_name(self, cli_runner):
+    def test_invoke_command_by_primary_name(self, app_with_commands, assert_success):
         """Test invoking command using primary name."""
-        app = ExtendedTyper()
 
-        @app.command("list")
+        assert_success(app_with_commands, ["list"], "Listing items...")
+
+
+class TestDecoratorSyntax:
+    """Tests for command decorator syntax."""
+
+    def test_invoke_bare_decorator_by_primary_and_alias(
+        self, app, assert_success, assert_failure
+    ):
+        """Test invoking command decorated without parentheses by primary name and alias"""
+
+        @app.command
+        def hello():
+            """Say hello."""
+            print("Hello!")
+
+        @app.command
+        def goodbye():
+            """Say goodbye."""
+            print("Goodbye!")
+
+        assert_success(app, ["hello"])
+        # Should fail since no aliases were provided
+        assert_failure(app, ["hi"], expected_exit_code=2, expected=["Usage:"])
+
+    def test_decorator_with_typer_context(self, app, assert_success):
+        """Test decorated command with Typer context"""
+        from typer_extensions import Context
+
+        @app.command("info", aliases=["i"])
+        def show_info(ctx: Context):
+            """Show info."""
+            print(f"Command: {ctx.info_name}")
+            print(f"Parent: {ctx.parent.info_name if ctx.parent else 'None'}")
+
+        @app.command("child", aliases=["c"])
+        def show_child_info(ctx: Context):
+            """Show child info."""
+            print(f"Child Command: {ctx.info_name}")
+            print(f"Parent: {ctx.parent.info_name if ctx.parent else 'None'}")
+
+        # Should show command and parent information
+        assert_success(app, ["info"], "Command:")
+
+    def test_both_decorator_types_work(self, app, assert_success):
+        """Test using both decorator styles in same app."""
+
+        @app.command("list", aliases=["ls"])
         def list_items():
-            """List all items."""
-            print("Listing items...")
+            """List items."""
+            print("Listing...")
 
-        @app.command("delete")
-        def delete_items():
-            """Delete all items."""
-            print("Deleting items...")
+        @app.command()
+        def hello():
+            """Say hello."""
+            print("Hello!")
 
-        result = cli_runner.invoke(app, ["list"])
-        assert result.exit_code == 0
-        assert "Listing items..." in result.output
+        # Both should work
+        assert_success(app, ["list"], ["Listing..."])
+        assert_success(app, ["ls"], ["Listing..."])
+
+        assert_success(app, ["hello"], ["Hello!"])
+
+    def test_help_shows_both_command_types(self, app, assert_success):
+        """Test that help shows both types of commands"""
+
+        @app.command("list", aliases=["ls"])
+        def list_items():
+            """List items."""
+            pass
+
+        @app.command()
+        def hello():
+            """Say hello."""
+            pass
+
+        # Should show primary commands and descriptions
+        assert_success(app, ["--help"], ["list", "hello", "List items", "Say hello"])
 
 
 class TestHelpText:
     """Tests for help text display with aliases."""
 
-    def test_help_shows_primary_command(self, cli_runner, clean_output):
+    def test_help_shows_primary_command(self, app, assert_success, unreg_commands):
         """Test that help text shows primary command."""
-        app = ExtendedTyper()
 
-        def list_items():
-            """List all items in the system."""
-            pass
+        list_items, _ = unreg_commands
 
         app._register_command_with_aliases(list_items, "list", aliases=["ls"])
 
-        result = cli_runner.invoke(app, ["--help"])
-        assert result.exit_code == 0
-        clean_result = clean_output(result.output)
-
         # Should show primary command and description
-        assert "list" in clean_result
-        assert "List all items in the system" in clean_result
+        assert_success(app, ["--help"], ["list", "List all items"])
 
-    def test_command_help_works_via_alias(self, cli_runner, clean_output):
+    def test_command_help_works_via_alias(self, app, assert_success, unreg_commands):
         """Test that command-specific help works via alias."""
-        app = ExtendedTyper()
 
-        def list_items():
-            """List all items in the system."""
-            pass
-
-        def delete_item():
-            """Delete an item from the system."""
-            pass
+        list_items, delete_item = unreg_commands
 
         app._register_command_with_aliases(list_items, "list", aliases=["ls"])
         app._register_command_with_aliases(delete_item, "delete", aliases=["rm"])
 
-        result = cli_runner.invoke(app, ["list", "--help"])
-        assert result.exit_code == 0
-        clean_result = clean_output(result.output)
-
-        # Should show command and description
-        assert "List all items" in clean_result
-
-        result = cli_runner.invoke(app, ["ls", "--help"])
-        assert result.exit_code == 0
-        clean_result = clean_output(result.output)
-
-        # Should show command and description
-        assert "List all items" in clean_result
+        # Should both show same command and description
+        assert_success(app, ["list", "--help"], ["List all items"])
+        assert_success(app, ["ls", "--help"], ["List all items"])
 
 
 class TestErrorHandling:
     """Tests for error handling with aliases."""
 
-    def test_invalid_command_shows_error(self, cli_runner):
+    def test_invalid_command_shows_error(self, app_with_commands, assert_failure):
         """Test that invalid command shows appropriate error."""
-        app = ExtendedTyper()
 
-        @app.command("list")
-        def list_items():
-            """List items."""
-            pass
+        assert_failure(app_with_commands, ["invalid"], expected_exit_code=2)
 
-        result = cli_runner.invoke(app, ["invalid"])
-        assert result.exit_code != 0
-        # Click shows "No such command" error
-
-    def test_case_sensitivity_respected(self, cli_runner):
-        """Test that case sensitivity is respected when configured."""
-        app = ExtendedTyper(alias_case_sensitive=True)
-
-        def list_items():
-            """List items."""
-            print("Listing items...")
-
-        def delete_items():
-            """Delete items."""
-            print("Deleting items...")
-
-        app._register_command_with_aliases(list_items, "list", aliases=["ls"])
-        app._register_command_with_aliases(delete_items, "delete", aliases=["rm"])
-
-        result = cli_runner.invoke(app, ["ls"])
-        assert result.exit_code == 0
-
-        result = cli_runner.invoke(app, ["LS"])
-        assert result.exit_code != 0
-
-    def test_single_command_works_without_alias(self, cli_runner):
+    def test_single_command_works_without_alias(self, app, assert_success):
         """Test that single-command apps work as expected (aliases not supported by Typer)."""
-        app = ExtendedTyper()
 
         @app.command()
         def hello(name: str):
@@ -123,37 +130,35 @@ class TestErrorHandling:
             print(f"Hello {name}")
 
         # Single command is default command as expected
-        result = cli_runner.invoke(app, ["World"])
-        assert result.exit_code == 0
-        assert "Hello World" in result.output
+        assert_success(app, ["World"], "Hello World")
 
-    def test_case_insensitivity_works(self, cli_runner):
+    def test_case_insensitivity_works(
+        self, app_case_insensitive, assert_success, unreg_commands
+    ):
         """Test that case insensitivity works when configured."""
-        app = ExtendedTyper(alias_case_sensitive=False)
 
-        def list_items():
-            """List items."""
-            print("Listing items...")
+        list_items, delete_items = unreg_commands
 
-        def delete_items():
-            """Delete items."""
-            print("Deleting items...")
+        app_case_insensitive._register_command_with_aliases(
+            list_items, "list", aliases=["ls"]
+        )
+        app_case_insensitive._register_command_with_aliases(
+            delete_items, "delete", aliases=["rm"]
+        )
 
-        app._register_command_with_aliases(list_items, "list", aliases=["ls"])
-        app._register_command_with_aliases(delete_items, "delete", aliases=["rm"])
-
+        # Should match all case variations
         for variant in ["ls", "LS", "Ls", "lS"]:
-            result = cli_runner.invoke(app, [variant])
-            assert result.exit_code == 0
-            assert "Listing items..." in result.output
+            assert_success(app_case_insensitive, [variant], "Listing items...")
 
 
 class TestTyperCompatibility:
     """Tests for compatibility with standard Typer features."""
 
-    def test_standard_typer_command_still_works(self, cli_runner):
+    def test_standard_typer_command_still_works(self, assert_success):
         """Test that standard Typer commands work without aliases."""
-        app = ExtendedTyper()
+        import typer
+
+        app = typer.Typer()
 
         @app.command()
         def hello(name: str):
@@ -165,34 +170,25 @@ class TestTyperCompatibility:
             """Say goodbye."""
             print(f"Goodbye {name}")
 
-        result = cli_runner.invoke(app, ["hello", "World"])
-        assert result.exit_code == 0
-        assert "Hello World" in result.output
+        assert_success(app, ["hello", "World"], "Hello World")
 
-    def test_mixed_commands_with_and_without_aliases(self, cli_runner):
+    def test_mixed_commands_with_and_without_aliases(
+        self, app_with_aliases, assert_success
+    ):
         """Test mixing aliased and non-aliased commands."""
-        app = ExtendedTyper()
 
-        @app.command()
         def hello(name: str):
             """Say hello."""
             print(f"Hello {name}")
 
-        def list_items():
-            """List items."""
-            print("Listing...")
+        app_with_aliases._register_command_with_aliases(hello, "hello")
 
-        app._register_command_with_aliases(list_items, "list", aliases=["ls"])
+        assert_success(app_with_aliases, ["hello", "World"], "Hello World")
+        assert_success(app_with_aliases, ["ls"], "Listing items...")
 
-        result = cli_runner.invoke(app, ["hello", "World"])
-        assert result.exit_code == 0
-
-        result = cli_runner.invoke(app, ["ls"])
-        assert result.exit_code == 0
-
-    def test_typer_context_works(self, cli_runner, clean_output):
+    def test_typer_context_works(self, app, assert_success):
         """Test that Typer context still works correctly."""
-        app = ExtendedTyper()
+        from typer_extensions import Context
 
         @app.command("list")
         def list_items(ctx: Context):
@@ -206,9 +202,4 @@ class TestTyperCompatibility:
             assert ctx is not None
             print(f"Command: {ctx.info_name}")
 
-        result = cli_runner.invoke(app, ["list"])
-        assert result.exit_code == 0
-        clean_result = clean_output(result.output)
-
-        # Should show command name as default Typer behaviour
-        assert "Command:" in clean_result
+        assert_success(app, ["list"], "Command: list")

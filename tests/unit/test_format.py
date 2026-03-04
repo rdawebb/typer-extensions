@@ -291,10 +291,7 @@ class TestFormattersEdgeCases:
         assert "+2 more" in clean_result
 
     def test_calculate_width_import_error_fallback(self):
-        """Test calculate_width fallback when wcswidth raises ImportError
-
-        Covers lines 52-54: ImportError exception handler
-        """
+        """Test calculate_width fallback when wcswidth raises ImportError"""
         from typer_extensions import format
 
         # Patch wcswidth to raise ImportError

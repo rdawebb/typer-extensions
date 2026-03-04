@@ -1,371 +1,120 @@
 """Integration tests for Argument with command aliases.
 
-This module tests that positional arguments work identically whether invoked via the primary command name or an alias.
+This module tests that positional arguments work identically whether invoked
+via the primary command name or an alias. The alias routing mechanism itself
+is tested exhaustively in unit/test_core.py and unit/test_programmatic_api.py;
+these tests confirm arguments pass through correctly end-to-end.
 """
 
 import pytest
-from typer_extensions import ExtendedTyper
 
 
 class TestArgumentsWithAliases:
     """Tests for arguments working identically with primary commands and aliases."""
 
-    def test_single_argument_via_primary(self, cli_runner):
-        """Test single positional argument via primary command."""
-        app = ExtendedTyper()
-
-        @app.command("greet", aliases=["hi", "hello"])
-        def greet(name: str):
-            """Greet someone."""
-            print(f"Hello, {name}!")
-
-        @app.command()
-        def other():
-            """Another command."""
-            print("Other")
-
-        result = cli_runner.invoke(app, ["greet", "Alice"])
-        assert result.exit_code == 0
-        assert "Hello, Alice!" in result.output
-
-    def test_single_argument_via_alias(self, cli_runner):
-        """Test single positional argument via alias."""
-        app = ExtendedTyper()
-
-        @app.command("greet", aliases=["hi", "hello"])
-        def greet(name: str):
-            """Greet someone."""
-            print(f"Hello, {name}!")
-
-        @app.command()
-        def other():
-            """Another command."""
-            print("Other")
-
-        result = cli_runner.invoke(app, ["hi", "Bob"])
-        assert result.exit_code == 0
-        assert "Hello, Bob!" in result.output
-
-        result = cli_runner.invoke(app, ["hello", "Charlie"])
-        assert result.exit_code == 0
-        assert "Hello, Charlie!" in result.output
-
-    def test_multiple_arguments_via_primary(self, cli_runner):
-        """Test multiple positional arguments via primary command."""
-        app = ExtendedTyper()
-
-        @app.command("copy", aliases=["cp"])
-        def copy_file(source: str, destination: str):
-            """Copy a file."""
-            print(f"Copying {source} to {destination}")
-
-        @app.command()
-        def other():
-            """Another command."""
-            print("Other")
-
-        result = cli_runner.invoke(app, ["copy", "file1.txt", "file2.txt"])
-        assert result.exit_code == 0
-        assert "Copying file1.txt to file2.txt" in result.output
-
-    def test_multiple_arguments_via_alias(self, cli_runner):
-        """Test multiple positional arguments via alias."""
-        app = ExtendedTyper()
-
-        @app.command("copy", aliases=["cp"])
-        def copy_file(source: str, destination: str):
-            """Copy a file."""
-            print(f"Copying {source} to {destination}")
-
-        @app.command()
-        def other():
-            """Another command."""
-            print("Other")
-
-        result = cli_runner.invoke(app, ["cp", "file1.txt", "file2.txt"])
-        assert result.exit_code == 0
-        assert "Copying file1.txt to file2.txt" in result.output
-
     @pytest.mark.parametrize(
-        "command,number",
+        "cmd,arg,expected",
         [
-            ("count", "5"),
-            ("c", "10"),
+            ("greet", "Alice", "Hello, Alice!"),
+            ("hi", "Bob", "Hello, Bob!"),  # alias
+            ("hello", "Charlie", "Hello, Charlie!"),  # second alias
         ],
     )
-    def test_argument_with_type_conversion_int(self, cli_runner, command, number):
-        """Test argument with integer type conversion."""
-        app = ExtendedTyper()
+    def test_single_argument_routing(
+        self, app_with_args, assert_success, cmd, arg, expected
+    ):
+        """Test single positional argument routes correctly via primary and aliases."""
+        assert_success(app_with_args, [cmd, arg], expected)
 
-        @app.command("count", aliases=["c"])
-        def count_down(number: int):
-            """Count down from a number."""
-            print(f"Counting down from {number}")
-
-        @app.command()
-        def other():
-            """Another command."""
-            print("Other")
-
-        result = cli_runner.invoke(app, [command, number])
-        assert result.exit_code == 0
-        assert f"Counting down from {number}" in result.output
+    @pytest.mark.parametrize("cmd", ["copy", "cp"])
+    def test_multiple_arguments_routing(self, app_with_args, assert_success, cmd):
+        """Test multiple positional arguments route correctly via primary and alias."""
+        assert_success(
+            app_with_args,
+            [cmd, "file1.txt", "file2.txt"],
+            "Copying file1.txt to file2.txt",
+        )
 
     @pytest.mark.parametrize(
-        "command,value,expected",
-        [
-            ("calculate", "3.5", "7.0"),
-            ("calc", "2.5", "5.0"),
-        ],
+        "cmd,count",
+        [("process", "5"), ("proc", "10")],
+    )
+    def test_argument_with_type_conversion_int(
+        self, app_with_args, assert_success, cmd, count
+    ):
+        """Test integer argument type conversion via primary and alias."""
+        assert_success(app_with_args, [cmd, count], f"Processing {count} items")
+
+    @pytest.mark.parametrize(
+        "cmd,value,expected",
+        [("calculate", "3.5", "7.0"), ("calc", "2.5", "5.0")],
     )
     def test_argument_with_type_conversion_float(
-        self, cli_runner, command, value, expected
+        self, app_with_args, assert_success, cmd, value, expected
     ):
-        """Test argument with float type conversion."""
-        app = ExtendedTyper()
+        """Test float argument type conversion via primary and alias."""
+        assert_success(app_with_args, [cmd, value], f"Result: {expected}")
 
-        @app.command("calculate", aliases=["calc"])
-        def calculate(value: float):
-            """Calculate something."""
-            result = value * 2
-            print(f"Result: {result}")
+    def test_optional_argument_with_default(self, app_with_args, assert_success):
+        """Test optional argument uses default when omitted."""
+        assert_success(app_with_args, ["say"], "Hello")
+        assert_success(app_with_args, ["say", "Goodbye"], "Goodbye")
+        assert_success(app_with_args, ["s", "Hi there"], "Hi there")  # alias
 
-        @app.command()
-        def other():
-            """Another command."""
-            print("Other")
-
-        result = cli_runner.invoke(app, [command, value])
-        assert result.exit_code == 0
-        assert f"Result: {expected}" in result.output
-
-    def test_optional_argument_with_default(self, cli_runner):
-        """Test optional argument with default value."""
-        app = ExtendedTyper()
-
-        @app.command("say", aliases=["s"])
-        def say(message: str = app.Argument("Hello")):
-            """Say a message."""
-            print(message)
-
-        @app.command()
-        def other():
-            """Another command."""
-            print("Other")
-
-        result = cli_runner.invoke(app, ["say"])
-        assert result.exit_code == 0
-        assert "Hello" in result.output
-
-        result = cli_runner.invoke(app, ["say", "Goodbye"])
-        assert result.exit_code == 0
-        assert "Goodbye" in result.output
-
-        result = cli_runner.invoke(app, ["s", "Hi there"])
-        assert result.exit_code == 0
-        assert "Hi there" in result.output
-
-    def test_required_argument_missing_error(self, cli_runner):
+    def test_required_argument_missing_error(self, app_with_args, assert_failure):
         """Test error when required argument is missing."""
-        app = ExtendedTyper()
-
-        @app.command("greet", aliases=["hi"])
-        def greet(name: str):
-            """Greet someone."""
-            print(f"Hello, {name}!")
-
-        @app.command()
-        def other():
-            """Another command."""
-            print("Other")
-
-        result = cli_runner.invoke(app, ["greet"])
-        assert result.exit_code != 0
+        assert_failure(app_with_args, ["greet"], expected_exit_code=2)
 
 
 class TestArgumentsInHelp:
     """Tests for argument display in help text."""
 
-    def test_help_shows_argument_via_primary(self, cli_runner, clean_output):
-        """Test help shows argument info via primary command."""
-        app = ExtendedTyper()
+    @pytest.mark.parametrize("cmd", ["greet", "hi"])
+    def test_help_shows_argument(self, app_with_args, assert_success, cmd):
+        """Test help shows argument info via primary command and alias."""
+        assert_success(app_with_args, [cmd, "--help"], ["NAME", "Greet someone"])
 
-        @app.command("greet", aliases=["hi"])
-        def greet(name: str):
-            """Greet someone by name."""
-            print(f"Hello, {name}!")
-
-        result = cli_runner.invoke(app, ["greet", "--help"])
-        assert result.exit_code == 0
-        clean_result = clean_output(result.output)
-
-        assert "NAME" in clean_result or "name" in clean_result
-        assert "Greet someone" in clean_result
-
-    def test_help_shows_argument_via_alias(self, cli_runner, clean_output):
-        """Test help shows argument info via alias."""
-        app = ExtendedTyper()
-
-        @app.command("greet", aliases=["hi"])
-        def greet(name: str):
-            """Greet someone by name."""
-            print(f"Hello, {name}!")
-
-        result = cli_runner.invoke(app, ["hi", "--help"])
-        assert result.exit_code == 0
-        clean_result = clean_output(result.output)
-
-        assert "NAME" in clean_result or "name" in clean_result
-        assert "Greet someone" in clean_result
-
-    def test_help_shows_multiple_arguments(self, cli_runner, clean_output):
-        """Test help shows all arguments."""
-        app = ExtendedTyper()
-
-        @app.command("copy", aliases=["cp"])
-        def copy_file(
-            source: str = app.Argument(..., help="Source file path"),
-            dest: str = app.Argument(..., help="Destination file path"),
-        ):
-            """Copy a file from source to destination."""
-            print(f"Copying {source} to {dest}")
-
-        result = cli_runner.invoke(app, ["cp", "--help"])
-        assert result.exit_code == 0
-        clean_result = clean_output(result.output)
-
-        assert "SOURCE" in clean_result or "source" in clean_result
-        assert "DEST" in clean_result or "dest" in clean_result
-        assert "Copy a file" in clean_result
+    def test_help_shows_multiple_arguments(self, app_with_args, assert_success):
+        """Test help shows all arguments for multi-argument commands."""
+        assert_success(app_with_args, ["cp", "--help"], ["SRC", "DEST", "Copy a file"])
 
 
 class TestArgumentsWithOptions:
     """Tests for combining arguments and options together."""
 
-    def test_argument_and_option_together_via_primary(self, cli_runner):
-        """Test command with both argument and option via primary."""
-        app = ExtendedTyper()
+    @pytest.mark.parametrize(
+        "cmd,flag,expected",
+        [
+            ("process", None, "Processing 4 items"),
+            ("process", "--force", "Force processing 4 items"),
+            ("proc", None, "Processing 4 items"),  # alias
+            ("proc", "-f", "Force processing 4 items"),  # alias + short flag
+        ],
+    )
+    def test_argument_and_option_together(
+        self, app_with_args, assert_success, cmd, flag, expected
+    ):
+        """Test argument + option combination works via primary and alias."""
+        args = [cmd, "4"] + ([flag] if flag else [])
+        assert_success(app_with_args, args, expected)
 
-        @app.command("deploy", aliases=["d"])
-        def deploy(service: str, force: bool = app.Option(False, "--force", "-f")):
-            """Deploy a service."""
-            mode = "force" if force else "normal"
-            print(f"Deploying {service} in {mode} mode")
-
-        @app.command()
-        def other():
-            """Another command."""
-            print("Other")
-
-        result = cli_runner.invoke(app, ["deploy", "api-server"])
-        assert result.exit_code == 0
-        assert "api-server" in result.output
-        assert "normal mode" in result.output
-
-        result = cli_runner.invoke(app, ["deploy", "api-server", "--force"])
-        assert result.exit_code == 0
-        assert "api-server" in result.output
-        assert "force mode" in result.output
-
-    def test_argument_and_option_together_via_alias(self, cli_runner):
-        """Test command with both argument and option via alias."""
-        app = ExtendedTyper()
-
-        @app.command("deploy", aliases=["d"])
-        def deploy(service: str, force: bool = app.Option(False, "--force", "-f")):
-            """Deploy a service."""
-            mode = "force" if force else "normal"
-            print(f"Deploying {service} in {mode} mode")
-
-        @app.command()
-        def other():
-            """Another command."""
-            print("Other")
-
-        result = cli_runner.invoke(app, ["d", "web-server"])
-        assert result.exit_code == 0
-        assert "web-server" in result.output
-
-        result = cli_runner.invoke(app, ["d", "web-server", "-f"])
-        assert result.exit_code == 0
-        assert "web-server" in result.output
-        assert "force mode" in result.output
-
-    def test_multiple_arguments_and_options(self, cli_runner):
+    def test_multiple_arguments_and_options(self, app_with_args, assert_success):
         """Test command with multiple arguments and options."""
-        app = ExtendedTyper()
+        assert_success(
+            app_with_args,
+            ["copy", "file1.txt", "file2.txt"],
+            "Copying file1.txt to file2.txt",
+        )
+        assert_success(
+            app_with_args,
+            ["cp", "file1.txt", "file2.txt", "-f", "-b"],
+            "Force copying with backup file1.txt to file2.txt",
+        )
 
-        @app.command("build", aliases=["b"])
-        def build(
-            project: str = app.Argument(...),
-            target: str = app.Argument("default"),
-            release: bool = app.Option(False, "--release", "-r"),
-            jobs: int = app.Option(1, "--jobs", "-j"),
-        ):
-            """Build a project."""
-            mode = "release" if release else "debug"
-            print(f"Building {project} (target: {target}, mode: {mode}, jobs: {jobs})")
-
-        @app.command()
-        def other():
-            """Another command."""
-            print("Other")
-
-        result = cli_runner.invoke(app, ["build", "myapp"])
-        assert result.exit_code == 0
-        assert "myapp" in result.output
-        assert "target: default" in result.output
-
-        result = cli_runner.invoke(app, ["b", "myapp", "production", "-r", "-j", "8"])
-        assert result.exit_code == 0
-        assert "myapp" in result.output
-        assert "target: production" in result.output
-        assert "release" in result.output
-        assert "jobs: 8" in result.output
-
-    def test_argument_with_option_bool_flag(self, cli_runner):
-        """Test argument with boolean option flag."""
-        app = ExtendedTyper()
-
-        @app.command("delete", aliases=["rm", "del"])
-        def delete(path: str, force: bool = app.Option(False, "--force", "-f")):
-            """Delete a file or directory."""
-            if force:
-                print(f"Force deleting {path}")
-            else:
-                print(f"Deleting {path}")
-
-        @app.command()
-        def other():
-            """Another command."""
-            print("Other")
-
-        result = cli_runner.invoke(app, ["rm", "file.txt"])
-        assert result.exit_code == 0
-        assert "Deleting file.txt" in result.output
-
-        result = cli_runner.invoke(app, ["del", "important_dir", "--force"])
-        assert result.exit_code == 0
-        assert "Force deleting important_dir" in result.output
-
-    def test_help_with_arguments_and_options(self, cli_runner, clean_output):
+    def test_help_with_arguments_and_options(self, app_with_args, assert_success):
         """Test help shows all arguments and options."""
-        app = ExtendedTyper()
-
-        @app.command("copy", aliases=["cp"])
-        def copy_file(
-            source: str = app.Argument(..., help="Source file path"),
-            dest: str = app.Argument(..., help="Destination file path"),
-            force: bool = app.Option(False, "--force", "-f", help="Force overwrite"),
-        ):
-            """Copy a file from source to destination."""
-            print(f"Copying {source} to {dest}")
-
-        result = cli_runner.invoke(app, ["cp", "--help"])
-        assert result.exit_code == 0
-        clean_result = clean_output(result.output)
-
-        assert "SOURCE" in clean_result or "source" in clean_result
-        assert "DEST" in clean_result or "dest" in clean_result
-        assert "--force" in clean_result or "-f" in clean_result
-        assert "Copy a file" in clean_result
+        assert_success(
+            app_with_args,
+            ["process", "--help"],
+            ["COUNT", "--force", "Process a number of items"],
+        )

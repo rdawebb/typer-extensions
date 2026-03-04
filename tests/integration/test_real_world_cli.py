@@ -3,15 +3,12 @@
 This module contains tests that simulate realistic CLI applications like Git, Docker, npm, and other common command-line tools to ensure the alias functionality works well in practical use cases.
 """
 
-from typer_extensions import ExtendedTyper
-
 
 class TestGitLikeCLI:
     """Tests for Git-like CLI scenarios."""
 
-    def test_git_add_like_command(self, cli_runner):
+    def test_git_add_like_command(self, app, assert_success):
         """Test Git-like 'add' command with pattern and options."""
-        app = ExtendedTyper()
 
         @app.command("add", aliases=["a"])
         def add(
@@ -31,21 +28,20 @@ class TestGitLikeCLI:
             """Another command."""
             print("Other")
 
-        result = cli_runner.invoke(app, ["add"])
-        assert result.exit_code == 0
-        assert "Adding ." in result.output
-
-        result = cli_runner.invoke(app, ["a", "src/", "-A"])
-        assert result.exit_code == 0
-        assert "Adding all changes" in result.output
+        assert_success(app, ["add"], ["Adding ."])
+        assert_success(app, ["a", "src/", "-A"], ["Adding all changes"])
+        assert_success(
+            app,
+            ["--help"],
+            ["add", "(a)", "Add files to staging area"],
+        )
 
 
 class TestDockerLikeCLI:
     """Tests for Docker-like CLI scenarios."""
 
-    def test_docker_run_like_command(self, cli_runner):
+    def test_docker_run_like_command(self, app, assert_success):
         """Test Docker run-like command with multiple options."""
-        app = ExtendedTyper()
 
         @app.command("run", aliases=["r"])
         def run(
@@ -68,23 +64,19 @@ class TestDockerLikeCLI:
             """Another command."""
             print("Other")
 
-        result = cli_runner.invoke(app, ["run", "nginx"])
-        assert result.exit_code == 0
-        assert "nginx" in result.output
-
-        result = cli_runner.invoke(app, ["r", "postgres", "-d", "-p", "5432:5432"])
-        assert result.exit_code == 0
-        assert "postgres" in result.output
-        assert "background" in result.output
-        assert "5432:5432" in result.output
+        assert_success(app, ["run", "nginx"], ["Running image nginx"])
+        assert_success(
+            app,
+            ["r", "postgres", "-d", "-p", "5432:5432"],
+            ["Running image postgres in background with port 5432:5432"],
+        )
 
 
 class TestNpmLikeCLI:
     """Tests for npm-like CLI scenarios."""
 
-    def test_npm_install_like_command(self, cli_runner):
+    def test_npm_install_like_command(self, app, assert_success):
         """Test npm install-like command with optional package and flags."""
-        app = ExtendedTyper()
 
         @app.command("install", aliases=["i", "add"])
         def install(
@@ -109,27 +101,20 @@ class TestNpmLikeCLI:
             """Another command."""
             print("Other")
 
-        result = cli_runner.invoke(app, ["install"])
-        assert result.exit_code == 0
-        assert "Installing all" in result.output
-
-        result = cli_runner.invoke(app, ["add", "lodash", "-D"])
-        assert result.exit_code == 0
-        assert "lodash" in result.output
-        assert "dev" in result.output
-
-        result = cli_runner.invoke(app, ["i", "eslint", "-g"])
-        assert result.exit_code == 0
-        assert "eslint" in result.output
-        assert "globally" in result.output
+        assert_success(app, ["install"], ["Installing all dependencies"])
+        assert_success(
+            app, ["add", "lodash", "-D"], ["Installing lodash (dev) locally"]
+        )
+        assert_success(
+            app, ["i", "eslint", "-g"], ["Installing eslint (prod) globally"]
+        )
 
 
 class TestConfigManagementCLI:
     """Tests for configuration management CLI scenarios."""
 
-    def test_config_command_subcommand_like(self, cli_runner):
+    def test_config_command_subcommand_like(self, app, assert_success):
         """Test config-like command with action argument and options."""
-        app = ExtendedTyper()
 
         @app.command("config", aliases=["cfg"])
         def config(
@@ -149,22 +134,15 @@ class TestConfigManagementCLI:
             """Another command."""
             print("Other")
 
-        result = cli_runner.invoke(app, ["config", "list", "-s", "global"])
-        assert result.exit_code == 0
-        assert "LIST" in result.output
-        assert "global" in result.output
-
-        result = cli_runner.invoke(app, ["cfg", "set", "theme", "dark"])
-        assert result.exit_code == 0
-        assert "SET" in result.output
+        assert_success(app, ["config", "list", "-s", "global"], ["LIST all (global)"])
+        assert_success(app, ["cfg", "set", "theme", "dark"], ["SET theme"])
 
 
 class TestPackageManagerCLI:
     """Tests for package manager-like CLI scenarios."""
 
-    def test_package_manager_commands(self, cli_runner):
+    def test_package_manager_commands(self, app, assert_success):
         """Test a package manager-like CLI with multiple commands."""
-        app = ExtendedTyper()
 
         @app.command("install", aliases=["i", "add"])
         def install(package: str):
@@ -181,25 +159,16 @@ class TestPackageManagerCLI:
             """List installed packages."""
             print("Installed packages: pkg1, pkg2")
 
-        result = cli_runner.invoke(app, ["i", "requests"])
-        assert result.exit_code == 0
-        assert "Installing requests..." in result.output
-
-        result = cli_runner.invoke(app, ["rm", "requests"])
-        assert result.exit_code == 0
-        assert "Removing requests..." in result.output
-
-        result = cli_runner.invoke(app, ["ls"])
-        assert result.exit_code == 0
-        assert "Installed packages:" in result.output
+        assert_success(app, ["i", "requests"], ["Installing requests..."])
+        assert_success(app, ["rm", "requests"], ["Removing requests..."])
+        assert_success(app, ["ls"], ["Installed packages: pkg1, pkg2"])
 
 
 class TestFileOperationsCLI:
     """Tests for file operations CLI scenarios."""
 
-    def test_copy_command(self, cli_runner):
+    def test_copy_command(self, app, assert_success):
         """Test copy command with source, destination, and options."""
-        app = ExtendedTyper()
 
         @app.command("copy", aliases=["cp"])
         def copy_file(
@@ -225,19 +194,17 @@ class TestFileOperationsCLI:
             """Another command."""
             print("Other")
 
-        result = cli_runner.invoke(app, ["cp", "file.txt", "backup.txt"])
-        assert result.exit_code == 0
-        assert "Copying file.txt to backup.txt" in result.output
+        assert_success(
+            app, ["cp", "file.txt", "backup.txt"], ["Copying file.txt to backup.txt"]
+        )
+        assert_success(
+            app,
+            ["copy", "dir/", "backup/", "-f", "-r"],
+            ["Copying dir/ to backup/ (force, recursive)"],
+        )
 
-        result = cli_runner.invoke(app, ["copy", "dir/", "backup/", "-r", "-f"])
-        assert result.exit_code == 0
-        assert "Copying dir/ to backup/" in result.output
-        assert "recursive" in result.output
-        assert "force" in result.output
-
-    def test_move_command(self, cli_runner):
+    def test_move_command(self, app, assert_success):
         """Test move command similar to mv."""
-        app = ExtendedTyper()
 
         @app.command("move", aliases=["mv"])
         def move_file(
@@ -256,22 +223,21 @@ class TestFileOperationsCLI:
             """Another command."""
             print("Other")
 
-        result = cli_runner.invoke(app, ["mv", "old.txt", "new.txt"])
-        assert result.exit_code == 0
-        assert "Moving old.txt to new.txt" in result.output
-        assert "direct" in result.output
-
-        result = cli_runner.invoke(app, ["move", "old.txt", "new.txt", "-i"])
-        assert result.exit_code == 0
-        assert "interactive" in result.output
+        assert_success(
+            app, ["mv", "old.txt", "new.txt"], ["Moving old.txt to new.txt (direct)"]
+        )
+        assert_success(
+            app,
+            ["mv", "old.txt", "new.txt", "-i"],
+            ["Moving old.txt to new.txt (interactive)"],
+        )
 
 
 class TestDatabaseCLI:
     """Tests for database management CLI scenarios."""
 
-    def test_database_migration_commands(self, cli_runner, clean_output):
+    def test_database_migration_commands(self, app, assert_success):
         """Test database migration-like commands."""
-        app = ExtendedTyper()
 
         @app.command("migrate", aliases=["mig", "m"])
         def migrate(
@@ -296,26 +262,19 @@ class TestDatabaseCLI:
             dry = "DRY RUN: " if dry_run else ""
             print(f"{dry}Rolling back {steps} step(s)")
 
-        result = cli_runner.invoke(app, ["migrate"])
-        clean_result = clean_output(result.output)
-
-        assert result.exit_code == 0
-        assert "Migrating up 1 step(s)" in clean_result
-
-        result = cli_runner.invoke(app, ["m", "down", "-n", "3", "--dry-run"])
-        clean_result = clean_output(result.output)
-
-        assert result.exit_code == 0
-        assert "DRY RUN" in clean_result
-        assert "down 3 step(s)" in clean_result
+        assert_success(app, ["migrate"], ["Migrating up 1 step(s)"])
+        assert_success(
+            app,
+            ["m", "down", "-n", "3", "--dry-run"],
+            ["DRY RUN: Migrating down 3 step(s)"],
+        )
 
 
 class TestBuildToolCLI:
     """Tests for build tool CLI scenarios."""
 
-    def test_build_command_comprehensive(self, cli_runner, clean_output):
+    def test_build_command_comprehensive(self, app, assert_success):
         """Test comprehensive build command with multiple options."""
-        app = ExtendedTyper()
 
         @app.command("build", aliases=["b"])
         def build(
@@ -341,33 +300,23 @@ class TestBuildToolCLI:
             """Another command."""
             print("Other")
 
-        result = cli_runner.invoke(app, ["build", "myapp"])
-        clean_result = clean_output(result.output)
-
-        assert result.exit_code == 0
-        assert "Building myapp" in clean_result
-        assert "target: default" in clean_result
-        assert "mode: debug" in clean_result
-
-        result = cli_runner.invoke(
-            app, ["b", "myapp", "production", "-r", "-j", "8", "-v"]
+        assert_success(
+            app,
+            ["build", "myapp"],
+            ["Building myapp (target: default, mode: debug, jobs: 1)"],
         )
-        clean_result = clean_output(result.output)
-
-        assert result.exit_code == 0
-        assert "Building myapp" in clean_result
-        assert "target: production" in clean_result
-        assert "mode: release" in clean_result
-        assert "jobs: 8" in clean_result
-        assert "verbose" in clean_result
+        assert_success(
+            app,
+            ["b", "myapp", "production", "-r", "-j", "8", "-v"],
+            ["Building myapp (target: production, mode: release, jobs: 8) [verbose]"],
+        )
 
 
 class TestServerManagementCLI:
     """Tests for server management CLI scenarios."""
 
-    def test_server_start_command(self, cli_runner, clean_output):
+    def test_server_start_command(self, app, assert_success):
         """Test server start command with various options."""
-        app = ExtendedTyper()
 
         @app.command("start", aliases=["s", "run"])
         def start(
@@ -387,30 +336,23 @@ class TestServerManagementCLI:
             """Another command."""
             print("Other")
 
-        result = cli_runner.invoke(app, ["start"])
-        clean_result = clean_output(result.output)
-
-        assert result.exit_code == 0
-        assert "Starting server at localhost:8000" in clean_result
-        assert "1 worker(s)" in clean_result
-
-        result = cli_runner.invoke(
-            app, ["s", "-h", "0.0.0.0", "-p", "3000", "-w", "4", "--reload"]
+        assert_success(
+            app,
+            ["start"],
+            ["Starting server at localhost:8000 with 1 worker(s)"],
         )
-        clean_result = clean_output(result.output)
-
-        assert result.exit_code == 0
-        assert "0.0.0.0:3000" in clean_result
-        assert "4 worker(s)" in clean_result
-        assert "auto-reload" in clean_result
+        assert_success(
+            app,
+            ["s", "-h", "0.0.0.0", "-p", "3000", "-w", "4", "--reload"],
+            ["Starting server at 0.0.0.0:3000 with 4 worker(s) (auto-reload)"],
+        )
 
 
 class TestDeploymentCLI:
     """Tests for deployment CLI scenarios."""
 
-    def test_deploy_command_with_environment(self, cli_runner, clean_output):
+    def test_deploy_command_with_environment(self, app, assert_success):
         """Test deployment command with environment selection."""
-        app = ExtendedTyper()
 
         @app.command("deploy", aliases=["d"])
         def deploy(
@@ -431,18 +373,13 @@ class TestDeploymentCLI:
             """Another command."""
             print("Other")
 
-        result = cli_runner.invoke(app, ["deploy", "api"])
-        clean_result = clean_output(result.output)
-
-        assert result.exit_code == 0
-        assert "Deploying api to staging" in clean_result
-
-        result = cli_runner.invoke(
-            app, ["d", "web-app", "-e", "production", "-f", "--dry-run"]
+        assert_success(
+            app,
+            ["deploy", "api"],
+            ["Deploying api to staging"],
         )
-        clean_result = clean_output(result.output)
-
-        assert result.exit_code == 0
-        assert "SIMULATING" in clean_result
-        assert "web-app to production" in clean_result
-        assert "forced" in clean_result
+        assert_success(
+            app,
+            ["d", "web-app", "-e", "production", "-f", "--dry-run"],
+            ["SIMULATING: Deploying web-app to production (forced)"],
+        )
