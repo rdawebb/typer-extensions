@@ -112,5 +112,24 @@ def old_command():
     print("Warning: This command is deprecated!")
 
 
+# Example 9: Sub-app with aliases via add_typer()
+remote_app = ExtendedTyper(help="Manage remote repositories")
+
+
+@remote_app.command("add")
+def remote_add(name: str, url: str):
+    """Add a remote."""
+    print(f"Added remote '{name}' at {url}")
+
+
+@remote_app.command("remove", aliases=["rm"])
+def remote_remove(name: str):
+    """Remove a remote."""
+    print(f"Removed remote '{name}'")
+
+
+app.add_typer(remote_app, name="remote", aliases=["rem"])
+
+
 if __name__ == "__main__":
     app()

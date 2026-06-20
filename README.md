@@ -7,10 +7,7 @@
 
 **Command aliases for Typer CLI applications with grouped help text display**
 
-
 ## Overview
-
-[Typer](https://typer.tiangolo.com/) is great, but it could be even better!
 
 `typer-extensions` extends Typer to provide simple drop-in support for command aliases. Instead of duplicating commands, hiding commands, or maintaining wrapper functions, define aliases directly and have them displayed cleanly in help text.
 
@@ -39,6 +36,7 @@ def ls_items():
 ```
 
 **Help output:**
+
 ```
 Commands:
   list      List all items.
@@ -46,6 +44,7 @@ Commands:
 ```
 
 **Issues:**
+
 - Code duplication
 - Help text shows commands & aliases separately
 - Hidden 'aliases' not shown in help text
@@ -67,12 +66,14 @@ def list_items():
 ```
 
 **Help output:**
+
 ```
 Commands:
   list (ls, l)  List all items.
 ```
 
 **All work identically:**
+
 ```bash
 app list
 app ls
@@ -83,7 +84,7 @@ app l
 
 ## Features
 
-✨ **Decorator-based alias registration** - Clean, intuitive syntax
+✨ **Decorator-based alias registration** - Clean, intuitive syntax for commands and sub-command groups
 
 🔧 **Programmatic API** - Dynamic alias management at runtime
 
@@ -109,6 +110,7 @@ pip install typer-extensions
 
 > [!NOTE]
 > **Requirements:**
+>
 > - Python 3.9+
 > - typer >= 0.9.0 (recommend installing the latest version)
 > - click >= 8.0.0
@@ -139,6 +141,7 @@ if __name__ == "__main__":
 ```
 
 **Run it:**
+
 ```bash
 $ python app.py --help
 Commands:
@@ -180,6 +183,7 @@ Once migrated, you can add aliases to new commands using `@app.command(aliases=[
 ### Advanced Features
 
 **Programmatic alias management:**
+
 ```python
 # Add aliases dynamically
 app.add_alias("list", "dir")
@@ -192,6 +196,7 @@ aliases = app.get_aliases("list")  # ["ls", "l"]
 ```
 
 **Custom help formatting:**
+
 ```python
 app = ExtendedTyper(
     alias_display_format="[{aliases}]",   # Use brackets
@@ -201,6 +206,7 @@ app = ExtendedTyper(
 ```
 
 **Configuration-based aliases:**
+
 ```python
 # Load aliases from config
 config = {"list": ["ls", "l", "dir"]}
@@ -232,6 +238,7 @@ All examples are in the [`examples/`](examples/) directory:
 - **[argument_option_usage.py](examples/argument_option_usage.py)** - Using Typer's Argument & Option
 
 **Run any example:**
+
 ```bash
 python examples/basic_usage.py --help
 python examples/basic_usage.py ls
@@ -242,6 +249,7 @@ python examples/basic_usage.py ls
 ## Real-World Use Cases
 
 ### Git-like CLI
+
 ```python
 @app.command("checkout", aliases=["co"])
 def checkout(branch: str):
@@ -255,6 +263,7 @@ def status():
 ```
 
 ### Package Manager
+
 ```python
 @app.command("install", aliases=["i", "add"])
 def install(package: str):
@@ -268,6 +277,7 @@ def remove(package: str):
 ```
 
 ### Cross-Platform Commands
+
 ```python
 @app.command("list")
 def list_files():
@@ -286,24 +296,34 @@ else:
 ## API Overview
 
 ### Decorator Registration
+
 ```python
 @app.command(name, aliases=[...])
 ```
 
 ### Programmatic Registration
+
 ```python
 app.add_command(func, name, aliases=[...])
 ```
 
+### Sub-Application Aliases
+
+```python
+app.add_typer(sub_app, name="remote", aliases=["rem"])
+```
+
 ### Alias Management
+
 ```python
 app.add_alias(command, alias)            # Add alias
 app.remove_alias(alias) → bool           # Remove alias
 app.get_aliases(command) → list          # Query aliases
-app.list_commands() → dict               # All mappings
+app.list_commands_with_aliases() → dict  # All mappings
 ```
 
 ### Configuration
+
 ```python
 ExtendedTyper(
     alias_case_sensitive=None,           # Case-sensitive (default True, matching Typer)
@@ -391,18 +411,21 @@ Contributions are welcome! Please open an issue, ask a question, or submit a pul
 **Current Version:** 0.2.1 (Beta)
 
 ✅ **Core Features Complete:**
+
 - Alias registration (decorator + programmatic)
 - Help text formatting
 - Dynamic alias management
 - Full test coverage
 
 🚧 **In Development:**
+
 - Dynamic config file loading with import/export
 - Shell completion enhancement and typo suggestions
 - Shared & chained subcommand aliases
 - Performance optimisations
 
 📋 **Planned Features:**
+
 - Documentation site
 - Per-alias help text
 - Dataclass, Pydantic & Attrs support
@@ -417,17 +440,20 @@ Contributions are welcome! Please open an issue, ask a question, or submit a pul
 ## Why typer-extensions?
 
 **For Users:**
+
 - ⚡ Faster workflows with short aliases
 - 🎯 Familiar commands (git-like shortcuts)
 - 📖 Clear help text showing all options
 
 **For Developers:**
+
 - 🧹 DRY - no code duplication
 - 🔧 Flexible - static or dynamic aliases
 - 🎨 Customisable - match your style
 - ✅ Tested - reliable, stable, and type-safe
 
 **Compared to Alternatives:**
+
 - **Plain Typer:** Requires command duplication or hiding
 - **click-aliases:** Click-specific, no Typer integration
 - **Custom solutions:** Reinventing the wheel

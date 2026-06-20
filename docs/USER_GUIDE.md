@@ -218,6 +218,39 @@ except FileNotFoundError:
 }
 ```
 
+### Pattern 6: Sub-Application Aliases
+
+Give a whole command group a shorthand using `add_typer()`:
+
+```python
+app = ExtendedTyper()
+
+remote_app = ExtendedTyper(help="Manage remote repositories")
+
+@remote_app.command("add")
+def remote_add(name: str, url: str):
+    """Add a remote."""
+    print(f"Added remote '{name}' at {url}")
+
+@remote_app.command("remove", aliases=["rm"])
+def remote_remove(name: str):
+    """Remove a remote."""
+    print(f"Removed remote '{name}'")
+
+# Mount the group as "remote" with the alias "rem"
+app.add_typer(remote_app, name="remote", aliases=["rem"])
+```
+
+**Usage:**
+```bash
+$ app remote add origin https://...   # Full group name
+$ app rem add origin https://...       # Group alias
+$ app rem rm origin                    # Group alias + command alias
+```
+
+> [!NOTE]
+> **Pass `name=` when aliasing a sub-app.** The alias must attach to a resolvable group name. If the sub-app has no callback to infer a name from, an explicit `name=` is required, otherwise `add_typer()` raises `ValueError`.
+
 ---
 
 ## Configuration
@@ -437,6 +470,29 @@ app.add_command(delete_item, "delete", aliases=["rm"])
 app.add_alias("list", "l")
 app.add_alias("delete", "remove")
 ```
+
+### Sub-Application Aliases
+
+`add_typer()` accepts the same `aliases=[]` argument as `@app.command()`, applied to the group name:
+
+```python
+app = ExtendedTyper()
+db_app = ExtendedTyper(help="Database commands")
+
+@db_app.command("migrate")
+def migrate():
+    print("Migrating...")
+
+app.add_typer(db_app, name="database", aliases=["db"])
+# "app database migrate" and "app db migrate" both work
+```
+
+Key behaviours:
+
+- **Aliases resolve only at the group boundary.** The alias replaces the group name (`database` → `db`); nested commands keep their own names and their own aliases.
+- **Shared namespace.** Sub-app aliases live in the same namespace as command aliases, so a conflict with an existing command or alias raises `ValueError`.
+- **Help display.** Group aliases appear in help text just like command aliases (e.g. `database (db)`).
+- **Name resolution.** When `aliases` are given, the group name comes from `name=`, or is inferred from the sub-app's callback. With neither available, `add_typer()` raises `ValueError`, so prefer passing `name=` explicitly.
 
 ### Working with Typer Features
 

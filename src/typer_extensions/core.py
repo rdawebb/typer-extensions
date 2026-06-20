@@ -8,7 +8,7 @@ import typer.main
 from click import Command, Group
 from click.core import Context
 from typer.core import TyperGroup
-
+from typer.models import Default
 
 _ALIAS_PATTERN = re.compile(r"^[\w\-]+$", re.UNICODE)
 
@@ -123,7 +123,7 @@ def _extended_get_group_from_info(
 
 
 # Apply monkey-patch to Typer's group creation function
-typer.main.get_group_from_info = _extended_get_group_from_info  # type: ignore[assignment]
+typer.main.get_group_from_info = _extended_get_group_from_info  # ty: ignore[invalid-assignment]
 
 
 class Context(typer.Context):
@@ -135,15 +135,28 @@ class Context(typer.Context):
 class ExtendedTyper(typer.Typer):
     """Typer application with alias support"""
 
-    # Expose Typer's Argument and Option
+    # Expose Typer's parameter types
     Argument = staticmethod(typer.Argument)
     Option = staticmethod(typer.Option)
+    CallbackParam = staticmethod(typer.CallbackParam)
 
-    # Expose common Typer utility functions
+    # Expose Typer's file type aliases
+    FileBinaryRead = typer.FileBinaryRead
+    FileBinaryWrite = typer.FileBinaryWrite
+    FileText = typer.FileText
+    FileTextWrite = typer.FileTextWrite
+
+    # Expose Typer's exceptions
+    Abort = typer.Abort
+    Exit = typer.Exit
+    BadParameter = typer.BadParameter
+
+    # Expose Typer utility functions
     echo = staticmethod(typer.echo)
     echo_via_pager = staticmethod(typer.echo_via_pager)
     secho = staticmethod(typer.secho)
     style = staticmethod(typer.style)
+    unstyle = staticmethod(typer.unstyle)
     prompt = staticmethod(typer.prompt)
     confirm = staticmethod(typer.confirm)
     getchar = staticmethod(typer.getchar)
@@ -152,8 +165,12 @@ class ExtendedTyper(typer.Typer):
     progressbar = staticmethod(typer.progressbar)
     launch = staticmethod(typer.launch)
     open_file = staticmethod(typer.open_file)
+    edit = staticmethod(typer.edit)
+    format_filename = staticmethod(typer.format_filename)
     get_app_dir = staticmethod(typer.get_app_dir)
     get_terminal_size = staticmethod(typer.get_terminal_size)
+    get_binary_stream = staticmethod(typer.get_binary_stream)
+    get_text_stream = staticmethod(typer.get_text_stream)
     run = staticmethod(typer.run)
 
     _alias_case_sensitive: bool
@@ -260,7 +277,7 @@ class ExtendedTyper(typer.Typer):
         name: str,
         aliases: Optional[list[str]] = None,
         **kwargs: Any,
-    ) -> Command:
+    ) -> Callable[..., Any]:
         """Register a command with aliases
 
         Args:
@@ -339,7 +356,7 @@ class ExtendedTyper(typer.Typer):
         *,
         aliases: Optional[list[str]] = None,
         **kwargs: Any,
-    ) -> Callable[[Callable[..., Any]], Command]:
+    ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         """Decorator to register a command with the specified name and optional aliases.
 
         Overrides the default behavior of Typer's @app.command decorator.
@@ -360,14 +377,14 @@ class ExtendedTyper(typer.Typer):
                 func, name=cast(HasName, func).__name__, aliases=None, **kwargs
             )
 
-        def decorator(func: Callable[..., Any]) -> Command:
+        def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
             """Decorator to register a command with aliases
 
             Args:
                 func: The command function
 
             Returns:
-                The registered Click Command object
+                The registered command function
             """
             if isinstance(name, str) and name:
                 command_name = name
@@ -386,7 +403,7 @@ class ExtendedTyper(typer.Typer):
         name: Optional[str] = None,
         aliases: Optional[list[str]] = None,
         **kwargs: Any,
-    ) -> Command:
+    ) -> Callable[..., Any]:
         """Programmatically register a command with aliases
 
         Args:
@@ -396,7 +413,7 @@ class ExtendedTyper(typer.Typer):
             **kwargs: Additional keyword arguments for command registration
 
         Returns:
-            The registered Click Command object
+            The registered command function
 
         Raises:
             ValueError: If any alias conflicts with existing commands/aliases
@@ -485,3 +502,89 @@ class ExtendedTyper(typer.Typer):
             A dictionary mapping command names to their aliases, or an empty dictionary if no commands have aliases
         """
         return {cmd: aliases.copy() for cmd, aliases in self._command_aliases.items()}
+
+    def _resolve_sub_typer_name(self, typer_instance: "typer.Typer", name: Any) -> str:
+        """Resolve the CLI name of a sub-typer for alias registration
+
+        Args:
+            typer_instance: The sub-typer being added
+            name: The name argument passed to add_typer (may be a DefaultPlaceholder)
+
+        Returns:
+            The resolved CLI name string
+
+        Raises:
+            ValueError: If the name cannot be determined
+        """
+        if isinstance(name, str) and name:
+            return name
+
+        cb = getattr(typer_instance, "registered_callback", None)
+        if cb is not None and cb.callback is not None:
+            return typer.main.get_command_name(cb.callback.__name__)
+
+        raise ValueError(
+            "Cannot infer sub-app name for alias registration. "
+            "Provide an explicit 'name' argument to add_typer()."
+        )
+
+    def add_typer(
+        self,
+        typer_instance: "typer.Typer",
+        *,
+        aliases: Optional[list[str]] = None,
+        name: Optional[str] = Default(None),
+        cls: Optional[type[TyperGroup]] = Default(None),
+        invoke_without_command: bool = Default(False),
+        no_args_is_help: bool = Default(False),
+        subcommand_metavar: Optional[str] = Default(None),
+        chain: bool = Default(False),
+        result_callback: Optional[Callable[..., Any]] = Default(None),
+        context_settings: Optional[dict[Any, Any]] = Default(None),
+        callback: Optional[Callable[..., Any]] = Default(None),
+        help: Optional[str] = Default(None),
+        epilog: Optional[str] = Default(None),
+        short_help: Optional[str] = Default(None),
+        options_metavar: Optional[str] = Default(None),
+        add_help_option: bool = Default(True),
+        hidden: bool = Default(False),
+        deprecated: bool = Default(False),
+        rich_help_panel: Union[str, None] = Default(None),
+    ) -> None:
+        """Add a sub-application (Typer instance) to this app, with optional aliases
+
+        Extends the default Typer add_typer() to support aliases for sub-apps,
+        using the same 'aliases' argument as the @app.command() decorator.
+
+        Args:
+            typer_instance: The sub-app to add
+            aliases: Optional list of aliases for the sub-app name
+            name: The CLI name for the sub-app; required when aliases are provided
+                and the sub-app has no registered callback to infer a name from
+            **kwargs: All other arguments are passed through to Typer's add_typer()
+        """
+        super().add_typer(
+            typer_instance,
+            name=name,
+            cls=cls,
+            invoke_without_command=invoke_without_command,
+            no_args_is_help=no_args_is_help,
+            subcommand_metavar=subcommand_metavar,
+            chain=chain,
+            result_callback=result_callback,
+            context_settings=context_settings,
+            callback=callback,
+            help=help,
+            epilog=epilog,
+            short_help=short_help,
+            options_metavar=options_metavar,
+            add_help_option=add_help_option,
+            hidden=hidden,
+            deprecated=deprecated,
+            rich_help_panel=rich_help_panel,
+        )
+
+        if aliases:
+            sub_name = self._resolve_sub_typer_name(typer_instance, name)
+            for alias in aliases:
+                self._register_alias(sub_name, alias)

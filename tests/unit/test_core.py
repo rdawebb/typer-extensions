@@ -550,14 +550,14 @@ class TestRegisterAliasValidation:
         app = ExtendedTyper()
 
         with pytest.raises(ValueError, match="Alias must be a non-empty string"):
-            app._register_alias("list", None)  # type: ignore[arg-type]
+            app._register_alias("list", None)  # ty: ignore[invalid-argument-type]
 
     def test_register_alias_non_string_type(self):
         """Test that non-string alias raises ValueError"""
         app = ExtendedTyper()
 
         with pytest.raises(ValueError, match="Alias must be a non-empty string"):
-            app._register_alias("list", 123)  # type: ignore[arg-type]
+            app._register_alias("list", 123)  # ty: ignore[invalid-argument-type]
 
     def test_register_alias_with_whitespace(self):
         """Test that alias with whitespace raises ValueError"""
@@ -905,3 +905,145 @@ class TestExtendedGetGroupFromInfo:
 
                 # Should still return an ExtendedGroup
                 assert isinstance(result, ExtendedGroup)
+
+
+class TestAddTyperWithAliases:
+    """Tests for add_typer() with alias support"""
+
+    def test_add_typer_with_explicit_name_and_aliases(self):
+        """Aliases are registered when name and aliases are both provided"""
+        app = ExtendedTyper()
+        sub = ExtendedTyper()
+
+        @sub.command()
+        def hello():
+            """Hello."""
+            pass
+
+        app.add_typer(sub, name="greet", aliases=["g", "gr"])
+
+        assert app._alias_to_command["g"] == "greet"
+        assert app._alias_to_command["gr"] == "greet"
+        assert app._command_aliases["greet"] == ["g", "gr"]
+
+    def test_add_typer_without_aliases_unchanged(self):
+        """Calling add_typer without aliases does not touch alias dicts"""
+        app = ExtendedTyper()
+        sub = ExtendedTyper()
+
+        @sub.command()
+        def hello():
+            """Hello."""
+            pass
+
+        app.add_typer(sub, name="greet")
+
+        assert app._alias_to_command == {}
+        assert app._command_aliases == {}
+
+    def test_add_typer_infers_name_from_callback(self):
+        """Name is inferred from the sub-typer's registered callback when not explicit"""
+        app = ExtendedTyper()
+        sub = ExtendedTyper()
+
+        @sub.callback()
+        def my_sub_app():
+            """Sub-app."""
+            pass
+
+        @sub.command()
+        def hello():
+            """Hello."""
+            pass
+
+        app.add_typer(sub, aliases=["ms"])
+
+        # Typer converts my_sub_app → my-sub-app
+        assert app._alias_to_command["ms"] == "my-sub-app"
+        assert app._command_aliases["my-sub-app"] == ["ms"]
+
+    def test_add_typer_raises_when_name_unresolvable(self):
+        """ValueError is raised when no name can be inferred and none provided"""
+        app = ExtendedTyper()
+        sub = ExtendedTyper()
+
+        @sub.command()
+        def hello():
+            """Hello."""
+            pass
+
+        with pytest.raises(ValueError, match="Cannot infer sub-app name"):
+            app.add_typer(sub, aliases=["x"])
+
+    def test_add_typer_alias_conflict_raises(self):
+        """Duplicate alias across two sub-apps raises ValueError"""
+        app = ExtendedTyper()
+
+        sub1 = ExtendedTyper()
+
+        @sub1.command()
+        def hello():
+            pass
+
+        sub2 = ExtendedTyper()
+
+        @sub2.command()
+        def world():
+            pass
+
+        app.add_typer(sub1, name="greet", aliases=["g"])
+
+        with pytest.raises(ValueError, match="already registered"):
+            app.add_typer(sub2, name="farewell", aliases=["g"])
+
+    def test_add_typer_empty_aliases_list_unchanged(self):
+        """Empty aliases list leaves alias dicts untouched"""
+        app = ExtendedTyper()
+        sub = ExtendedTyper()
+
+        @sub.command()
+        def hello():
+            pass
+
+        app.add_typer(sub, name="greet", aliases=[])
+
+        assert app._alias_to_command == {}
+        assert app._command_aliases == {}
+
+    def test_resolve_sub_typer_name_explicit_string(self):
+        """_resolve_sub_typer_name returns the name directly when it is a plain string"""
+        app = ExtendedTyper()
+        sub = ExtendedTyper()
+
+        result = app._resolve_sub_typer_name(sub, "explicit-name")
+
+        assert result == "explicit-name"
+
+    def test_resolve_sub_typer_name_from_callback(self):
+        """_resolve_sub_typer_name infers kebab-case name from registered callback"""
+        from typer.models import Default
+
+        app = ExtendedTyper()
+        sub = ExtendedTyper()
+
+        @sub.callback()
+        def my_tool():
+            pass
+
+        result = app._resolve_sub_typer_name(sub, Default(None))
+
+        assert result == "my-tool"
+
+    def test_resolve_sub_typer_name_raises_with_default_and_no_callback(self):
+        """_resolve_sub_typer_name raises ValueError when name is Default and no callback"""
+        from typer.models import Default
+
+        app = ExtendedTyper()
+        sub = ExtendedTyper()
+
+        @sub.command()
+        def hello():
+            pass
+
+        with pytest.raises(ValueError, match="Cannot infer sub-app name"):
+            app._resolve_sub_typer_name(sub, Default(None))

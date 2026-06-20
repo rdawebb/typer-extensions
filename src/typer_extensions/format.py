@@ -1,5 +1,6 @@
 """Help text formatting utilities"""
 
+from collections.abc import Sequence
 from typing import Union
 
 from wcwidth import wcswidth
@@ -55,7 +56,7 @@ def calculate_width(text: str) -> int:
 
 
 def format_commands_with_aliases(
-    commands: list[tuple[str, Union[str, None]]],
+    commands: Sequence[tuple[str, Union[str, None]]],
     command_aliases: dict[str, list[str]],
     *,
     display_format: str = "({aliases})",

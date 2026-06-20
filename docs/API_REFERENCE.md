@@ -9,6 +9,7 @@ Complete API documentation for typer-extensions.
 - [ExtendedTyper Class](#ExtendedTyper-class)
 - [Decorator Methods](#decorator-methods)
 - [Programmatic Registration](#programmatic-registration)
+- [Sub-Applications](#sub-applications)
 - [Alias Management](#alias-management)
 - [Query Methods](#query-methods)
 - [Configuration Options](#configuration-options)
@@ -290,6 +291,93 @@ app.add_command(
 
 ---
 
+## Sub-Applications
+
+### `app.add_typer()`
+
+Mount a sub-application (a nested `Typer`/`ExtendedTyper` instance) as a command group, with optional aliases for the group name.
+
+```python
+app.add_typer(
+    typer_instance: typer.Typer,
+    *,
+    aliases: Optional[list[str]] = None,
+    name: Optional[str] = None,
+    **kwargs: Any
+) -> None
+```
+
+#### Parameters
+
+- **`typer_instance`**: The sub-application to mount.
+- **`aliases`** (list[str], optional, keyword-only): Aliases for the sub-app's group name.
+- **`name`** (str, optional): The CLI name for the group. See the name resolution rule below.
+- **`**kwargs`**: All other arguments are passed through to Typer's `add_typer()` (`callback`, `help`, `invoke_without_command`, `rich_help_panel`, etc.).
+
+#### Name resolution
+
+When `aliases` are provided, the group name must be resolvable:
+
+1. If `name` is given explicitly, it is used.
+2. Otherwise, the name is inferred from the sub-app's registered callback.
+3. If neither is available, a `ValueError` is raised.
+
+> [!IMPORTANT]
+> **`name` is effectively required** when aliasing a sub-app that has no registered callback to infer a name from. Always pass `name=` when using `aliases`.
+
+#### Alias namespace
+
+Sub-app aliases share the **same namespace** as command aliases. A sub-app alias that collides with an existing command or alias raises `ValueError`. Aliases resolve only at the sub-app boundary, the alias replaces the group name, while the nested commands keep their own names.
+
+#### Returns
+
+`None` (matches Typer's `add_typer()`).
+
+#### Raises
+
+- **`ValueError`**: If the name cannot be resolved, or an alias conflicts with an existing command/alias.
+
+#### Examples
+
+**Sub-app with an alias:**
+```python
+remote_app = ExtendedTyper(help="Manage remote repositories")
+
+@remote_app.command("add")
+def remote_add(name: str, url: str):
+    """Add a remote."""
+    print(f"Added remote '{name}' at {url}")
+
+@remote_app.command("remove", aliases=["rm"])
+def remote_remove(name: str):
+    """Remove a remote."""
+    print(f"Removed remote '{name}'")
+
+app.add_typer(remote_app, name="remote", aliases=["rem"])
+# "app remote add ...", "app rem add ..." both work
+# "app remote rm ...", "app rem rm ..." both work (nested alias)
+```
+
+The group alias appears in help text just like a command alias:
+```
+Commands:
+  remote (rem)  Manage remote repositories
+```
+
+**Inferred name (callback present):**
+```python
+sub = ExtendedTyper()
+
+@sub.callback()
+def config():
+    """Manage configuration."""
+
+# Name inferred from the callback as "config"
+app.add_typer(sub, aliases=["cfg"])
+```
+
+---
+
 ## Alias Management
 
 ### `app.add_alias()`
@@ -341,7 +429,7 @@ try:
     app.add_alias("nonexistent", "ne")
 except ValueError as e:
     print(f"Error: {e}")
-    # Error: Command 'nonexistent' not found
+    # Error: Command 'nonexistent' does not exist
 ```
 
 ### `app.remove_alias()`
@@ -563,32 +651,35 @@ app = ExtendedTyper(
 
 Low-level formatting utilities (typically not called directly).
 
-### `format_command()`
+### `format_commands_with_aliases()`
 
-Format a single command name with aliases.
+Format a list of commands with their aliases for help display. Returns the formatted command rows and the maximum formatted length (used for column alignment).
 
 ```python
-from typer_extensions.format import format_command
+from typer_extensions.format import format_commands_with_aliases
 
-formatted = format_command(
-    command_name: str,
-    aliases: list[str],
+formatted, max_len = format_commands_with_aliases(
+    commands: list[tuple[str, str | None]],
+    command_aliases: dict[str, list[str]],
     *,
     display_format: str = "({aliases})",
-    separator: str = ", ",
     max_num: int = 3,
-) -> str
+    separator: str = ", ",
+) -> tuple[list[tuple[str, str | None]], int]
 ```
 
 **Example:**
 ```python
-result = format_command("list", ["ls", "l"])
-print(result)  # "list (ls, l)"
+formatted, _ = format_commands_with_aliases(
+    [("list", "List items.")],
+    {"list": ["ls", "l"]},
+)
+print(formatted[0][0])  # "list   (ls, l)"
 ```
 
 ### `truncate_aliases()`
 
-Truncate alias list with "+N more".
+Truncate an alias list to `max_num` and join with the separator, appending "+N more" when there are extras.
 
 ```python
 from typer_extensions.format import truncate_aliases
@@ -639,17 +730,20 @@ def list_commands_with_aliases(self) -> dict[str, list[str]]: ...
 **Duplicate alias:**
 ```python
 app.add_alias("list", "ls")
-app.add_alias("delete", "ls")  # ValueError: Alias 'ls' already registered
+app.add_alias("delete", "ls")
+# ValueError: Alias 'ls' is already registered for command 'list'
 ```
 
 **Command not found:**
 ```python
-app.add_alias("nonexistent", "ne")  # ValueError: Command 'nonexistent' not found
+app.add_alias("nonexistent", "ne")
+# ValueError: Command 'nonexistent' does not exist
 ```
 
 **Self-aliasing:**
 ```python
-app.add_alias("list", "list")  # ValueError: Alias cannot be same as primary
+app.add_alias("list", "list")
+# ValueError: Alias 'list' cannot be the same as command name 'list'
 ```
 
 ### No Exceptions

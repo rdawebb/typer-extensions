@@ -4,23 +4,25 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-06-20
 
-## [Unreleased]
+### Breaking Changes
 
-### Changed
-
-- **BREAKING:** Renamed `@app.command_with_aliases()` decorator to `@app.command()` for simpler, more intuitive API
-- **BREAKING:** Renamed `add_aliased_command()` decorator to `add_command()` for consitency with standard Typer API
-- Updated all tests and examples to use new method names
-- Added `wcwidth` dependency for accurate Unicode and multi-byte character width calculations in help text formatting
-- Refactored `format_commands_section()` to `format_commands_with_aliases()` with signature returning `(formatted_commands, max_width)` tuple
-- Renamed `list_commands()` to `list_commands_with_aliases()` for API clarity
-- Improved help text alignment and padding when displaying commands with aliases
-- Enhanced test fixtures with better ANSI escape code handling and new `assert_formatted_command` assertion
-- Consolidated pre-commit hook configuration into single local repo section
+- Renamed `@app.command_with_aliases()` decorator to `@app.command()` for simpler, more intuitive API
+- Renamed `add_aliased_command()` to `add_command()` for consistency with standard Typer API
+- Drop support for Python 3.9
 
 ### Added
 
+- `ExtendedTyper` now explicitly exposes the full `typer` public API as class attributes:
+  - Exceptions: `Abort`, `Exit`, `BadParameter`
+  - Parameter types: `CallbackParam`
+  - File type aliases: `FileBinaryRead`, `FileBinaryWrite`, `FileText`, `FileTextWrite`
+  - Utility functions: `unstyle`, `edit`, `format_filename`, `get_binary_stream`, `get_text_stream`
+- `__all__` updated to correctly export the complete `typer` public API surface as a fallback
+- `add_typer()` now accepts an `aliases` parameter
+  - Enables sub-app name aliases with the same `aliases=[]` interface as `@app.command()`
+  - Omitting `name` with an `aliases` argument raises a `ValueError`
 - New `_rich_utils.py` module providing drop-in replacements for Typer's rich_utils functions
   - Enhanced help text formatting with support for command aliases
   - Graceful fallback when Rich library is unavailable
@@ -56,11 +58,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 - `Context` class exported from core module for better Typer compatibility
 - `__getattr__` fallback in `__init__.py` for dynamic Typer attribute access
 - Enhanced example files with new method names and improved code patterns
+- Added example demonstrating sub-app (subcommand) aliases via `add_typer()`
 - PyPI release validation script (scripts/pypi.py)
 - TestPyPI release validation script (scripts/testpypi.py)
 
 ### Changed
 
+- Updated all tests and examples to use new method names
+- Added `wcwidth` dependency for accurate Unicode and multi-byte character width calculations in help text formatting
+- Refactored `format_commands_section()` to `format_commands_with_aliases()` with signature returning `(formatted_commands, max_width)` tuple
+- Renamed `list_commands()` to `list_commands_with_aliases()` for API clarity
+- Improved help text alignment and padding when displaying commands with aliases
+- Enhanced test fixtures with better ANSI escape code handling and new `assert_formatted_command` assertion
+- Consolidated pre-commit hook configuration into single local repo section
 - Updated existing test files for compatibility with new Rich integration system
 - Enhanced integration tests in `test_basic.py`, `test_decorator_usage.py`, and `test_programmatic_usage.py`
 - Improved `tests/conftest.py` with enhanced fixtures for Rich integration testing
@@ -68,8 +78,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 - Updated `scripts/release.py` to use `uv venv` instead of `python3 -m venv`
 - Improved type hints throughout codebase
 
-
-## [0.2.2] - 2026/01/15
+## [0.2.2] - 2026-01-15
 
 ### Added
 
@@ -87,11 +96,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 - Updated CI/CD workflow (Codecov action upgraded from v3 to v5)
 
 ### Deprecated
+
 - Package name `typer-aliases` is deprecated in favor of `typer-extensions`
 - Class name `AliasedTyper` is deprecated in favor of `ExtendedTyper`
 
-
-## [0.2.1] - 2026/01/11
+## [0.2.1] - 2026-01-11
 
 ### Added
 
@@ -113,12 +122,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 - `py.typed` marker file for PEP 561 type hinting support
 
-
-## [0.2.0] - 2026/01/10
+## [0.2.0] - 2026-01-10
 
 ### Added
 
 #### Help Text Formatting
+
 - Customisable alias display in help output via Rich formatting:
   - `alias_display_format` parameter for custom format strings
   - `alias_separator` parameter to customise alias list separator
@@ -130,6 +139,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 - `examples/help_formatting_usage.py` demonstrating all formatting options
 
 #### Programmatic API
+
 - Dynamic command and alias management methods:
   - `add_aliased_command()` for programmatically registering commands with aliases
   - `add_alias()` for dynamically adding aliases to existing commands
@@ -138,6 +148,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
   - `list_commands_with_aliases()` for querying all commands and their aliases
 
 #### Testing & Examples
+
 - Comprehensive integration tests for help formatting
 - Unit tests for format utilities with edge case coverage
 - Integration tests for programmatic API usage
@@ -147,6 +158,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
   - `help_formatting_usage.py`: Help formatting customisation scenarios
 
 #### Developer
+
 - Replaced Makefile with Justfile for task automation
 - Helper scripts for development workflows (`just_help.py`, `clean.py`)
 
@@ -165,8 +177,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 - Fixed test assertions to use `clean_output` fixture for reliable cross-platform comparisons
 - Python 3.9 compatibility: Replaced PEP 604 union syntax (`|`) with `Union` for type hints
 
-
-## [0.1.0] - 2026/01/08
+## [0.1.0] - 2026-01-08
 
 ### Added
 
@@ -186,8 +197,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 - Pre-commit hooks for code quality (linting, formatting, type checking, syntax validation)
 - Initial project structure with Makefile and development tooling
 
-
-[Unreleased]: https://github.com/rdawebb/typer-extensions/compare/v0.2.2...HEAD
+[Unreleased]: https://github.com/rdawebb/typer-extensions/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/rdawebb/typer-extensions/compare/v0.2.2...v0.3.0
 [0.2.2]: https://github.com/rdawebb/typer-extensions/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/rdawebb/typer-extensions/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/rdawebb/typer-extensions/compare/v0.1.0a1...v0.2.0

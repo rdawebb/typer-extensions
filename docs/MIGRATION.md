@@ -375,8 +375,9 @@ def create():
 ### API Changes
 
 **Only additions, no changes:**
-- `@app.command()` - Still works (unchanged)
-- `@app.command()` - NEW (added)
+- `@app.command()` - Still works (unchanged); now accepts `aliases=[...]`
+- `app.add_command()` - NEW (added)
+- `app.add_typer()` - Still works (unchanged); now accepts `aliases=[...]` for sub-app names
 - `app.add_alias()` - NEW (added)
 - All other methods - NEW (added)
 

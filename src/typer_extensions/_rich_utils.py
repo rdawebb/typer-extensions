@@ -250,7 +250,7 @@ def _get_help_text(
 
     # Create a generator to be used with @group decorator
     @group()
-    def _generator() -> Generator[Union[Text, Markdown], None, None]:
+    def _generator() -> Generator[Union[Text, Markdown, str], None, None]:
         """Generator that yields Text/Markdown objects"""
         # Prepend deprecated status
         if obj.deprecated:
@@ -481,7 +481,12 @@ def _print_options_panel(
         if hasattr(param, "metavar") and param.metavar:
             opts_text.append(" ")
             opts_text.append(param.metavar, style=STYLE_METAVAR)
-        elif hasattr(param, "type") and hasattr(param.type, "name"):
+
+        elif (
+            hasattr(param, "type")
+            and hasattr(param.type, "name")
+            and not getattr(param, "is_flag", False)
+        ):
             opts_text.append(" ")
             opts_text.append(f"<{param.type.name}>", style=STYLE_METAVAR)
 
