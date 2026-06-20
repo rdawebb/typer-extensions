@@ -414,7 +414,7 @@ wheels = [
 
 [[package]]
 name = "typer-extensions"
-version = "0.2.2"
+version = "0.3.0"
 source = { editable = "." }
 dependencies = [
     { name = "click" },
@@ -443,7 +443,7 @@ requires-dist = [
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.15.18,<15.0.0" },
     { name = "rust-just", marker = "extra == 'dev'", specifier = ">=1.53.0,<2.0.0" },
     { name = "ty", marker = "extra == 'dev'", specifier = ">=0.0.51,<0.1.0" },
-    { name = "typer", specifier = ">=0.9.0" },
+    { name = "typer", specifier = ">=0.9.0,<0.22" },
     { name = "wcwidth", specifier = ">=0.5.0,<1.0.0" },
 ]
 provides-extras = ["dev"]

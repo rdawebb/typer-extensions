@@ -6,27 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [0.3.0] - 2026-06-20
 
-### Breaking Changes
-
-- Renamed `@app.command_with_aliases()` decorator to `@app.command()` for simpler, more intuitive API
-- Renamed `add_aliased_command()` to `add_command()` for consistency with standard Typer API
-- Drop support for Python 3.9
-
 ### Added
 
 - `ExtendedTyper` now explicitly exposes the full `typer` public API as class attributes:
   - Exceptions: `Abort`, `Exit`, `BadParameter`
   - Parameter types: `CallbackParam`
   - File type aliases: `FileBinaryRead`, `FileBinaryWrite`, `FileText`, `FileTextWrite`
-  - Utility functions: `unstyle`, `edit`, `format_filename`, `get_binary_stream`, `get_text_stream`
-- `__all__` updated to correctly export the complete `typer` public API surface as a fallback
+  - Utility functions: `format_filename`, `get_binary_stream`, `get_text_stream`
+- `__all__` updated to export Typer's current public API surface as a fallback
 - `add_typer()` now accepts an `aliases` parameter
   - Enables sub-app name aliases with the same `aliases=[]` interface as `@app.command()`
   - Omitting `name` with an `aliases` argument raises a `ValueError`
 - New `_rich_utils.py` module providing drop-in replacements for Typer's rich_utils functions
   - Enhanced help text formatting with support for command aliases
   - Graceful fallback when Rich library is unavailable
-  - Support for `TYPER_USE_RICH` environment variable to disable Rich entirely
+  - Support for `TYPER_EXTENSIONS_RICH` environment variable to disable Rich entirely
   - Proper handling of deprecated commands, multiline help, and complex formatting scenarios
 - New `_import_hook.py` module implementing dynamic import interception
   - `TyperRichUtilsInterceptor` class for intercepting `typer.rich_utils` imports
@@ -64,6 +58,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ### Changed
 
+- **BREAKING:** Renamed `@app.command_with_aliases()` decorator to `@app.command()` for simpler, more intuitive API
+- **BREAKING:** Renamed `add_aliased_command()` to `add_command()` for consistency with standard Typer API
 - Updated all tests and examples to use new method names
 - Added `wcwidth` dependency for accurate Unicode and multi-byte character width calculations in help text formatting
 - Refactored `format_commands_section()` to `format_commands_with_aliases()` with signature returning `(formatted_commands, max_width)` tuple
@@ -77,6 +73,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 - Refactored `scripts/release.py` to use module-level constants (TEST_ENV, DIST_DIR)
 - Updated `scripts/release.py` to use `uv venv` instead of `python3 -m venv`
 - Improved type hints throughout codebase
+- Constrained the `typer` dependency to `>=0.9.0,<0.22`. Typer 0.22+ vendored Click and changed internals that are not yet supported; the upper bound will be lifted once compatibility work lands
+
+### Removed
+
+- **BREAKING:** Dropped support for Python 3.9
+- **BREAKING:** Removed `echo_via_pager`, `unstyle`, `clear`, `pause`, `open_file`, and `edit` from `ExtendedTyper` and `__all__`. Typer no longer re-exports these, so they are removed to keep the public API aligned with Typer's
+
+### Fixed
+
+- Fixed package build producing an empty wheel: removed a conflicting `[tool.hatch.build] sources` setting that caused no package modules to be included in the built distribution
+- Fixed truncation of wide/multi-byte (e.g. CJK) aliases in help output: `format_commands_with_aliases()` now sizes the alias column by display width (`wcswidth`) instead of character count
 
 ## [0.2.2] - 2026-01-15
 

@@ -123,17 +123,6 @@ class TestTyperUtilityFunctions:
         app = ExtendedTyper()
         app.echo("Hello, World!")  # Should not raise an error
 
-    def test_echo_via_pager_accessible(self):
-        """Test that echo_via_pager function is accessible on ExtendedTyper"""
-        app = ExtendedTyper()
-        assert hasattr(app, "echo_via_pager")
-        assert app.echo_via_pager == typer.echo_via_pager
-
-    def test_echo_via_pager_is_callable(self):
-        """Test that echo_via_pager function is callable on ExtendedTyper"""
-        app = ExtendedTyper()
-        app.echo_via_pager("Hello, World!")  # Should not raise an error
-
     def test_secho_accessible(self):
         """Test that secho function is accessible on ExtendedTyper"""
         app = ExtendedTyper()
@@ -175,23 +164,6 @@ class TestTyperUtilityFunctions:
         assert hasattr(app, "getchar")
         assert app.getchar == typer.getchar
 
-    def test_clear_accessible(self):
-        """Test that clear function is accessible on ExtendedTyper"""
-        app = ExtendedTyper()
-        assert hasattr(app, "clear")
-        assert app.clear == typer.clear
-
-    def test_clear_is_callable(self):
-        """Test that clear function is callable on ExtendedTyper"""
-        app = ExtendedTyper()
-        app.clear()  # Should not raise an error
-
-    def test_pause_accessible(self):
-        """Test that pause function is accessible on ExtendedTyper"""
-        app = ExtendedTyper()
-        assert hasattr(app, "pause")
-        assert app.pause == typer.pause
-
     def test_progressbar_accessible(self):
         """Test that progressbar function is accessible on ExtendedTyper"""
         app = ExtendedTyper()
@@ -218,20 +190,6 @@ class TestTyperUtilityFunctions:
             app = ExtendedTyper()
             app.launch("http://example.com")
             mock_launch.assert_called_once_with("http://example.com")
-
-    def test_open_file_accessible(self):
-        """Test that open_file function is accessible on ExtendedTyper"""
-        app = ExtendedTyper()
-        assert hasattr(app, "open_file")
-        assert app.open_file == typer.open_file
-
-    def test_open_file_is_callable(self, tmp_path):
-        """Test that open_file function is callable on ExtendedTyper"""
-        app = ExtendedTyper()
-        test_file = tmp_path / "test.txt"
-        test_file.write_text("Hello, Typer!")
-        with app.open_file(str(test_file), "r") as f:
-            assert f.read() == "Hello, Typer!"
 
     def test_get_app_dir_accessible(self):
         """Test that get_app_dir function is accessible on ExtendedTyper"""

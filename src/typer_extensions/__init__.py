@@ -41,11 +41,8 @@ __all__ = [
     "Exit",
     "BadParameter",
     # Typer utility functions
-    "clear",
     "confirm",
     "echo",
-    "echo_via_pager",
-    "edit",
     "format_filename",
     "get_app_dir",
     "get_binary_stream",
@@ -53,14 +50,11 @@ __all__ = [
     "get_text_stream",
     "getchar",
     "launch",
-    "open_file",
-    "pause",
     "progressbar",
     "prompt",
     "run",
     "secho",
     "style",
-    "unstyle",
 ]
 
 
