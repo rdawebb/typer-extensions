@@ -1,7 +1,7 @@
 """Basic usage example for typer-extensions
 
-This example demonstrates the decorator syntax for creating
-commands with aliases using typer-extensions. Run with '--help' to see how aliases are displayed in the help text.
+This example demonstrates the decorator syntax for creating commands with aliases
+using typer-extensions. Run with '--help' to see how aliases are displayed in the help text.
 """
 
 from typer_extensions import ExtendedTyper

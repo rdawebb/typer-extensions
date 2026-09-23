@@ -1,6 +1,7 @@
 """Integration tests for programmatic API methods"""
 
 import pytest
+
 from typer_extensions import ExtendedTyper
 
 
@@ -289,7 +290,6 @@ class TestHelpWithProgrammaticAPI:
 
         def list_items():
             """List all items."""
-            pass
 
         app.add_command(
             list_items, "list", aliases=["ls"], help="List items in the system"
@@ -309,12 +309,10 @@ class TestHelpWithProgrammaticAPI:
         @app.command("list")
         def list_items():
             """List all items."""
-            pass
 
         @app.command("delete")
         def delete_items():
             """Delete an item."""
-            pass
 
         app.add_alias("list", "ls")
 
@@ -345,12 +343,10 @@ class TestErrorHandling:
         @app.command("list")
         def list_items():
             """List all items."""
-            pass
 
         @app.command("delete")
         def delete_items():
             """Delete an item."""
-            pass
 
         try:
             app.add_alias("nonexistent", "ne")
@@ -610,12 +606,10 @@ class TestRegularTyperWithMonkeyPatch:
         @app.command("list")
         def list_items():
             """List all items in the system."""
-            pass
 
         @app.command("delete")
         def delete_items():
             """Delete items from the system."""
-            pass
 
         result = cli_runner.invoke(app, ["--help"])
         assert result.exit_code == 0

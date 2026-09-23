@@ -2,11 +2,10 @@
 
 import os
 import re
-import subprocess
 import shutil
+import subprocess
 import sys
 from pathlib import Path
-
 
 PACKAGE_NAME = "typer-extensions"
 TEST_VENV = ".pypi"
@@ -23,6 +22,7 @@ def expected_version() -> str:
     match = re.search(r'__version__ = ["\']([^"\']+)["\']', content)
     if match:
         return match.group(1)
+
     raise ValueError("Version not found")
 
 
@@ -49,6 +49,7 @@ def run_command(
         )
         if capture_output and result.stdout:
             print(result.stdout)
+
         return result
 
     except subprocess.CalledProcessError as e:
@@ -72,6 +73,7 @@ def install_pypi() -> int:
 
     try:
         EXPECTED_VERSION = expected_version()
+
     except (FileNotFoundError, ValueError) as e:
         print(f"❌ Failed to determine version: {e}")
         return 1
@@ -85,6 +87,7 @@ def install_pypi() -> int:
     # Step 2: Create test environment
     try:
         run_command(["uv", "venv", TEST_VENV], "📦 Creating test environment")
+
     except subprocess.CalledProcessError:
         print("Failed to create test environment")
         return 1
@@ -92,8 +95,8 @@ def install_pypi() -> int:
     # Determine the Python executable path in the venv
     python_path = Path(TEST_VENV) / "bin" / "python"
 
-    # Step 3: Install package from TestPyPI
-    print("\n💾 Installing typer-extensions from TestPyPI")
+    # Step 3: Install package from PyPI
+    print("\n💾 Installing typer-extensions from PyPI")
     try:
         run_command(
             [
@@ -102,11 +105,12 @@ def install_pypi() -> int:
                 "install",
                 "--python",
                 str(python_path),
-                PACKAGE_NAME,
+                f"{PACKAGE_NAME}=={EXPECTED_VERSION}",
             ],
             "Installing package",
             capture_output=False,  # Show output for debugging
         )
+
     except subprocess.CalledProcessError as e:
         print(f"❌ Package installation from PyPI failed: {e}")
         print("\nℹ️ Note: Ensure the package has been published to PyPI first.")
@@ -129,11 +133,13 @@ def install_pypi() -> int:
             print(
                 f"✅ {PACKAGE_NAME} is installed with the expected version: {EXPECTED_VERSION}"
             )
+
         else:
             print(
                 f"❌ {PACKAGE_NAME} version mismatch: expected {EXPECTED_VERSION}, got {installed_version}"
             )
             return 1
+
     except subprocess.CalledProcessError as e:
         print(f"❌ Version check failed: {e}")
         return 1
@@ -149,6 +155,7 @@ def install_pypi() -> int:
             [str(python_path), "-m", "pytest", "-v", "tests/"],
             "Running tests",
         )
+
     except subprocess.CalledProcessError as e:
         print(f"❌ Test execution failed: {e}")
         return 1

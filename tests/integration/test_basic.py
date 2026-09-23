@@ -34,7 +34,6 @@ class TestHelpText:
 
         def list_items():
             """List all items in the system."""
-            pass
 
         app._register_command_with_aliases(list_items, "list", aliases=["ls"])
 
@@ -52,11 +51,9 @@ class TestHelpText:
 
         def list_items():
             """List all items in the system."""
-            pass
 
         def delete_item():
             """Delete an item from the system."""
-            pass
 
         app._register_command_with_aliases(list_items, "list", aliases=["ls"])
         app._register_command_with_aliases(delete_item, "delete", aliases=["rm"])
@@ -86,7 +83,6 @@ class TestErrorHandling:
         @app.command("list")
         def list_items():
             """List items."""
-            pass
 
         result = cli_runner.invoke(app, ["invalid"])
         assert result.exit_code != 0

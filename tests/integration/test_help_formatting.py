@@ -13,12 +13,10 @@ class TestHelpAliasDisplay:
         @app.command("list", aliases=["ls", "l"])
         def list_items():
             """List all items."""
-            pass
 
         @app.command("delete", aliases=["rm"])
         def delete_item():
             """Delete an item."""
-            pass
 
         result = cli_runner.invoke(app, ["--help"])
         assert result.exit_code == 0
@@ -39,12 +37,10 @@ class TestHelpAliasDisplay:
         @app.command("list", aliases=["ls", "l"])
         def list_items():
             """List all items."""
-            pass
 
         @app.command("delete", aliases=["rm"])
         def delete_item():
             """Delete an item."""
-            pass
 
         result = cli_runner.invoke(app, ["--help"])
         assert result.exit_code == 0
@@ -64,12 +60,10 @@ class TestHelpAliasDisplay:
         @app.command("list", aliases=["a", "b", "c", "d"])
         def list_items():
             """List items."""
-            pass
 
         @app.command("delete", aliases=["rm"])
         def delete_item():
             """Delete an item."""
-            pass
 
         result = cli_runner.invoke(app, ["--help"])
         assert result.exit_code == 0
@@ -90,12 +84,10 @@ class TestHelpCustomFormatting:
         @app.command("list", aliases=["ls"])
         def list_items():
             """List items."""
-            pass
 
         @app.command("delete", aliases=["rm"])
         def delete_item():
             """Delete an item."""
-            pass
 
         result = cli_runner.invoke(app, ["--help"])
         assert result.exit_code == 0
@@ -113,12 +105,10 @@ class TestHelpCustomFormatting:
         @app.command("list", aliases=["ls", "l"])
         def list_items():
             """List items."""
-            pass
 
         @app.command("delete", aliases=["rm"])
         def delete_item():
             """Delete an item."""
-            pass
 
         result = cli_runner.invoke(app, ["--help"])
         assert result.exit_code == 0
@@ -141,12 +131,10 @@ class TestHelpCustomFormatting:
         @app.command("cmd", aliases=["a", "b", "c"])
         def some_command():
             """Do something."""
-            pass
 
         @app.command("delete", aliases=["rm"])
         def delete_item():
             """Delete an item."""
-            pass
 
         result = cli_runner.invoke(app, ["--help"])
         assert result.exit_code == 0
@@ -167,12 +155,10 @@ class TestHelpWithMixedCommands:
         @app.command("list", aliases=["ls"])
         def list_items():
             """List items."""
-            pass
 
         @app.command()
         def create():
             """Create item."""
-            pass
 
         result = cli_runner.invoke(app, ["--help"])
         assert result.exit_code == 0
@@ -193,17 +179,14 @@ class TestHelpWithMixedCommands:
         @app.command("list", aliases=["ls", "l", "dir"])
         def list_items():
             """List items."""
-            pass
 
         @app.command("delete", aliases=["rm"])
         def delete_item():
             """Delete item."""
-            pass
 
         @app.command()
         def status():
             """Show status."""
-            pass
 
         result = cli_runner.invoke(app, ["--help"])
         assert result.exit_code == 0
@@ -232,12 +215,10 @@ class TestHelpAlignment:
         @app.command("short", aliases=["s"])
         def short_cmd():
             """Short command."""
-            pass
 
         @app.command("very-long-command-name", aliases=["vlcn"])
         def long_cmd():
             """Long command."""
-            pass
 
         result = cli_runner.invoke(app, ["--help"])
         assert result.exit_code == 0
@@ -264,12 +245,10 @@ class TestHelpWithDynamicAliases:
         @app.command("list")
         def list_items():
             """List items."""
-            pass
 
         @app.command("delete", aliases=["rm"])
         def delete_item():
             """Delete an item."""
-            pass
 
         result = cli_runner.invoke(app, ["--help"])
         clean_result = clean_output(result.output)
@@ -294,12 +273,10 @@ class TestHelpWithDynamicAliases:
         @app.command("list", aliases=["ls", "l"])
         def list_items():
             """List items."""
-            pass
 
         @app.command("delete", aliases=["rm"])
         def delete_item():
             """Delete an item."""
-            pass
 
         result = cli_runner.invoke(app, ["--help"])
         clean_result = clean_output(result.output)
@@ -325,12 +302,10 @@ class TestHelpWithDynamicAliases:
         @app.command("list", aliases=["ls"])
         def list_items():
             """List items."""
-            pass
 
         @app.command("delete", aliases=["rm"])
         def delete_item():
             """Delete an item."""
-            pass
 
         # Remove the alias
         app.remove_alias("ls")
@@ -380,12 +355,10 @@ class TestHelpEdgeCases:
         @app.command("cmd", aliases=aliases)
         def some_command():
             """Do something."""
-            pass
 
         @app.command("another", aliases=["an1"])
         def another_command():
             """Show items."""
-            pass
 
         result = cli_runner.invoke(app, ["--help"])
         assert result.exit_code == 0
@@ -401,12 +374,10 @@ class TestHelpEdgeCases:
         @app.command("list", aliases=["列表", "リスト"])
         def list_items():
             """List items."""
-            pass
 
         @app.command("delete", aliases=["削除", "さくじょ"])
         def delete_item():
             """Delete an item."""
-            pass
 
         result = cli_runner.invoke(app, ["--help"])
         assert result.exit_code == 0
@@ -427,17 +398,14 @@ class TestHelpRealWorldScenarios:
         @app.command("checkout", aliases=["co"])
         def checkout(branch: str):
             """Switch to a branch."""
-            pass
 
         @app.command("commit", aliases=["ci"])
         def commit():
             """Record changes."""
-            pass
 
         @app.command("status", aliases=["st"])
         def status():
             """Show working tree status."""
-            pass
 
         result = cli_runner.invoke(app, ["--help"])
         assert result.exit_code == 0
@@ -463,17 +431,14 @@ class TestHelpRealWorldScenarios:
         @app.command("install", aliases=["i", "add"])
         def install(package: str):
             """Install a package."""
-            pass
 
         @app.command("remove", aliases=["rm", "uninstall", "delete"])
         def remove(package: str):
             """Remove a package."""
-            pass
 
         @app.command("list", aliases=["ls", "l"])
         def list_packages():
             """List installed packages."""
-            pass
 
         result = cli_runner.invoke(app, ["--help"])
         assert result.exit_code == 0
@@ -494,17 +459,206 @@ class TestHelpRealWorldScenarios:
         @app.command("list", aliases=["ls"])
         def list_items():
             """List all items."""
-            pass
 
         @app.command("delete", aliases=["rm"])
         def delete_item():
             """Delete an item."""
-            pass
 
         result = cli_runner.invoke(app, ["--help"])
         assert result.exit_code == 0
         clean_result = clean_output(result.output)
 
-        # Should still show help text, though aliases may not be formatted
+        # Should still show help text, with aliases formatted
         assert "list" in clean_result
         assert "delete" in clean_result
+        assert "(ls)" in clean_result
+        assert "(rm)" in clean_result
+
+
+class TestPlainHelpAliasDisplay:
+    """Tests for alias display in plain (non-Rich) help.
+
+    Typer renders help through Click's formatter whenever Rich is inactive,
+    bypassing rich_utils entirely, so the alias column is produced by
+    ExtendedGroup.format_commands instead.
+    """
+
+    @staticmethod
+    def _plain_app(**kwargs) -> ExtendedTyper:
+        """Build an app that renders help through Click's plain formatter."""
+        app = ExtendedTyper(rich_markup_mode=None, **kwargs)
+
+        @app.command("list", aliases=["ls", "l"])
+        def list_items():
+            """List all items."""
+
+        @app.command("delete", aliases=["rm"], deprecated=True)
+        def delete_item():
+            """Delete an item."""
+
+        @app.command("status")
+        def status():
+            """Show status."""
+
+        @app.command("secret", aliases=["s"], hidden=True)
+        def secret():
+            """Hidden command."""
+
+        return app
+
+    def test_plain_help_shows_aliases(self, cli_runner, clean_output):
+        """Test that aliases appear alongside commands in plain help."""
+        result = cli_runner.invoke(self._plain_app(), ["--help"])
+        assert result.exit_code == 0
+        clean_result = clean_output(result.output)
+
+        # Rich panels would draw a box, so confirm this really is plain help
+        assert "╭" not in clean_result
+
+        assert "(ls, l)" in clean_result
+        assert "(rm)" in clean_result
+        assert "List all items" in clean_result
+
+    def test_plain_help_keeps_unaliased_commands(self, cli_runner, clean_output):
+        """Test that commands without aliases are still listed, without a marker."""
+        result = cli_runner.invoke(self._plain_app(), ["--help"])
+        clean_result = clean_output(result.output)
+
+        assert "status" in clean_result
+        assert "Show status" in clean_result
+
+    def test_plain_help_omits_hidden_commands(self, cli_runner, clean_output):
+        """Test that hidden commands stay hidden, along with their aliases."""
+        result = cli_runner.invoke(self._plain_app(), ["--help"])
+        clean_result = clean_output(result.output)
+
+        assert "secret" not in clean_result
+        assert "(s)" not in clean_result
+
+    def test_plain_help_omits_empty_command_section(self, cli_runner, clean_output):
+        """Test that an all-hidden group writes no Commands section at all."""
+        app = ExtendedTyper(rich_markup_mode=None)
+
+        @app.command("list", aliases=["ls"], hidden=True)
+        def list_items():
+            """List all items."""
+
+        @app.command("status", hidden=True)
+        def status():
+            """Show status."""
+
+        result = cli_runner.invoke(app, ["--help"])
+        assert result.exit_code == 0
+        clean_result = clean_output(result.output)
+
+        assert "Commands:" not in clean_result
+
+    def test_plain_help_marks_deprecated_commands(self, cli_runner, clean_output):
+        """Test that Click's deprecation marker survives alias formatting."""
+        result = cli_runner.invoke(self._plain_app(), ["--help"])
+        clean_result = clean_output(result.output)
+
+        assert "DEPRECATED" in clean_result
+
+    def test_plain_help_respects_show_aliases_config(self, cli_runner, clean_output):
+        """Test that show_aliases_in_help=False disables display in plain help too."""
+        app = self._plain_app(show_aliases_in_help=False)
+
+        result = cli_runner.invoke(app, ["--help"])
+        assert result.exit_code == 0
+        clean_result = clean_output(result.output)
+
+        assert "(ls, l)" not in clean_result
+        assert "list" in clean_result
+        assert "List all items" in clean_result
+
+    def test_plain_help_respects_custom_format(self, cli_runner, clean_output):
+        """Test that plain help honours the alias display settings."""
+        app = self._plain_app(
+            alias_display_format="[{aliases}]",
+            alias_separator=" | ",
+            max_num_aliases=1,
+        )
+
+        result = cli_runner.invoke(app, ["--help"])
+        assert result.exit_code == 0
+        clean_result = clean_output(result.output)
+
+        assert "[ls | +1 more]" in clean_result
+
+    def test_plain_help_without_aliases_is_unchanged(self, cli_runner, clean_output):
+        """Test that an app with no aliases falls through to Typer's own output."""
+        app = ExtendedTyper(rich_markup_mode=None)
+
+        @app.command("list")
+        def list_items():
+            """List all items."""
+
+        @app.command("status")
+        def status():
+            """Show status."""
+
+        result = cli_runner.invoke(app, ["--help"])
+        assert result.exit_code == 0
+        clean_result = clean_output(result.output)
+
+        assert "Commands:" in clean_result
+        assert "list" in clean_result
+        assert "(" not in clean_result.split("Commands:")[1]
+
+    def test_plain_help_shows_aliases_without_rich(self, subprocess_runner):
+        """Test the alias column when Rich is genuinely unavailable.
+
+        This path reaches Click's formatter through rich_format_help's fallback
+        rather than Typer's, so it needs a subprocess where 'rich' cannot import.
+        """
+        code = """
+import builtins
+
+real_import = builtins.__import__
+
+def fake_import(name, *args, **kwargs):
+    if name.startswith("rich"):
+        raise ImportError("No module named 'rich'")
+    return real_import(name, *args, **kwargs)
+
+builtins.__import__ = fake_import
+
+from typer.testing import CliRunner
+from typer_extensions import ExtendedTyper
+from typer_extensions._rich_utils import RICH_AVAILABLE
+
+assert RICH_AVAILABLE is False, "Rich should be unavailable in this subprocess"
+
+app = ExtendedTyper()
+
+@app.command("list", aliases=["ls", "l"])
+def list_items():
+    \"\"\"List all items.\"\"\"
+
+@app.command("status")
+def status():
+    \"\"\"Show status.\"\"\"
+
+builtins.__import__ = real_import
+
+result = CliRunner().invoke(app, ["--help"])
+print(result.output)
+"""
+        result = subprocess_runner(code)
+        assert result.returncode == 0, result.stderr
+        assert "(ls, l)" in result.stdout
+        assert "List all items" in result.stdout
+        assert "status" in result.stdout
+
+    def test_plain_help_survives_formatting_failure(self, cli_runner, clean_output):
+        """Test that a broken alias format still renders usable help."""
+        # An unknown placeholder makes str.format raise inside the formatter
+        app = self._plain_app(alias_display_format="({unknown})")
+
+        result = cli_runner.invoke(app, ["--help"])
+        assert result.exit_code == 0
+        clean_result = clean_output(result.output)
+
+        assert "list" in clean_result
+        assert "List all items" in clean_result

@@ -59,6 +59,7 @@ from typer_extensions import ExtendedTyper
 
 app = ExtendedTyper()
 
+
 @app.command("list", aliases=["ls", "l"])
 def list_items():
     """List all items."""
@@ -69,7 +70,7 @@ def list_items():
 
 ```
 Commands:
-  list (ls, l)  List all items.
+ list   (ls, l)     List all items.
 ```
 
 **All work identically:**
@@ -98,7 +99,7 @@ app l
 
 ✅ **Shell completion ready** - Alias support doesn't interfere with existing shell completion
 
-🧪 **Well-tested** - Tested on Python 3.9-3.14 with 100% test coverage
+🧪 **Well-tested** - Tested on Python 3.11-3.14 with 100% test coverage
 
 ---
 
@@ -111,9 +112,9 @@ pip install typer-extensions
 > [!NOTE]
 > **Requirements:**
 >
-> - Python 3.9+
-> - typer >= 0.9.0 (recommend installing the latest version)
-> - click >= 8.0.0
+> - Python 3.11+
+> - typer >= 0.21.0, < 0.28 (recommend installing the latest version)
+> - click is not a direct requirement: Typer supplies it below version 0.26
 
 ---
 
@@ -126,15 +127,18 @@ from typer_extensions import ExtendedTyper
 
 app = ExtendedTyper()
 
+
 @app.command("list", aliases=["ls", "l"])
 def list_items():
     """List all items."""
     print("Listing items...")
 
+
 @app.command("delete", aliases=["rm", "remove"])
 def delete_item(name: str):
     """Delete an item."""
     print(f"Deleting {name}")
+
 
 if __name__ == "__main__":
     app()
@@ -145,8 +149,8 @@ if __name__ == "__main__":
 ```bash
 $ python app.py --help
 Commands:
-  list (ls, l)         List all items.
-  delete (rm, remove)  Delete an item.
+  list     (ls, l)          List all items.
+  delete   (rm, remove)     Delete an item.
 
 $ python app.py ls
 Listing items...
@@ -165,10 +169,12 @@ Have an existing Typer project? Add alias support without changing your code:
 ```python
 # Before (regular Typer)
 from typer import Typer
+
 app = Typer()
 
 # After (with typer-extensions)
 from typer_extensions import ExtendedTyper
+
 app = ExtendedTyper()
 
 # That's it! Everything else stays the same.
@@ -199,9 +205,9 @@ aliases = app.get_aliases("list")  # ["ls", "l"]
 
 ```python
 app = ExtendedTyper(
-    alias_display_format="[{aliases}]",   # Use brackets
-    alias_separator=" | ",                # Pipe separator
-    max_aliases_inline=2,                 # Show max 2, then "+N more"
+    alias_display_format="[{aliases}]",  # Use brackets
+    alias_separator=" | ",  # Pipe separator
+    max_aliases_inline=2,  # Show max 2, then "+N more"
 )
 ```
 
@@ -256,6 +262,7 @@ def checkout(branch: str):
     """Switch branches."""
     ...
 
+
 @app.command("status", aliases=["st"])
 def status():
     """Show status."""
@@ -270,6 +277,7 @@ def install(package: str):
     """Install a package."""
     ...
 
+
 @app.command("remove", aliases=["rm", "uninstall"])
 def remove(package: str):
     """Remove a package."""
@@ -283,6 +291,7 @@ def remove(package: str):
 def list_files():
     """List files."""
     ...
+
 
 # Add platform-specific aliases
 if platform.system() == "Windows":
@@ -326,11 +335,11 @@ app.list_commands_with_aliases() → dict  # All mappings
 
 ```python
 ExtendedTyper(
-    alias_case_sensitive=None,           # Case-sensitive (default True, matching Typer)
-    show_aliases_in_help=True,           # Display aliases in help
+    alias_case_sensitive=None,  # Case-sensitive (default True, matching Typer)
+    show_aliases_in_help=True,  # Display aliases in help
     alias_display_format="({aliases})",  # Display format
-    alias_separator=", ",                # Between aliases
-    max_num_aliases=3,                   # Before truncation
+    alias_separator=", ",  # Between aliases
+    max_num_aliases=3,  # Before truncation
 )
 ```
 
@@ -408,7 +417,7 @@ Contributions are welcome! Please open an issue, ask a question, or submit a pul
 
 ## Project Status
 
-**Current Version:** 0.2.1 (Beta)
+**Current Version:** 0.4.0 (Beta)
 
 ✅ **Core Features Complete:**
 

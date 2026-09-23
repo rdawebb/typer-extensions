@@ -69,8 +69,7 @@ app.add_alias("list", "ls")
 ```python
 # If you want aliases case-insensitive but Typer commands case-sensitive
 app = ExtendedTyper(
-    context_settings={"case_sensitive": True},
-    alias_case_sensitive=False
+    context_settings={"case_sensitive": True}, alias_case_sensitive=False
 )
 # Commands: case-sensitive
 # Aliases: case-insensitive
@@ -215,12 +214,7 @@ def list():
 
 **With Typer options:**
 ```python
-@app.command(
-    "list",
-    aliases=["ls"],
-    help="List all items",
-    deprecated=True
-)
+@app.command("list", aliases=["ls"], help="List all items", deprecated=True)
 def list_items():
     print("Listing...")
 ```
@@ -264,6 +258,7 @@ Click Command object for the registered command.
 def list_items():
     print("Listing...")
 
+
 app.add_command(list_items, "list", aliases=["ls", "l"])
 ```
 
@@ -271,6 +266,7 @@ app.add_command(list_items, "list", aliases=["ls", "l"])
 ```python
 def list():
     print("Listing...")
+
 
 app.add_command(list, aliases=["ls"])
 # Uses function name "list"
@@ -281,12 +277,8 @@ app.add_command(list, aliases=["ls"])
 def list_items(verbose: bool = False):
     print("Listing...")
 
-app.add_command(
-    list_items,
-    "list",
-    aliases=["ls"],
-    help="List all items"
-)
+
+app.add_command(list_items, "list", aliases=["ls"], help="List all items")
 ```
 
 ---
@@ -343,15 +335,18 @@ Sub-app aliases share the **same namespace** as command aliases. A sub-app alias
 ```python
 remote_app = ExtendedTyper(help="Manage remote repositories")
 
+
 @remote_app.command("add")
 def remote_add(name: str, url: str):
     """Add a remote."""
     print(f"Added remote '{name}' at {url}")
 
+
 @remote_app.command("remove", aliases=["rm"])
 def remote_remove(name: str):
     """Remove a remote."""
     print(f"Removed remote '{name}'")
+
 
 app.add_typer(remote_app, name="remote", aliases=["rem"])
 # "app remote add ...", "app rem add ..." both work
@@ -368,9 +363,11 @@ Commands:
 ```python
 sub = ExtendedTyper()
 
+
 @sub.callback()
 def config():
     """Manage configuration."""
+
 
 # Name inferred from the callback as "config"
 app.add_typer(sub, aliases=["cfg"])
@@ -398,6 +395,7 @@ app.add_alias(
 
 #### Raises
 
+- **`TypeError`**: If the app is a single-command application.
 - **`ValueError`**: If command doesn't exist, or alias conflicts with existing commands/aliases.
 
 #### Examples
@@ -407,6 +405,7 @@ app.add_alias(
 @app.command("list")
 def list_items():
     pass
+
 
 app.add_alias("list", "ls")
 app.add_alias("list", "l")
@@ -418,6 +417,7 @@ app.add_alias("list", "l")
 @app.command("list", aliases=["ls"])
 def list_items():
     pass
+
 
 app.add_alias("list", "l")
 # Now has aliases: ["ls", "l"]
@@ -457,6 +457,7 @@ app.remove_alias(
 @app.command("list", aliases=["ls", "l"])
 def list_items():
     pass
+
 
 removed = app.remove_alias("ls")
 print(removed)  # True
@@ -505,6 +506,7 @@ List of aliases (empty list if none or command doesn't exist). Returns a copy, s
 def list_items():
     pass
 
+
 aliases = app.get_aliases("list")
 print(aliases)  # ["ls", "l", "dir"]
 ```
@@ -514,6 +516,7 @@ print(aliases)  # ["ls", "l", "dir"]
 @app.command("create")
 def create_item():
     pass
+
 
 aliases = app.get_aliases("create")
 print(aliases)  # []
@@ -558,13 +561,16 @@ Dictionary mapping command names to their aliases. Only includes commands that h
 def list_items():
     pass
 
+
 @app.command("delete", aliases=["rm"])
 def delete_item():
     pass
 
+
 @app.command("create")
 def create_item():
     pass
+
 
 mapping = app.list_commands_with_aliases()
 print(mapping)
@@ -576,9 +582,11 @@ print(mapping)
 ```python
 app = ExtendedTyper()
 
+
 @app.command("list")
 def list_items():
     pass
+
 
 mapping = app.list_commands_with_aliases()
 print(mapping)  # {}
@@ -595,18 +603,16 @@ Complete reference for ExtendedTyper configuration.
 ```python
 app = ExtendedTyper(
     # Alias Behavior
-    alias_case_sensitive=True,           # bool: Match case exactly
-
+    alias_case_sensitive=True,  # bool: Match case exactly
     # Help Display
-    show_aliases_in_help=True,           # bool: Show/hide aliases
+    show_aliases_in_help=True,  # bool: Show/hide aliases
     alias_display_format="({aliases})",  # str: Wrapper format
-    alias_separator=", ",                # str: Between aliases
-    max_num_aliases=3,                   # int: Before truncation
-
+    alias_separator=", ",  # str: Between aliases
+    max_num_aliases=3,  # int: Before truncation
     # Standard Typer Options
-    name=None,                           # str: Group name
-    help=None,                           # str: Help text
-    add_completion=True,                 # bool: Shell completion
+    name=None,  # str: Group name
+    help=None,  # str: Help text
+    add_completion=True,  # bool: Shell completion
     # ... all other Typer options ...
 )
 ```
@@ -619,9 +625,7 @@ app = ExtendedTyper(
 **Git-like style:**
 ```python
 app = ExtendedTyper(
-    alias_display_format="({aliases})",
-    alias_separator=", ",
-    max_num_aliases=2
+    alias_display_format="({aliases})", alias_separator=", ", max_num_aliases=2
 )
 # Shows: "checkout (co, sw, +1 more)"
 ```
@@ -629,19 +633,14 @@ app = ExtendedTyper(
 **Unix style:**
 ```python
 app = ExtendedTyper(
-    alias_display_format="[{aliases}]",
-    alias_separator=" | ",
-    max_num_aliases=3
+    alias_display_format="[{aliases}]", alias_separator=" | ", max_num_aliases=3
 )
 # Shows: "list [ls | l | dir]"
 ```
 
 **Minimal style:**
 ```python
-app = ExtendedTyper(
-    alias_display_format="| {aliases}",
-    max_num_aliases=1
-)
+app = ExtendedTyper(alias_display_format="| {aliases}", max_num_aliases=1)
 # Shows: "list | ls, +2 more"
 ```
 
@@ -707,6 +706,7 @@ All public APIs include full type hints:
 from typer_extensions import Command, Context
 from typing import Callable, Optional, Any
 
+
 # Example signatures
 def command(
     self,
@@ -716,7 +716,9 @@ def command(
     **kwargs: Any,
 ) -> Callable[[Callable[..., Any]], Command]: ...
 
+
 def get_aliases(self, command_name: str) -> list[str]: ...
+
 
 def list_commands_with_aliases(self) -> dict[str, list[str]]: ...
 ```

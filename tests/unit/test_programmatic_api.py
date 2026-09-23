@@ -1,6 +1,7 @@
 """Unit tests for programmatic API methods."""
 
 import pytest
+
 from typer_extensions import ExtendedTyper
 
 
@@ -17,7 +18,6 @@ class TestAddAliasedCommand:
 
         def delete_item():
             """Delete items."""
-            pass
 
         app.add_command(list_items, "list", aliases=["ls", "l"])
 
@@ -32,11 +32,9 @@ class TestAddAliasedCommand:
 
         def list_items():
             """List items."""
-            pass
 
         def delete_item():
             """Delete items."""
-            pass
 
         app.add_command(list_items, "list", aliases=None)
 
@@ -49,11 +47,9 @@ class TestAddAliasedCommand:
 
         def list_items():
             """List items."""
-            pass
 
         def delete_item():
             """Delete items."""
-            pass
 
         app.add_command(list_items, aliases=["ls"])
 
@@ -67,11 +63,9 @@ class TestAddAliasedCommand:
 
         def list_items():
             """List items."""
-            pass
 
         def delete_item():
             """Delete items."""
-            pass
 
         app.add_command(
             list_items, "list", aliases=["ls"], help="Custom help", deprecated=True
@@ -80,11 +74,11 @@ class TestAddAliasedCommand:
 
         # Retrieve the registered Click command object
         import typer
-        from click import Group
+        from typer.core import TyperGroup
 
-        click_obj = typer.main.get_command(app)
-        if isinstance(click_obj, Group):
-            registered_cmd = click_obj.commands.get("list")
+        typer_obj = typer.main.get_command(app)
+        if isinstance(typer_obj, TyperGroup):
+            registered_cmd = typer_obj.commands.get("list")
 
             # Should be registered with the deprecated flag
             assert registered_cmd is not None
@@ -117,12 +111,10 @@ class TestAddAlias:
         @app.command("list")
         def list_items():
             """List items."""
-            pass
 
         @app.command("delete")
         def delete_items():
             """Delete items."""
-            pass
 
         # Add alias after registration
         app.add_alias("list", "ls")
@@ -138,12 +130,10 @@ class TestAddAlias:
         @app.command("list", aliases=["ls"])
         def list_items():
             """List items."""
-            pass
 
         @app.command("delete", aliases=["rm"])
         def delete_item():
             """Delete items."""
-            pass
 
         # Add another alias
         app.add_alias("list", "l")

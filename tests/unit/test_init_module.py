@@ -143,8 +143,9 @@ class TestGetAttrFallback:
 
     def test_getattr_delegates_to_typer(self):
         """Test that __getattr__ correctly delegates to typer module"""
-        import typer_extensions
         import typer
+
+        import typer_extensions
 
         # These should come from typer via __getattr__
         assert typer_extensions.Typer is typer.Typer
@@ -160,8 +161,9 @@ class TestGetAttrFallback:
 
     def test_getattr_with_common_typer_exports(self):
         """Test __getattr__ with a variety of common Typer exports"""
-        import typer_extensions
         import typer
+
+        import typer_extensions
 
         # List of common Typer exports that should be accessible
         common_exports = ["Typer", "Exit", "Abort", "BadParameter"]
@@ -200,7 +202,7 @@ class TestModuleImportBehavior:
     def test_core_module_components_available(self):
         """Test that core module components are available through the package"""
         import typer_extensions
-        from typer_extensions.core import ExtendedTyper, Context
+        from typer_extensions.core import Context, ExtendedTyper
 
         # These should be available from the main package
         assert typer_extensions.ExtendedTyper is ExtendedTyper
@@ -247,7 +249,7 @@ class TestModuleInitializationRobustness:
 
     def test_core_functionality_available_after_import(self):
         """Test that all core functionality is available after import"""
-        from typer_extensions import ExtendedTyper, Context
+        from typer_extensions import Context, ExtendedTyper
 
         # Should be able to use them
         app = ExtendedTyper(name="test")
@@ -262,8 +264,9 @@ class TestPatchApplicationWithDebugFlag:
 
     def test_patch_applied_debug_flag_enabled(self, monkeypatch):
         """Test that debug message is logged when patch is applied with debug flag"""
-        from typer_extensions._patch import PATCH_STATE, apply_rich_patch
         import sys
+
+        from typer_extensions._patch import PATCH_STATE, apply_rich_patch
 
         original_state = PATCH_STATE.copy()
         # Save original modules
@@ -300,6 +303,7 @@ class TestPatchApplicationWithDebugFlag:
                 result = apply_rich_patch()
                 assert result is True
                 assert PATCH_STATE["applied"] is True
+
         finally:
             PATCH_STATE.clear()
             PATCH_STATE.update(original_state)
@@ -315,8 +319,9 @@ class TestInitModuleAttributeAccess:
 
     def test_getattr_forwards_to_typer(self):
         """Test that __getattr__ forwards undefined attributes to Typer"""
-        import typer_extensions
         import typer
+
+        import typer_extensions
 
         # Access an attribute that's not explicitly exported
         attr = typer_extensions.__getattr__("Argument")
@@ -332,17 +337,20 @@ class TestExceptionHandlingDuringModuleInit:
         from unittest.mock import patch
 
         # Set up to trigger the exception path
-        with caplog.at_level(logging.ERROR):
-            with patch(
+        with (
+            caplog.at_level(logging.ERROR),
+            patch(
                 "typer_extensions._patch.apply_rich_patch",
                 side_effect=RuntimeError("Test error"),
-            ):
-                # This simulates what happens during module import
-                try:
-                    # If we're in the test, the module is already imported, so we need to mock carefully
-                    from typer_extensions._patch import apply_rich_patch
+            ),
+        ):
+            # This simulates what happens during module import
+            try:
+                # If we're in the test, the module is already imported, so we need to mock carefully
+                from typer_extensions._patch import apply_rich_patch
 
-                    apply_rich_patch()  # This will raise
-                except RuntimeError as e:
-                    # Expected
-                    assert str(e) == "Test error"
+                apply_rich_patch()  # This will raise
+
+            except RuntimeError as e:
+                # Expected
+                assert str(e) == "Test error"

@@ -584,6 +584,35 @@ class TestHelpWithArgumentsOptions:
         assert "--force" in clean_result or "-f" in clean_result
         assert "Copy a file" in clean_result
 
+    def test_help_shows_range_negative_flag_and_envvar(self, cli_runner, clean_output):
+        """Test help renders numeric ranges, --no- flags and env var hints."""
+        app = ExtendedTyper()
+
+        @app.command("serve", aliases=["s"])
+        def serve(
+            port: int = app.Option(
+                8080, "--port", "-p", min=1024, max=65535, help="Port"
+            ),
+            verbose: bool = app.Option(
+                False, "--verbose/--no-verbose", help="Verbose output"
+            ),
+            token: str = app.Option(
+                "", "--token", "-t", envvar="API_TOKEN", show_envvar=True, help="Token"
+            ),
+        ):
+            """Serve the application."""
+            print(f"Serving on {port}")
+
+        result = cli_runner.invoke(
+            app, ["serve", "--help"], env={"TERMINAL_WIDTH": "100"}
+        )
+        assert result.exit_code == 0
+        clean_result = clean_output(result.output)
+
+        assert "1024<=x<=65535" in clean_result
+        assert "--no-verbose" in clean_result
+        assert "API_TOKEN" in clean_result
+
 
 class TestRealWorldScenarios:
     """Tests for real-world CLI scenarios with arguments and options."""

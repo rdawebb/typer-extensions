@@ -1,1 +1,1 @@
-"""Integration tests for typer-aliases"""
+"""Integration tests for typer-extensions"""

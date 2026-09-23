@@ -13,16 +13,16 @@ if os.environ.get("TYPER_EXTENSIONS_RICH", "1") == "1":  # pragma: no cover
         if os.environ.get("TYPER_EXTENSIONS_DEBUG") and _patch_applied:
             logging.getLogger(__name__).debug("Rich patch applied")
 
-    except Exception as e:
-        logging.getLogger(__name__).error(f"Failed to apply Rich patch: {e}")
-        pass  # Fall back to default behavior
+    # An optional patch must never break import
+    except Exception:
+        logging.getLogger(__name__).exception("Failed to apply Rich patch")
+        # Fall back to default behavior
 
 
 from typer_extensions._version import __version__
 from typer_extensions.core import Context, ExtendedTyper
 
-
-__all__ = [
+__all__ = [  # noqa: RUF022 - grouped by category rather than sorted
     # Core
     "ExtendedTyper",
     "Context",

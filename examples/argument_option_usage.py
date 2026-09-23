@@ -1,6 +1,7 @@
 """Simple Argument and Option compatibility example with typer-extensions
 
-This example showcases how to use both Typer's Arguments and Options with the ExtendedTyper class. Run with '--help' to see how aliases are displayed in the help text.
+This example showcases how to use both Typer's Arguments and Options with the
+ExtendedTyper class. Run with '--help' to see how aliases are displayed in the help text.
 """
 
 from typer_extensions import ExtendedTyper

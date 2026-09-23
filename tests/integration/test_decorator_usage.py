@@ -1,6 +1,6 @@
 """Integration tests for decorator usage in real CLI scenarios"""
 
-from typer_extensions import ExtendedTyper, Context
+from typer_extensions import Context, ExtendedTyper
 
 
 class TestDecoratorInvocation:
@@ -194,12 +194,10 @@ class TestDecoratorHelpDisplay:
         @app.command("list", aliases=["ls"])
         def list_items():
             """List all items in the system."""
-            pass
 
         @app.command("delete", aliases=["rm"])
         def delete_item():
             """Delete an item."""
-            pass
 
         result = cli_runner.invoke(app, ["--help"])
         assert result.exit_code == 0
@@ -218,7 +216,6 @@ class TestDecoratorHelpDisplay:
         @app.command("list", aliases=["ls"])
         def list_items(verbose: bool = app.Option(False, "--verbose")):
             """List all items in the system."""
-            pass
 
         @app.command("delete", aliases=["rm", "del"])
         def delete_item():
@@ -238,7 +235,6 @@ class TestDecoratorHelpDisplay:
         @app.command("list", aliases=["ls"])
         def list_items(verbose: bool = app.Option(False, "--verbose")):
             """List all items in the system."""
-            pass
 
         @app.command("delete", aliases=["rm", "del"])
         def delete_item():
@@ -262,7 +258,6 @@ class TestDecoratorHelpDisplay:
         @app.command("list", aliases=["ls", "l"])
         def list_items():
             """List items."""
-            pass
 
         @app.command("delete", aliases=["rm", "del"])
         def delete_item():
@@ -381,7 +376,6 @@ class TestDecoratorErrorHandling:
         @app.command("list", aliases=["ls"])
         def list_items():
             """List items."""
-            pass
 
         @app.command("delete", aliases=["rm", "del"])
         def delete_item():
@@ -428,12 +422,10 @@ class TestDecoratorWithStandardCommands:
         @app.command("list", aliases=["ls"])
         def list_items():
             """List items."""
-            pass
 
         @app.command()
         def hello():
             """Say hello."""
-            pass
 
         result = cli_runner.invoke(app, ["--help"])
         assert result.exit_code == 0
