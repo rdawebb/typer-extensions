@@ -2,15 +2,15 @@
 
 import os
 import sys
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 from typer_extensions._patch import (
+    PATCH_STATE,
     apply_rich_patch,
-    undo_rich_patch,
-    is_patch_applied,
     get_patch_info,
     get_patch_status,
-    PATCH_STATE,
+    is_patch_applied,
+    undo_rich_patch,
 )
 
 
@@ -26,6 +26,7 @@ class TestApplyRichPatch:
         try:
             result = apply_rich_patch()
             assert result is True
+
         finally:
             # Restore state
             PATCH_STATE.clear()
@@ -51,6 +52,7 @@ class TestApplyRichPatch:
             result = apply_rich_patch()
             assert result is False
             assert PATCH_STATE["skipped_reason"] == "TYPER_EXTENSIONS_RICH=0 (opt-out)"
+
         finally:
             PATCH_STATE.clear()
             PATCH_STATE.update(original_state)
@@ -79,6 +81,7 @@ class TestApplyRichPatch:
                 assert (
                     PATCH_STATE["skipped_reason"] == "typer.rich_utils already imported"
                 )
+
         finally:
             PATCH_STATE.clear()
             PATCH_STATE.update(original_state)
@@ -115,6 +118,7 @@ class TestApplyRichPatch:
                     assert (
                         "typer module already imported" in PATCH_STATE["skipped_reason"]
                     )
+
         finally:
             PATCH_STATE.clear()
             PATCH_STATE.update(original_state)
@@ -150,6 +154,7 @@ class TestApplyRichPatch:
                 assert PATCH_STATE["applied"] is True
                 assert PATCH_STATE["method"] == "import_hook"
                 assert PATCH_STATE["skipped_reason"] is None
+
         finally:
             PATCH_STATE.clear()
             PATCH_STATE.update(original_state)
@@ -172,21 +177,29 @@ class TestApplyRichPatch:
             monkeypatch.setenv("TYPER_EXTENSIONS_RICH", "1")
             monkeypatch.delenv("TYPER_EXTENSIONS_DEBUG", raising=False)
 
-            # Mock import hook failure
-            with patch(
-                "typer_extensions._import_hook.install_import_hook", return_value=False
-            ):
-                # Ensure typer is not in sys.modules
-                with patch.dict(sys.modules, {}, clear=False):
-                    if "typer" in sys.modules:
-                        del sys.modules["typer"]
-                    if "typer.rich_utils" in sys.modules:
-                        del sys.modules["typer.rich_utils"]
+            # Import before patch.dict snapshots sys.modules: apply_rich_patch()
+            # imports this itself, and the restore on exit would otherwise evict
+            # it, breaking importlib.reload() for every later test
+            from typer_extensions import _rich_utils  # noqa: F401
 
-                    result = apply_rich_patch()
-                    assert result is True
-                    assert PATCH_STATE["applied"] is True
-                    assert PATCH_STATE["method"] == "sys_modules_injection"
+            # Mock import hook failure and ensure typer is not in sys.modules
+            with (
+                patch(
+                    "typer_extensions._import_hook.install_import_hook",
+                    return_value=False,
+                ),
+                patch.dict(sys.modules, {}, clear=False),
+            ):
+                if "typer" in sys.modules:
+                    del sys.modules["typer"]
+                if "typer.rich_utils" in sys.modules:
+                    del sys.modules["typer.rich_utils"]
+
+                result = apply_rich_patch()
+                assert result is True
+                assert PATCH_STATE["applied"] is True
+                assert PATCH_STATE["method"] == "sys_modules_injection"
+
         finally:
             PATCH_STATE.clear()
             PATCH_STATE.update(original_state)
@@ -218,6 +231,7 @@ class TestApplyRichPatch:
                 result = apply_rich_patch()
                 # The function should handle the exception and return a boolean
                 assert isinstance(result, bool)
+
         finally:
             PATCH_STATE.clear()
             PATCH_STATE.update(original_state)
@@ -246,6 +260,7 @@ class TestApplyRichPatch:
             # Result could be True, False, or the patch was already applied
             # The important thing is that the debug flag was processed
             assert isinstance(result, bool)
+
         finally:
             PATCH_STATE.clear()
             PATCH_STATE.update(original_state)
@@ -272,6 +287,7 @@ class TestUndoRichPatch:
             # Should not raise
             undo_rich_patch()
             assert PATCH_STATE["applied"] is False
+
         finally:
             PATCH_STATE.clear()
             PATCH_STATE.update(original_state)
@@ -307,6 +323,7 @@ class TestUndoRichPatch:
                 # Verify the state was reset
                 assert PATCH_STATE["applied"] is False
                 assert PATCH_STATE["patched_functions"] == []
+
         finally:
             PATCH_STATE.clear()
             PATCH_STATE.update(original_state)
@@ -333,6 +350,7 @@ class TestUndoRichPatch:
             ):
                 # Should not raise even though import fails
                 undo_rich_patch()
+
         finally:
             PATCH_STATE.clear()
             PATCH_STATE.update(original_state)
@@ -349,6 +367,7 @@ class TestIsPatchApplied:
         try:
             result = is_patch_applied()
             assert result is True
+
         finally:
             PATCH_STATE.clear()
             PATCH_STATE.update(original_state)
@@ -361,6 +380,7 @@ class TestIsPatchApplied:
         try:
             result = is_patch_applied()
             assert result is False
+
         finally:
             PATCH_STATE.clear()
             PATCH_STATE.update(original_state)
@@ -385,6 +405,7 @@ class TestGetPatchInfo:
             # Should be a copy (modifying it doesn't affect original)
             info["applied"] = False
             assert PATCH_STATE["applied"] is True
+
         finally:
             PATCH_STATE.clear()
             PATCH_STATE.update(original_state)
@@ -411,6 +432,7 @@ class TestGetPatchStatus:
             status = get_patch_status()
             assert "Applied" in status
             assert "2 functions patched" in status
+
         finally:
             PATCH_STATE.clear()
             PATCH_STATE.update(original_state)
@@ -433,6 +455,7 @@ class TestGetPatchStatus:
             status = get_patch_status()
             assert "Skipped" in status
             assert "Test skip reason" in status
+
         finally:
             PATCH_STATE.clear()
             PATCH_STATE.update(original_state)
@@ -454,6 +477,7 @@ class TestGetPatchStatus:
         try:
             status = get_patch_status()
             assert "Not applied" in status
+
         finally:
             PATCH_STATE.clear()
             PATCH_STATE.update(original_state)
@@ -487,11 +511,10 @@ class TestImportHookFailureWithDebug:
             with patch(
                 "typer_extensions._import_hook.install_import_hook",
                 side_effect=Exception("Hook failed"),
-            ):
-                with caplog.at_level(logging.ERROR):
-                    result = apply_rich_patch()
-                    # Should return False when import hook fails and typer is already imported
-                    assert isinstance(result, bool)
+            ) and caplog.at_level(logging.ERROR):
+                result = apply_rich_patch()
+                # Should return False when import hook fails and typer is already imported
+                assert isinstance(result, bool)
 
         finally:
             PATCH_STATE.clear()
@@ -539,6 +562,7 @@ class TestSysModulesInjectionPath:
                 # Verify the modules were injected
                 assert "typer" in sys.modules
                 assert "typer.rich_utils" in sys.modules
+
         finally:
             PATCH_STATE.clear()
             PATCH_STATE.update(original_state)

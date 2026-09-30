@@ -2,7 +2,9 @@
 
 from unittest.mock import Mock, patch
 
-import click
+from typer.core import TyperCommand, TyperGroup, TyperOption
+
+from typer_extensions._compat import click
 
 
 class TestParameterRangeConstraints:
@@ -10,26 +12,20 @@ class TestParameterRangeConstraints:
 
     def test_parameter_with_range_constraint(self):
         """Test parameter with range type."""
+        from typer_extensions._compat import types
         from typer_extensions._rich_utils import _get_parameter_help
 
-        # Create a parameter with a range type
-        param = Mock(spec=click.Option)
-        param.name = "port"
-        param.help = "Port number"
-        param.required = False
-        param.default = 8080
-        param.show_default = True
-        param.envvar = None
+        # A real IntRange: the range metavar suffix is selected by an
+        # isinstance() check, so a mocked type would not exercise it
+        param = TyperOption(
+            param_decls=["-p", "--port"],
+            type=types.IntRange(1024, 65535),
+            default=8080,
+            show_default=True,
+            help="Port number",
+        )
 
-        # Create a mock range type
-        range_type = Mock()
-        range_type.name = "IntRange"
-        range_type.min = 1024
-        range_type.max = 65535
-        param.type = range_type
-
-        ctx = Mock()
-        ctx.show_default = False
+        ctx = click.Context(TyperCommand("cli"))
 
         result = _get_parameter_help(param=param, ctx=ctx, markup_mode="rich")
         assert result is not None
@@ -46,12 +42,14 @@ class TestCommandAliasHandling:
         cmd1 = Mock(spec=click.Command)
         cmd1.name = "start"
         cmd1.help = "Start the service"
+        cmd1.short_help = None
         cmd1.deprecated = False
         cmd1.hidden = False
 
         cmd2 = Mock(spec=click.Command)
         cmd2.name = "stop"
         cmd2.help = "Stop the service"
+        cmd2.short_help = None
         cmd2.deprecated = False
         cmd2.hidden = False
 
@@ -63,24 +61,26 @@ class TestCommandAliasHandling:
         console = Mock()
         console.print = Mock()
 
-        with patch("typer_extensions._rich_utils.RICH_AVAILABLE", True):
-            # Mock the format function
-            with patch(
+        # Mock the format function
+        with (
+            patch("typer_extensions._rich_utils.RICH_AVAILABLE", True),
+            patch(
                 "typer_extensions.format.format_commands_with_aliases"
-            ) as mock_format:
-                mock_format.return_value = [
-                    ("start", ["run", "s"]),
-                    ("stop", ["halt", "x"]),
-                ]
+            ) as mock_format,
+        ):
+            mock_format.return_value = [
+                ("start", ["run", "s"]),
+                ("stop", ["halt", "x"]),
+            ]
 
-                _print_commands_panel(
-                    name="Commands",
-                    commands=[cmd1, cmd2],
-                    markup_mode="rich",
-                    console=console,
-                    cmd_len=20,
-                    extended_typer=extended_typer,
-                )
+            _print_commands_panel(
+                name="Commands",
+                commands=[cmd1, cmd2],
+                markup_mode="rich",
+                console=console,
+                cmd_len=20,
+                extended_typer=extended_typer,
+            )
 
     def test_commands_with_alias_error_recovery(self):
         """Test command alias formatting with error recovery."""
@@ -89,6 +89,7 @@ class TestCommandAliasHandling:
         cmd = Mock(spec=click.Command)
         cmd.name = "test"
         cmd.help = "Test command"
+        cmd.short_help = None
         cmd.deprecated = False
         cmd.hidden = False
 
@@ -99,22 +100,24 @@ class TestCommandAliasHandling:
         console = Mock()
         console.print = Mock()
 
-        with patch("typer_extensions._rich_utils.RICH_AVAILABLE", True):
-            # Mock format function to raise an exception
-            with patch(
+        # Mock format function to raise an exception
+        with (
+            patch("typer_extensions._rich_utils.RICH_AVAILABLE", True),
+            patch(
                 "typer_extensions.format.format_commands_with_aliases"
-            ) as mock_format:
-                mock_format.side_effect = Exception("Format error")
+            ) as mock_format,
+        ):
+            mock_format.side_effect = Exception("Format error")
 
-                # Should handle the error gracefully
-                _print_commands_panel(
-                    name="Commands",
-                    commands=[cmd],
-                    markup_mode="rich",
-                    console=console,
-                    cmd_len=20,
-                    extended_typer=extended_typer,
-                )
+            # Should handle the error gracefully
+            _print_commands_panel(
+                name="Commands",
+                commands=[cmd],
+                markup_mode="rich",
+                console=console,
+                cmd_len=20,
+                extended_typer=extended_typer,
+            )
 
 
 class TestDeprecatedCommands:
@@ -127,24 +130,27 @@ class TestDeprecatedCommands:
         cmd = Mock(spec=click.Command)
         cmd.name = "oldcmd"
         cmd.help = "Old command"
+        cmd.short_help = None
         cmd.deprecated = True  # Deprecated!
         cmd.hidden = False
 
         console = Mock()
         console.print = Mock()
 
-        with patch("typer_extensions._rich_utils.RICH_AVAILABLE", False):
-            with patch("typer_extensions._rich_utils.click.echo"):
-                # Should use click.echo instead of console.print
-                _print_commands_panel(
-                    name="Commands",
-                    commands=[cmd],
-                    markup_mode="rich",
-                    console=console,
-                    cmd_len=20,
-                    extended_typer=None,
-                )
-                # Should work without error
+        with (
+            patch("typer_extensions._rich_utils.RICH_AVAILABLE", False),
+            patch("typer_extensions._rich_utils.click.echo"),
+        ):
+            # Should use click.echo instead of console.print
+            _print_commands_panel(
+                name="Commands",
+                commands=[cmd],
+                markup_mode="rich",
+                console=console,
+                cmd_len=20,
+                extended_typer=None,
+            )
+            # Should work without error
 
     def test_deprecated_command_with_rich(self):
         """Test deprecated command with Rich enabled."""
@@ -153,6 +159,7 @@ class TestDeprecatedCommands:
         cmd = Mock(spec=click.Command)
         cmd.name = "oldcmd"
         cmd.help = "Old command"
+        cmd.short_help = None
         cmd.deprecated = True
         cmd.hidden = False
 
@@ -181,16 +188,18 @@ class TestHiddenCommands:
         hidden_cmd = Mock(spec=click.Command)
         hidden_cmd.name = "hidden"
         hidden_cmd.help = "Hidden command"
+        hidden_cmd.short_help = None
         hidden_cmd.hidden = True  # Hidden!
         hidden_cmd.deprecated = False
 
         visible_cmd = Mock(spec=click.Command)
         visible_cmd.name = "visible"
         visible_cmd.help = "Visible command"
+        visible_cmd.short_help = None
         visible_cmd.hidden = False
         visible_cmd.deprecated = False
 
-        obj = Mock(spec=click.Group)
+        obj = Mock(spec=TyperGroup)
         obj.list_commands = Mock(return_value=["hidden", "visible"])
 
         def get_command_side_effect(ctx, name):
@@ -213,12 +222,14 @@ class TestHiddenCommands:
         console = Mock()
         console.print = Mock()
 
-        with patch("typer_extensions._rich_utils.RICH_AVAILABLE", True):
-            with patch(
+        with (
+            patch("typer_extensions._rich_utils.RICH_AVAILABLE", True),
+            patch(
                 "typer_extensions._rich_utils._get_rich_console", return_value=console
-            ):
-                rich_format_help(obj=obj, ctx=ctx, markup_mode="rich")
-                # Should work without error
+            ),
+        ):
+            rich_format_help(obj=obj, ctx=ctx, markup_mode="rich")
+            # Should work without error
 
 
 class TestMultilineHelpText:
@@ -261,18 +272,18 @@ class TestErrorFormattingEdgeCases:
         exc = click.ClickException("Test error")
         # ClickException is set during Click processing, so just testing behavior
 
-        with patch("typer_extensions._rich_utils.RICH_AVAILABLE", True):
-            with patch(
-                "typer_extensions._rich_utils._get_rich_console"
-            ) as mock_console:
-                console = Mock()
-                console.print = Mock()
-                mock_console.return_value = console
+        with (
+            patch("typer_extensions._rich_utils.RICH_AVAILABLE", True),
+            patch("typer_extensions._rich_utils._get_rich_console") as mock_console,
+        ):
+            console = Mock()
+            console.print = Mock()
+            mock_console.return_value = console
 
-                rich_format_error(exc)
+            rich_format_error(exc)
 
-                # Should still format the error even without context
-                assert console.print.called
+            # Should still format the error even without context
+            assert console.print.called
 
     def test_error_without_help_option(self):
         """Test error formatting when command has no help option."""
@@ -288,18 +299,18 @@ class TestErrorFormattingEdgeCases:
         # Set ctx as an attribute - Click does this during exception handling
         object.__setattr__(exc, "ctx", ctx)
 
-        with patch("typer_extensions._rich_utils.RICH_AVAILABLE", True):
-            with patch(
-                "typer_extensions._rich_utils._get_rich_console"
-            ) as mock_console:
-                console = Mock()
-                console.print = Mock()
-                mock_console.return_value = console
+        with (
+            patch("typer_extensions._rich_utils.RICH_AVAILABLE", True),
+            patch("typer_extensions._rich_utils._get_rich_console") as mock_console,
+        ):
+            console = Mock()
+            console.print = Mock()
+            mock_console.return_value = console
 
-                rich_format_error(exc)
+            rich_format_error(exc)
 
-                # Should format error without help suggestion
-                console.print.assert_called()
+            # Should format error without help suggestion
+            console.print.assert_called()
 
     def test_no_args_is_help_error_passthrough(self):
         """Test that NoArgsIsHelpError is not formatted."""
@@ -323,22 +334,25 @@ class TestGetTracebackEdgeCases:
 
         try:
             raise ValueError("Test exception")
+
         except ValueError as e:
             config = Mock()
             config.pretty_exceptions_show_locals = True
 
-            with patch("typer_extensions._rich_utils.RICH_AVAILABLE", True):
-                with patch("typer_extensions._rich_utils.Traceback") as MockTraceback:
-                    MockTraceback.from_exception = Mock(return_value=Mock())
+            with (
+                patch("typer_extensions._rich_utils.RICH_AVAILABLE", True),
+                patch("typer_extensions._rich_utils.Traceback") as MockTraceback,
+            ):
+                MockTraceback.from_exception = Mock(return_value=Mock())
 
-                    get_traceback(
-                        exc=e, exception_config=config, internal_dir_names=["internal"]
-                    )
+                get_traceback(
+                    exc=e, exception_config=config, internal_dir_names=["internal"]
+                )
 
-                    # Should call with show_locals=True
-                    MockTraceback.from_exception.assert_called_once()
-                    call_kwargs = MockTraceback.from_exception.call_args[1]
-                    assert call_kwargs["show_locals"] is True
+                # Should call with show_locals=True
+                MockTraceback.from_exception.assert_called_once()
+                call_kwargs = MockTraceback.from_exception.call_args[1]
+                assert call_kwargs["show_locals"] is True
 
     def test_traceback_without_config(self):
         """Test traceback without exception config."""
@@ -346,21 +360,24 @@ class TestGetTracebackEdgeCases:
 
         try:
             raise ValueError("Test exception")
+
         except ValueError as e:
-            with patch("typer_extensions._rich_utils.RICH_AVAILABLE", True):
-                with patch("typer_extensions._rich_utils.Traceback") as MockTraceback:
-                    MockTraceback.from_exception = Mock(return_value=Mock())
+            with (
+                patch("typer_extensions._rich_utils.RICH_AVAILABLE", True),
+                patch("typer_extensions._rich_utils.Traceback") as MockTraceback,
+            ):
+                MockTraceback.from_exception = Mock(return_value=Mock())
 
-                    get_traceback(
-                        exc=e,
-                        exception_config=None,  # No config
-                        internal_dir_names=["internal"],
-                    )
+                get_traceback(
+                    exc=e,
+                    exception_config=None,  # No config
+                    internal_dir_names=["internal"],
+                )
 
-                    # Should call with show_locals=False (default)
-                    MockTraceback.from_exception.assert_called_once()
-                    call_kwargs = MockTraceback.from_exception.call_args[1]
-                    assert call_kwargs["show_locals"] is False
+                # Should call with show_locals=False (default)
+                MockTraceback.from_exception.assert_called_once()
+                call_kwargs = MockTraceback.from_exception.call_args[1]
+                assert call_kwargs["show_locals"] is False
 
 
 class TestRichRenderText:
@@ -381,14 +398,14 @@ class TestRichRenderText:
         """Test text rendering when console is None."""
         from typer_extensions._rich_utils import rich_render_text
 
-        with patch("typer_extensions._rich_utils.RICH_AVAILABLE", True):
-            with patch(
-                "typer_extensions._rich_utils._get_rich_console", return_value=None
-            ):
-                result = rich_render_text("[bold]Test[/bold] text")
+        with (
+            patch("typer_extensions._rich_utils.RICH_AVAILABLE", True),
+            patch("typer_extensions._rich_utils._get_rich_console", return_value=None),
+        ):
+            result = rich_render_text("[bold]Test[/bold] text")
 
-                # Should fall back to tag removal
-                assert "Test" in result
+            # Should fall back to tag removal
+            assert "Test" in result
 
 
 class TestSecondaryOptions:
@@ -398,7 +415,7 @@ class TestSecondaryOptions:
         """Test option with secondary options."""
         from typer_extensions._rich_utils import _print_options_panel
 
-        param = Mock(spec=click.Option)
+        param = Mock(spec=TyperOption)
         param.name = "verbose"
         param.opts = ["--verbose"]
         param.secondary_opts = ["-v"]  # Secondary short option
@@ -406,6 +423,8 @@ class TestSecondaryOptions:
         param.help = "Verbose output"
         param.envvar = None
         param.default = None
+        param.show_default = False
+        param.make_metavar.return_value = "TEXT"
 
         ctx = Mock()
         console = Mock()

@@ -3,7 +3,8 @@
 import os
 import sys
 from types import ModuleType
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
 import pytest
 
 from typer_extensions._import_hook import (
@@ -50,32 +51,34 @@ class TestTyperRichUtilsInterceptor:
 
     def test_exec_module_loads_rich_utils(self):
         """Test exec_module loads _rich_utils module"""
+        import typer_extensions
+
         interceptor = TyperRichUtilsInterceptor()
         module = ModuleType("typer.rich_utils")
 
-        # Mock the _rich_utils import
-        mock_rich_utils = MagicMock()
-        mock_rich_utils.__name__ = "_rich_utils"
-        mock_rich_utils.__file__ = "/path/to/_rich_utils.py"
-        mock_rich_utils.__dict__ = {"test_attr": "value"}
+        # A real module stands in for _rich_utils: assigning __dict__ on a
+        # MagicMock replaces its internal storage and breaks every later
+        # attribute access on the mock
+        fake_rich_utils = ModuleType("_rich_utils")
+        fake_rich_utils.__file__ = "/path/to/_rich_utils.py"
+        fake_rich_utils.__dict__["test_attr"] = "value"
 
-        # Mock the import in _import_hook
-        import_patcher = patch.dict(
-            sys.modules, {"typer_extensions._rich_utils": mock_rich_utils}
-        )
-        with import_patcher:
-            # Also need to patch where it's imported in exec_module
-            with patch("typer_extensions._import_hook.sys.modules", sys.modules):
-                try:
-                    interceptor.exec_module(module)
+        # `from typer_extensions import _rich_utils` resolves via the package
+        # attribute when the submodule is already imported, so patching only
+        # sys.modules leaves the substitution dependent on test ordering.
+        # create=True covers the case where nothing has imported it yet.
+        with (
+            patch.object(typer_extensions, "_rich_utils", fake_rich_utils, create=True),
+            patch.dict(sys.modules, {"typer_extensions._rich_utils": fake_rich_utils}),
+        ):
+            interceptor.exec_module(module)
 
-                    assert module.__name__ == "typer.rich_utils"
-                    assert module.__package__ == "typer"
-                    assert interceptor._loaded is True
-                    assert interceptor._our_module is module
-                except Exception:
-                    # If the detailed assertions fail, at least check the module loads
-                    pass
+        assert module.__name__ == "typer.rich_utils"
+        assert module.__package__ == "typer"
+        assert module.__file__ == "/path/to/_rich_utils.py"
+        assert module.__dict__["test_attr"] == "value"
+        assert interceptor._loaded is True
+        assert interceptor._our_module is module
 
     def test_exec_module_uses_cache_on_second_call(self):
         """Test exec_module uses cached module on second call"""
@@ -101,11 +104,13 @@ class TestTyperRichUtilsInterceptor:
         module = ModuleType("typer.rich_utils")
 
         # Make the import raise an exception
-        with patch("builtins.__import__", side_effect=ImportError("Test error")):
-            # The exec_module will try to import from typer_extensions
-            # Since we're mocking __import__, it should raise
-            with pytest.raises(Exception):
-                interceptor.exec_module(module)
+        # The exec_module will try to import from typer_extensions
+        # Since we're mocking __import__, it should raise
+        with (
+            patch("builtins.__import__", side_effect=ImportError("Test error")),
+            pytest.raises(ImportError),
+        ):
+            interceptor.exec_module(module)
 
     @patch.dict(os.environ, {"TYPER_EXTENSIONS_DEBUG": "1"})
     def test_exec_module_debug_logging(self, caplog):
@@ -114,6 +119,7 @@ class TestTyperRichUtilsInterceptor:
         Covers line 84: debug logging in exec_module
         """
         import logging
+
         from typer_extensions._import_hook import TyperRichUtilsInterceptor
 
         caplog.set_level(logging.INFO)
@@ -123,27 +129,11 @@ class TestTyperRichUtilsInterceptor:
 
         try:
             interceptor.exec_module(module)
-            # Check for debug log message
-            log_messages = [record.message for record in caplog.records]
-            # The debug logging should have occurred
-            assert interceptor._loaded or len(log_messages) >= 0
-        except Exception:
-            # If it fails to load _rich_utils, that's acceptable for this test
-            pass
+        except ImportError as exc:
+            pytest.skip(f"_rich_utils unavailable: {exc}")
 
-    def test_find_module_old_protocol_for_typer_rich_utils(self):
-        """Test find_module (old protocol) returns self for typer.rich_utils"""
-        interceptor = TyperRichUtilsInterceptor()
-        result = interceptor.find_module("typer.rich_utils", None)
-
-        assert result is interceptor
-
-    def test_find_module_old_protocol_for_other_modules(self):
-        """Test find_module (old protocol) returns None for other modules"""
-        interceptor = TyperRichUtilsInterceptor()
-        result = interceptor.find_module("typer.other", None)
-
-        assert result is None
+        assert interceptor._loaded
+        assert "Rich utils loaded via import hook" in caplog.text
 
     def test_load_module_old_protocol_returns_existing_module(self):
         """Test load_module (old protocol) returns existing module from sys.modules"""
@@ -173,12 +163,11 @@ class TestTyperRichUtilsInterceptor:
             # Just verify the method doesn't crash
             try:
                 result = interceptor.load_module("typer.rich_utils")
-                assert result is not None
-                assert result.__name__ == "typer.rich_utils"
-            except Exception:
-                # If it fails due to actual import of _rich_utils, that's OK
-                # The test is checking that the method structure works
-                pass
+            except ImportError as exc:
+                pytest.skip(f"_rich_utils unavailable: {exc}")
+
+            assert result is not None
+            assert result.__name__ == "typer.rich_utils"
 
     def test_load_module_old_protocol_raises_for_other_modules(self):
         """Test load_module (old protocol) raises ImportError for other modules"""
@@ -224,6 +213,7 @@ class TestInstallImportHook:
                     for finder in sys.meta_path
                 )
                 assert has_interceptor is True
+
         finally:
             # Restore original meta_path
             sys.meta_path = original_meta_path
@@ -246,6 +236,7 @@ class TestInstallImportHook:
                 result = install_import_hook()
 
                 assert result is True
+
         finally:
             # Restore original meta_path
             sys.meta_path = original_meta_path
@@ -263,6 +254,7 @@ class TestInstallImportHook:
             # Just verify it returns a boolean
             result = install_import_hook()
             assert isinstance(result, bool)
+
         finally:
             sys.meta_path = original_meta_path
 
@@ -289,6 +281,7 @@ class TestInstallImportHook:
                 result = install_import_hook()
                 # Should return False and not crash
                 assert isinstance(result, bool)
+
         finally:
             sys.meta_path = original_meta_path
 
@@ -316,6 +309,7 @@ class TestUninstallImportHook:
             assert not any(
                 isinstance(f, TyperRichUtilsInterceptor) for f in sys.meta_path
             )
+
         finally:
             sys.meta_path = original_meta_path
 
@@ -333,6 +327,7 @@ class TestUninstallImportHook:
 
             result = uninstall_import_hook()
             assert result is False
+
         finally:
             sys.meta_path = original_meta_path
 
@@ -362,6 +357,7 @@ class TestUninstallImportHook:
                 1 for f in sys.meta_path if isinstance(f, TyperRichUtilsInterceptor)
             )
             assert interceptor_count == 0
+
         finally:
             sys.meta_path = original_meta_path
 
@@ -372,6 +368,7 @@ class TestUninstallImportHook:
         Covers line 174: debug logging in uninstall_import_hook
         """
         import logging
+
         from typer_extensions._import_hook import (
             TyperRichUtilsInterceptor,
             uninstall_import_hook,
@@ -397,6 +394,7 @@ class TestUninstallImportHook:
                 any("uninstall" in msg.lower() for msg in log_messages)
                 or result is True
             )
+
         finally:
             sys.meta_path = original_meta_path
 
@@ -407,6 +405,7 @@ class TestInstallImportHookExceptionHandling:
     def test_install_import_hook_exception(self, caplog, monkeypatch):
         """Test that install_import_hook catches and logs exceptions"""
         import logging
+
         from typer_extensions._import_hook import uninstall_import_hook
 
         # Replace the meta_path.insert with a wrapper that raises
@@ -418,7 +417,7 @@ class TestInstallImportHookExceptionHandling:
             # We'll mock the sys.meta_path.insert by creating a custom list
             class FailingList(list):
                 def insert(self, idx, item):
-                    raise Exception("Insert failed")
+                    raise RuntimeError("Insert failed")
 
             failing_meta_path = FailingList(sys.meta_path)
             monkeypatch.setattr(sys, "meta_path", failing_meta_path)
@@ -432,5 +431,6 @@ class TestInstallImportHookExceptionHandling:
                     "Failed to install import hook" in record.message
                     for record in caplog.records
                 )
+
         finally:
             sys.meta_path = original_meta_path

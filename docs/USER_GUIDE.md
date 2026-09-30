@@ -32,10 +32,12 @@ from typer_extensions import ExtendedTyper
 
 app = ExtendedTyper()
 
+
 @app.command("hello", aliases=["hi", "hey"])
 def greet(name: str = "World"):
     """Greet someone."""
     print(f"Hello, {name}!")
+
 
 if __name__ == "__main__":
     app()
@@ -46,7 +48,7 @@ Run it:
 ```bash
 $ python app.py --help
 Commands:
-  hello (hi, hey)  Greet someone.
+  hello   (hi, hey)    Greet someone.
 
 $ python app.py hello Alice
 Hello, Alice!
@@ -74,6 +76,7 @@ def list_items():
     """List items."""
     pass
 
+
 # "list" is the primary command
 # "ls" and "l" are aliases
 # All three do the same thing
@@ -100,15 +103,18 @@ Mimic Git's short command syntax:
 ```python
 app = ExtendedTyper()
 
+
 @app.command("checkout", aliases=["co"])
 def checkout(branch: str):
     """Switch to a branch."""
     print(f"Switched to {branch}")
 
+
 @app.command("commit", aliases=["ci"])
 def commit(message: str):
     """Commit changes."""
     print(f"Committed: {message}")
+
 
 @app.command("status", aliases=["st"])
 def status():
@@ -117,6 +123,7 @@ def status():
 ```
 
 **Usage:**
+
 ```bash
 $ app co develop     # Short form
 $ app checkout main  # Long form
@@ -132,10 +139,12 @@ def install(package: str):
     """Install a package."""
     print(f"Installing {package}")
 
+
 @app.command("remove", aliases=["rm", "uninstall", "del"])
 def remove(package: str):
     """Remove a package."""
     print(f"Removing {package}")
+
 
 @app.command("list", aliases=["ls", "l", "show"])
 def list_packages():
@@ -152,10 +161,12 @@ import platform
 
 app = ExtendedTyper()
 
+
 @app.command("list")
 def list_files():
     """List files."""
     # Implementation
+
 
 # Add platform-appropriate aliases
 if platform.system() == "Windows":
@@ -175,6 +186,7 @@ def remove_item(name: str):
     """Remove an item."""
     print(f"Removed {name}")
 
+
 # Users of old "delete" command still work
 # But "remove" is the canonical name
 ```
@@ -188,14 +200,17 @@ import json
 
 app = ExtendedTyper()
 
+
 # Define commands
 @app.command("list")
 def list_items():
     pass
 
+
 @app.command("delete")
 def delete_item():
     pass
+
 
 # Load user's custom aliases
 try:
@@ -209,6 +224,7 @@ except FileNotFoundError:
 ```
 
 **aliases.json:**
+
 ```json
 {
   "aliases": {
@@ -227,21 +243,25 @@ app = ExtendedTyper()
 
 remote_app = ExtendedTyper(help="Manage remote repositories")
 
+
 @remote_app.command("add")
 def remote_add(name: str, url: str):
     """Add a remote."""
     print(f"Added remote '{name}' at {url}")
+
 
 @remote_app.command("remove", aliases=["rm"])
 def remote_remove(name: str):
     """Remove a remote."""
     print(f"Removed remote '{name}'")
 
+
 # Mount the group as "remote" with the alias "rem"
 app.add_typer(remote_app, name="remote", aliases=["rem"])
 ```
 
 **Usage:**
+
 ```bash
 $ app remote add origin https://...   # Full group name
 $ app rem add origin https://...       # Group alias
@@ -260,27 +280,31 @@ $ app rem rm origin                    # Group alias + command alias
 Control how aliases appear in help text.
 
 **Default (parentheses):**
+
 ```python
 app = ExtendedTyper()  # Default: "({aliases})"
-# Shows: "list (ls, l)"
+# Shows: "list   (ls, l)"
 ```
 
 **Brackets:**
+
 ```python
 app = ExtendedTyper(alias_display_format="[{aliases}]")
-# Shows: "list [ls, l]"
+# Shows: "list   [ls, l]"
 ```
 
 **Pipe separator:**
+
 ```python
 app = ExtendedTyper(alias_display_format="| {aliases}")
-# Shows: "list | ls, l"
+# Shows: "list   | ls, l"
 ```
 
 **Custom:**
+
 ```python
 app = ExtendedTyper(alias_display_format="<{aliases}>")
-# Shows: "list <ls, l>"
+# Shows: "list   <ls, l>"
 ```
 
 ### Separator
@@ -288,21 +312,24 @@ app = ExtendedTyper(alias_display_format="<{aliases}>")
 Control how multiple aliases are joined.
 
 **Comma (default):**
+
 ```python
 app = ExtendedTyper(alias_separator=", ")
-# Shows: "list (ls, l, dir)"
+# Shows: "list   (ls, l, dir)"
 ```
 
 **Pipe:**
+
 ```python
 app = ExtendedTyper(alias_separator=" | ")
-# Shows: "list (ls | l | dir)"
+# Shows: "list   (ls | l | dir)"
 ```
 
 **Slash:**
+
 ```python
 app = ExtendedTyper(alias_separator=" / ")
-# Shows: "list (ls / l / dir)"
+# Shows: "list   (ls / l / dir)"
 ```
 
 ### Truncation
@@ -310,22 +337,25 @@ app = ExtendedTyper(alias_separator=" / ")
 Limit displayed aliases for long lists.
 
 **Default (3 inline):**
+
 ```python
 app = ExtendedTyper(max_num_aliases=3)
-# 4 aliases: "list (ls, l, dir, +1 more)"
-# 3 aliases: "list (ls, l, dir)"
+# 4 aliases: "list   (ls, l, dir, +1 more)"
+# 3 aliases: "list   (ls, l, dir)"
 ```
 
 **More inline:**
+
 ```python
 app = ExtendedTyper(max_num_aliases=5)
 # Shows up to 5 before truncating
 ```
 
 **Fewer inline:**
+
 ```python
 app = ExtendedTyper(max_num_aliases=1)
-# 3 aliases: "list (ls, +2 more)"
+# 3 aliases: "list   (ls, +2 more)"
 ```
 
 ### Case Sensitivity
@@ -333,6 +363,7 @@ app = ExtendedTyper(max_num_aliases=1)
 Control whether alias matching is case-sensitive.
 
 **Case-sensitive (default):**
+
 ```python
 app = ExtendedTyper(alias_case_sensitive=True)
 app.add_alias("list", "ls")
@@ -340,6 +371,7 @@ app.add_alias("list", "ls")
 ```
 
 **Case-insensitive:**
+
 ```python
 app = ExtendedTyper(alias_case_sensitive=False)
 app.add_alias("list", "ls")
@@ -347,6 +379,7 @@ app.add_alias("list", "ls")
 ```
 
 **Default behavior (None):**
+
 ```python
 app = ExtendedTyper()  # alias_case_sensitive defaults to None
 
@@ -361,12 +394,12 @@ app = ExtendedTyper(
 
 # Or explicitly set both:
 app = ExtendedTyper(
-    context_settings={"case_sensitive": False},
-    alias_case_sensitive=False
+    context_settings={"case_sensitive": False}, alias_case_sensitive=False
 )
 ```
 
 **Key difference:**
+
 - `context_settings.case_sensitive` controls Typer's command matching
 - `alias_case_sensitive` controls alias matching
 - When `alias_case_sensitive=None` (default), they stay in sync
@@ -378,10 +411,12 @@ Don't show aliases in help text.
 ```python
 app = ExtendedTyper(show_aliases_in_help=False)
 
+
 @app.command("list", aliases=["ls", "l"])
 def list_items():
     """List items."""
     pass
+
 
 # Help shows: "list  List items"
 # (no aliases shown, but they still work)
@@ -401,9 +436,11 @@ Add/remove aliases at runtime:
 ```python
 app = ExtendedTyper()
 
+
 @app.command("list")
 def list_items():
     print("Listing...")
+
 
 # Add aliases dynamically
 app.add_alias("list", "ls")
@@ -423,11 +460,14 @@ Register commands without decorators:
 ```python
 app = ExtendedTyper()
 
+
 def list_items():
     print("Listing...")
 
+
 def delete_item(name: str):
     print(f"Deleting {name}")
+
 
 # Register programmatically
 app.add_command(list_items, "list", aliases=["ls"])
@@ -456,14 +496,18 @@ Combine decorator and programmatic approaches:
 ```python
 app = ExtendedTyper()
 
+
 # Decorator method
 @app.command("list", aliases=["ls"])
 def list_items():
     pass
 
+
 # Programmatic method
 def delete_item():
     pass
+
+
 app.add_command(delete_item, "delete", aliases=["rm"])
 
 # Add more aliases dynamically
@@ -479,9 +523,11 @@ app.add_alias("delete", "remove")
 app = ExtendedTyper()
 db_app = ExtendedTyper(help="Database commands")
 
+
 @db_app.command("migrate")
 def migrate():
     print("Migrating...")
+
 
 app.add_typer(db_app, name="database", aliases=["db"])
 # "app database migrate" and "app db migrate" both work
@@ -499,11 +545,13 @@ Key behaviours:
 Aliases work with all Typer features:
 
 **Arguments:**
+
 ```python
 @app.command("greet", aliases=["hi"])
 def greet(name: str = app.Argument(...)):
     """Greet someone."""
     print(f"Hello, {name}!")
+
 
 # Both work:
 # app greet Alice
@@ -511,29 +559,32 @@ def greet(name: str = app.Argument(...)):
 ```
 
 **Options:**
+
 ```python
 @app.command("list", aliases=["ls"])
-def list_items(
-    verbose: bool = app.Option(False, "--verbose", "-v")
-):
+def list_items(verbose: bool = app.Option(False, "--verbose", "-v")):
     """List items."""
     if verbose:
         print("Verbose listing...")
     else:
         print("Listing...")
 
+
 # app ls -v
 # app list --verbose
 ```
 
 **Context:**
+
 ```python
 from typer_extensions import Context
+
 
 @app.command("info", aliases=["i"])
 def show_info(ctx: Context):
     """Show info."""
     print(f"Command: {ctx.info_name}")
+
 
 # Works with aliases
 ```
@@ -545,12 +596,14 @@ def show_info(ctx: Context):
 ### Choose Meaningful Aliases
 
 **Good:**
+
 ```python
 @app.command("checkout", aliases=["co"])  # Common Git convention
 @app.command("list", aliases=["ls"])      # Unix convention
 ```
 
 **Avoid:**
+
 ```python
 @app.command("checkout", aliases=["x", "zz"])  # Cryptic
 ```
@@ -558,11 +611,13 @@ def show_info(ctx: Context):
 ### Limit Number of Aliases
 
 **Good:**
+
 ```python
 @app.command("list", aliases=["ls", "l"])  # 2-3 aliases
 ```
 
 **Avoid:**
+
 ```python
 @app.command(
     "list",
@@ -573,6 +628,7 @@ def show_info(ctx: Context):
 ### Be Consistent
 
 **Good (consistent pattern):**
+
 ```python
 @app.command("checkout", aliases=["co"])
 @app.command("commit", aliases=["ci"])
@@ -581,6 +637,7 @@ def show_info(ctx: Context):
 ```
 
 **Avoid (inconsistent):**
+
 ```python
 @app.command("checkout", aliases=["co", "chk", "switch"])
 @app.command("commit", aliases=["c"])
@@ -610,18 +667,21 @@ def list_items():
 ### Consider Your Audience
 
 **For Unix users:**
+
 ```python
 app.add_alias("list", "ls")
 app.add_alias("remove", "rm")
 ```
 
 **For Windows users:**
+
 ```python
 app.add_alias("list", "dir")
 app.add_alias("remove", "del")
 ```
 
 **For both:**
+
 ```python
 @app.command("list", aliases=["ls", "dir"])
 ```
@@ -638,6 +698,7 @@ def test_list_via_primary_name(cli_runner):
     result = cli_runner.invoke(app, ["list"])
     assert result.exit_code == 0
 
+
 def test_list_via_alias(cli_runner):
     result = cli_runner.invoke(app, ["ls"])
     assert result.exit_code == 0
@@ -653,12 +714,14 @@ def test_list_via_alias(cli_runner):
 > **Common issue:** An alias will conflict if it matches an existing command name or another alias. Always check the error message, it will tell you exactly what's conflicting!
 
 **Check if alias was registered:**
+
 ```python
 aliases = app.get_aliases("list")
 print(aliases)  # Should include your alias
 ```
 
 **Check for conflicts:**
+
 ```python
 # Will raise ValueError if conflict
 try:
@@ -670,12 +733,14 @@ except ValueError as e:
 ### Help Text Not Showing Aliases
 
 **Check configuration:**
+
 ```python
 # Ensure show_aliases_in_help is True (default)
 app = ExtendedTyper(show_aliases_in_help=True)
 ```
 
 **Check if command has aliases:**
+
 ```python
 mapping = app.list_commands_with_aliases()
 print(mapping)  # Should include your command
@@ -684,6 +749,7 @@ print(mapping)  # Should include your command
 ### Case Sensitivity Issues
 
 **If aliases work differently than expected:**
+
 ```python
 # Check case sensitivity setting
 app = ExtendedTyper(alias_case_sensitive=False)

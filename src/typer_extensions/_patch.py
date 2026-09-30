@@ -3,12 +3,12 @@
 import logging
 import os
 import sys
-from typing import Any, Dict
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 # Patch state tracking
-PATCH_STATE: Dict[str, Any] = {
+PATCH_STATE: dict[str, Any] = {
     "applied": False,
     "typer_version": None,
     "patched_functions": [],
@@ -23,8 +23,6 @@ def apply_rich_patch() -> bool:
     Returns:
         True if patch applied successfully, False if skipped
     """
-    global PATCH_STATE
-
     # Check if already patched
     if PATCH_STATE["applied"]:
         logger.debug("Rich patch already applied")
@@ -64,11 +62,8 @@ def apply_rich_patch() -> bool:
 
                 return True
 
-        except Exception as e:
-            logger.error(
-                f"Failed to apply patch via import hook: {e} - trying fallback",
-                exc_info=True,
-            )
+        except Exception:
+            logger.exception("Failed to apply patch via import hook - trying fallback")
 
         # Fallback to sys.modules injection
         if "typer" in sys.modules:
@@ -92,7 +87,8 @@ def apply_rich_patch() -> bool:
         _rich_utils.__package__ = "typer"
 
         sys.modules["typer.rich_utils"] = _rich_utils
-        setattr(sys.modules["typer"], "rich_utils", _rich_utils)
+        # Injected dynamically: the submodule attribute is not declared on ModuleType
+        setattr(sys.modules["typer"], "rich_utils", _rich_utils)  # noqa: B010
 
         PATCH_STATE.update(
             {
@@ -123,8 +119,6 @@ def undo_rich_patch() -> None:
     This function reverses the monkey-patching done by apply_rich_patch().
     Can be called multiple times safely (idempotent).
     """
-    global PATCH_STATE
-
     if not PATCH_STATE["applied"]:
         logger.debug("Rich patch not applied, nothing to undo")
         return
@@ -148,8 +142,8 @@ def undo_rich_patch() -> None:
 
         logger.info("Rich patch removed successfully")
 
-    except Exception as e:
-        logger.error(f"Failed to undo Rich patch: {e}", exc_info=True)
+    except Exception:
+        logger.exception("Failed to undo Rich patch")
 
 
 def is_patch_applied() -> bool:
@@ -161,7 +155,7 @@ def is_patch_applied() -> bool:
     return PATCH_STATE["applied"]
 
 
-def get_patch_info() -> Dict[str, Any]:
+def get_patch_info() -> dict[str, Any]:
     """Get patch metadata for debugging.
 
     Returns:
@@ -180,8 +174,10 @@ def get_patch_status() -> str:
         version = PATCH_STATE.get("typer_version", "unknown")
         num_funcs = len(PATCH_STATE.get("patched_functions", []))
         return f"Applied (Typer {version}, {num_funcs} functions patched)"
+
     elif PATCH_STATE["skipped_reason"]:
         return f"Skipped: {PATCH_STATE['skipped_reason']}"
+
     else:
         return "Not applied"
 

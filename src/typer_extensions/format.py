@@ -1,7 +1,6 @@
 """Help text formatting utilities"""
 
 from collections.abc import Sequence
-from typing import Union
 
 from wcwidth import wcswidth
 
@@ -25,8 +24,7 @@ def truncate_aliases(
         return ""
 
     # Handle negative max_num edge case
-    if max_num < 0:
-        max_num = 0
+    max_num = max(max_num, 0)
 
     if len(aliases) <= max_num:
         return separator.join(aliases)
@@ -56,13 +54,13 @@ def calculate_width(text: str) -> int:
 
 
 def format_commands_with_aliases(
-    commands: Sequence[tuple[str, Union[str, None]]],
+    commands: Sequence[tuple[str, str | None]],
     command_aliases: dict[str, list[str]],
     *,
     display_format: str = "({aliases})",
     max_num: int = 3,
     separator: str = ", ",
-) -> tuple[list[tuple[str, Union[str, None]]], int]:
+) -> tuple[list[tuple[str, str | None]], int]:
     """Format a list of commands with their aliases
 
     Args:
@@ -101,7 +99,7 @@ def format_commands_with_aliases(
             alias_widths[cmd_name] = alias_width
             max_aliases_length = max(max_aliases_length, alias_width)
 
-    formatted_cmds: list[tuple[str, Union[str, None]]] = []
+    formatted_cmds: list[tuple[str, str | None]] = []
     max_formatted_length = 0
 
     for cmd_name, help_text in commands:
@@ -116,9 +114,10 @@ def format_commands_with_aliases(
             formatted_cmd = f"{padded_cmd}   {padded_aliases}"
             formatted_cmd_length = calculate_width(formatted_cmd)
             max_formatted_length = max(max_formatted_length, formatted_cmd_length)
+
         else:
             formatted_cmd = cmd_name
-            formatted_cmd_length = cmd_width
+            formatted_cmd_length = cmd_widths[cmd_name]
             max_formatted_length = max(max_formatted_length, formatted_cmd_length)
 
         formatted_cmds.append((formatted_cmd, help_text))

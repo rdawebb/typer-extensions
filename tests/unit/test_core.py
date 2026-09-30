@@ -1,7 +1,8 @@
 """Unit tests for ExtendedTyper core functionality"""
 
-import pytest
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 from typer_extensions import ExtendedTyper
 
@@ -140,7 +141,6 @@ class TestCommandWithAliases:
 
         def list_items():
             """List items."""
-            pass
 
         app._register_command_with_aliases(list_items, "list", aliases=["ls"])
 
@@ -154,7 +154,6 @@ class TestCommandWithAliases:
 
         def list_items():
             """List items."""
-            pass
 
         app._register_command_with_aliases(
             list_items, "list", aliases=["ls", "l", "dir"]
@@ -171,7 +170,6 @@ class TestCommandWithAliases:
 
         def list_items():
             """List items."""
-            pass
 
         app._register_command_with_aliases(list_items, "list", aliases=None)
 
@@ -185,7 +183,6 @@ class TestCommandWithAliases:
 
         def list_items():
             """List items."""
-            pass
 
         app._register_command_with_aliases(list_items, "list", aliases=[])
 
@@ -198,11 +195,9 @@ class TestCommandWithAliases:
 
         def list_items():
             """List items."""
-            pass
 
         def delete_items():
             """Delete items."""
-            pass
 
         app._register_command_with_aliases(list_items, "list", aliases=["ls"])
 
@@ -226,12 +221,10 @@ class TestGetCommand:
         @app.command("list")
         def list_items():
             """List items."""
-            pass
 
         @app.command("delete")
         def delete_items():
             """Delete items."""
-            pass
 
         ctx = MagicMock()
 
@@ -247,11 +240,9 @@ class TestGetCommand:
 
         def list_items():
             """List items."""
-            pass
 
         def delete_items():
             """Delete items."""
-            pass
 
         # Register commands with aliases
         app._register_command_with_aliases(list_items, "list", aliases=["ls"])
@@ -278,12 +269,10 @@ class TestGetCommand:
         @app.command("list")
         def list_items():
             """List items."""
-            pass
 
         @app.command("delete")
         def delete_items():
             """Delete items."""
-            pass
 
         ctx = MagicMock()
 
@@ -298,11 +287,9 @@ class TestGetCommand:
 
         def list_items():
             """List items."""
-            pass
 
         def delete_items():
             """Delete items."""
-            pass
 
         app._register_command_with_aliases(list_items, "list", aliases=["ls"])
         app._register_command_with_aliases(delete_items, "delete", aliases=["del"])
@@ -321,11 +308,9 @@ class TestGetCommand:
 
         def list_items():
             """List items."""
-            pass
 
         def delete_items():
             """Delete items."""
-            pass
 
         app._register_command_with_aliases(list_items, "list", aliases=["ls", "l"])
         app._register_command_with_aliases(
@@ -354,7 +339,6 @@ class TestGetCommand:
         @app.command("list")
         def list_items():
             """List items."""
-            pass
 
         ctx = MagicMock()
 
@@ -376,7 +360,6 @@ class TestGetCommand:
         @app.command("list")
         def list_items():
             """List items."""
-            pass
 
         ctx = MagicMock()
 
@@ -394,7 +377,6 @@ class TestExtendedGroup:
 
         def list_items():
             """List items."""
-            pass
 
         app._register_command_with_aliases(list_items, "list", aliases=["ls"])
         group = ExtendedGroup(extended_typer=app)
@@ -433,7 +415,7 @@ class TestExtendedGroup:
 
         Covers branch 102→112
         """
-        from typer_extensions.core import _extended_get_group_from_info, ExtendedTyper
+        from typer_extensions.core import ExtendedTyper, _extended_get_group_from_info
 
         # Create an ExtendedTyper with multiple commands
         extended_typer = ExtendedTyper()
@@ -441,12 +423,10 @@ class TestExtendedGroup:
         @extended_typer.command("actual_command")
         def actual_command():
             """An actual command."""
-            pass
 
         @extended_typer.command("another_command")
         def another_command():
             """Another command."""
-            pass
 
         extended_typer.add_alias("actual_command", "test")
 
@@ -495,12 +475,10 @@ class TestExtendedGroup:
         @extended_typer.command("actual")
         def actual_cmd():
             """An actual command."""
-            pass
 
         @extended_typer.command("other")
         def other_cmd():
             """Another command."""
-            pass
 
         extended_typer.add_alias("actual", "test")
 
@@ -521,12 +499,10 @@ class TestExtendedGroup:
         @extended_typer.command("actual")
         def actual_cmd():
             """An actual command."""
-            pass
 
         @extended_typer.command("other")
         def other_cmd():
             """Another command."""
-            pass
 
         extended_typer.add_alias("actual", "test")
 
@@ -619,16 +595,15 @@ class TestAddAliasToSingleCommandApp:
     """Tests for add_alias with single-command applications"""
 
     def test_add_alias_to_single_command_app_raises(self):
-        """Test that adding alias to single-command app raises ValueError"""
+        """Test that adding alias to single-command app raises TypeError"""
         app = ExtendedTyper()
 
         @app.command()
         def main():
             """Main command."""
-            pass
 
         with pytest.raises(
-            ValueError, match="Cannot add aliases to single-command applications"
+            TypeError, match="Cannot add aliases to single-command applications"
         ):
             app.add_alias("main", "m")
 
@@ -639,12 +614,10 @@ class TestAddAliasToSingleCommandApp:
         @app.command("list")
         def list_items():
             """List items."""
-            pass
 
         @app.command("delete")
         def delete_items():
             """Delete items."""
-            pass
 
         with pytest.raises(ValueError, match="Command 'nonexistent' does not exist"):
             app.add_alias("nonexistent", "nx")
@@ -659,11 +632,9 @@ class TestRemoveAliasEdgeCases:
 
         def list_items():
             """List items."""
-            pass
 
         def delete_items():
             """Delete items."""
-            pass
 
         app._register_command_with_aliases(list_items, "list", aliases=["ls"])
 
@@ -686,7 +657,6 @@ class TestGetCommandEdgeCases:
 
         def main():
             """Main command."""
-            pass
 
         app._register_command_with_aliases(main, "main", aliases=["m"])
 
@@ -706,7 +676,6 @@ class TestGetCommandEdgeCases:
         @app.command("list")
         def list_items():
             """List items."""
-            pass
 
         ctx = MagicMock()
 
@@ -726,7 +695,6 @@ class TestGetCommandEdgeCases:
         @app.command("list")
         def list_items():
             """List items."""
-            pass
 
         ctx = MagicMock()
 
@@ -751,61 +719,52 @@ class TestGetCommandEdgeCases:
 class TestExtendedGetGroupFromInfo:
     """Tests for _extended_get_group_from_info function and branch coverage"""
 
-    def test_extended_group_with_rich_attributes_in_dict(self):
-        """Test that _extended_get_group_from_info preserves rich attributes from __dict__"""
-        from typer_extensions.core import (
-            ExtendedTyper,
-            _extended_get_group_from_info,
-            ExtendedGroup,
-        )
+    def test_extended_group_preserves_rich_attributes(self):
+        """Reclassing into ExtendedGroup preserves Typer's rich settings in place"""
         from unittest.mock import MagicMock, patch
 
-        # Create mock objects that match the expected interface
+        from typer.core import TyperGroup
+
+        from typer_extensions.core import (
+            ExtendedGroup,
+            ExtendedTyper,
+            _extended_get_group_from_info,
+        )
+
         app = ExtendedTyper()
         app._register_alias("list", "ls")  # Register an alias
 
-        # Create a real TyperGroup-like object with rich attributes
-        class MockGroup:
-            def __init__(self):
-                self.name = "test"
-                self.callback = None
-                self.params = []
-                self.help = None
-                self.epilog = None
-                self.short_help = None
-                self.options_metavar = None
-                self.subcommand_metavar = None
-                self.chain = False
-                self.result_callback = None
-                self.context_settings = None
-                self.commands = {}
-                self.rich_markup_mode = "markdown"
-                self.rich_help_panel = "Advanced"
+        # Build a real TyperGroup, exactly as Typer's get_group_from_info would
+        real_group = TyperGroup(
+            name="test",
+            rich_markup_mode="markdown",
+            rich_help_panel="Advanced",
+        )
 
-        mock_group = MockGroup()
-
-        # Create a mock typer_info
         typer_info = MagicMock()
         typer_info.typer_instance = app
 
-        # Mock the original function to return our mock group
         with patch(
             "typer_extensions.core._original_get_group_from_info",
-            return_value=mock_group,
+            return_value=real_group,
         ):
             result = _extended_get_group_from_info(typer_info)
 
-            # Should return an ExtendedGroup
+            # The group is re-classed in place, gaining alias resolution while
+            # keeping all of Typer's configuration intact
             assert isinstance(result, ExtendedGroup)
-            # The result should have rich attributes set
+            assert result is real_group
+            assert result._extended_typer is app
             assert result.rich_markup_mode == "markdown"
             assert result.rich_help_panel == "Advanced"
 
     def test_extended_group_no_aliases_registered(self):
         """Test that standard group is returned when no aliases are registered"""
-        from typer_extensions.core import ExtendedTyper, _extended_get_group_from_info
         from unittest.mock import MagicMock, patch
+
         from typer.core import TyperGroup
+
+        from typer_extensions.core import ExtendedTyper, _extended_get_group_from_info
 
         # Create app with no aliases
         app = ExtendedTyper()
@@ -830,10 +789,12 @@ class TestExtendedGetGroupFromInfo:
 
     def test_standard_typer_returns_standard_group(self):
         """Test that non-ExtendedTyper instances return standard groups"""
-        from typer_extensions.core import _extended_get_group_from_info
         from unittest.mock import MagicMock, patch
+
         import typer
         from typer.core import TyperGroup
+
+        from typer_extensions.core import _extended_get_group_from_info
 
         # Create a standard Typer app (not ExtendedTyper)
         app = typer.Typer()
@@ -855,56 +816,43 @@ class TestExtendedGetGroupFromInfo:
             # Should return the original group
             assert result is mock_group
 
-    def test_extended_group_without_dict_attribute(self):
-        """Test _extended_get_group_from_info handles group without __dict__ attribute"""
-        from typer_extensions.core import (
-            ExtendedTyper,
-            _extended_get_group_from_info,
-            ExtendedGroup,
-        )
+    def test_extended_group_preserves_commands(self):
+        """Reclassing into ExtendedGroup preserves the group's existing subcommands"""
         from unittest.mock import MagicMock, patch
 
-        # Create an ExtendedTyper with aliases
+        from typer.core import TyperCommand, TyperGroup
+
+        from typer_extensions._compat import Command
+        from typer_extensions.core import (
+            ExtendedGroup,
+            ExtendedTyper,
+            _extended_get_group_from_info,
+        )
+
         app = ExtendedTyper()
         app._register_alias("list", "ls")
 
-        # Create an object without __dict__ using a simple class
-        class MockGroupNoDict:
-            def __init__(self):
-                self.name = "test"
-                self.callback = None
-                self.params = []
-                self.help = None
-                self.epilog = None
-                self.short_help = None
-                self.options_metavar = None
-                self.subcommand_metavar = None
-                self.chain = False
-                self.result_callback = None
-                self.context_settings = None
-                self.commands = {}
-                # Deliberately don't add anything to __dict__ beyond standard class attributes
-
-        mock_group = MockGroupNoDict()
+        # A real TyperGroup carrying subcommands and Click settings
+        commands: dict[str, Command] = {"list": TyperCommand("list")}
+        real_group = TyperGroup(
+            name="test",
+            commands=commands,
+            no_args_is_help=True,
+        )
 
         typer_info = MagicMock()
         typer_info.typer_instance = app
 
-        # Mock hasattr to return False specifically for __dict__
-        def mock_hasattr(obj, name):
-            if obj is mock_group and name == "__dict__":
-                return False
-            return object.__getattribute__(obj, name) if hasattr(obj, name) else False
-
         with patch(
             "typer_extensions.core._original_get_group_from_info",
-            return_value=mock_group,
+            return_value=real_group,
         ):
-            with patch("typer_extensions.core.hasattr", side_effect=mock_hasattr):
-                result = _extended_get_group_from_info(typer_info)
+            result = _extended_get_group_from_info(typer_info)
 
-                # Should still return an ExtendedGroup
-                assert isinstance(result, ExtendedGroup)
+            assert isinstance(result, ExtendedGroup)
+            assert result is real_group
+            assert result.commands == commands
+            assert result.no_args_is_help is True
 
 
 class TestAddTyperWithAliases:
@@ -918,7 +866,6 @@ class TestAddTyperWithAliases:
         @sub.command()
         def hello():
             """Hello."""
-            pass
 
         app.add_typer(sub, name="greet", aliases=["g", "gr"])
 
@@ -934,7 +881,6 @@ class TestAddTyperWithAliases:
         @sub.command()
         def hello():
             """Hello."""
-            pass
 
         app.add_typer(sub, name="greet")
 
@@ -949,12 +895,10 @@ class TestAddTyperWithAliases:
         @sub.callback()
         def my_sub_app():
             """Sub-app."""
-            pass
 
         @sub.command()
         def hello():
             """Hello."""
-            pass
 
         app.add_typer(sub, aliases=["ms"])
 
@@ -970,7 +914,6 @@ class TestAddTyperWithAliases:
         @sub.command()
         def hello():
             """Hello."""
-            pass
 
         with pytest.raises(ValueError, match="Cannot infer sub-app name"):
             app.add_typer(sub, aliases=["x"])

@@ -2,15 +2,15 @@
 
 import os
 import re
-import subprocess
 import shutil
+import subprocess
 import sys
 from pathlib import Path
-
 
 PACKAGE_NAME = "typer-extensions"
 TESTPYPI_URL = "https://test.pypi.org/simple/"
 TEST_VENV = ".testpypi"
+DIST_DIR = "dist"
 
 
 def expected_version() -> str:
@@ -94,7 +94,16 @@ def install_testpypi() -> int:
     python_path = Path(TEST_VENV) / "bin" / "python"
 
     # Step 3: Install package from TestPyPI
+    # Two-step: fetch the package itself from TestPyPI (no deps, since most deps
+    # aren't on TestPyPI), then satisfy dependencies via the local wheel metadata.
     print("\n💾 Installing typer-extensions from TestPyPI")
+    wheel_files = list(Path(DIST_DIR).glob("*.whl"))
+    if not wheel_files:
+        print("\n❌ No wheel file found in dist/ — run 'uv build' first.")
+        return 1
+
+    wheel_path = wheel_files[0]
+
     try:
         run_command(
             [
@@ -105,12 +114,21 @@ def install_testpypi() -> int:
                 str(python_path),
                 "--index-url",
                 TESTPYPI_URL,
-                "--extra-index-url",
-                "https://pypi.org/simple",
-                PACKAGE_NAME,
+                "--no-deps",
+                f"{PACKAGE_NAME}=={EXPECTED_VERSION}",
             ],
-            "Installing package",
-            capture_output=False,  # Show output for debugging
+            "Installing package from TestPyPI (no deps)",
+        )
+        run_command(
+            [
+                "uv",
+                "pip",
+                "install",
+                "--python",
+                str(python_path),
+                str(wheel_path),
+            ],
+            "Installing dependencies from PyPI via local wheel metadata",
         )
     except subprocess.CalledProcessError as e:
         print(f"❌ Package installation from TestPyPI failed: {e}")

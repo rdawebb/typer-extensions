@@ -7,9 +7,7 @@ import sys
 from pathlib import Path
 
 import pytest
-
 from typer.testing import CliRunner
-
 
 # Get the project root
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -92,8 +90,8 @@ def subprocess_runner():
         Returns:
             subprocess.CompletedProcess with stdout, stderr, and returncode
         """
-        import subprocess as sp
         import os
+        import subprocess as sp
 
         # Start with current environment
         run_env = os.environ.copy()
@@ -107,8 +105,10 @@ def subprocess_runner():
         src_path = str(PROJECT_ROOT / "src")
         if python_path:
             python_path = f"{src_path}:{python_path}"
+
         else:
             python_path = src_path
+
         run_env["PYTHONPATH"] = python_path
 
         return sp.run(
@@ -117,6 +117,7 @@ def subprocess_runner():
             text=True,
             cwd=str(PROJECT_ROOT),
             env=run_env,
+            check=False,  # callers assert on returncode themselves
         )
 
     return run_code

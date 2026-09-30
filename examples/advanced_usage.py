@@ -1,9 +1,10 @@
 """Advanced usage examples for typer-extensions
 
-This example demonstrates various decorator patterns and features with a dummy Git-like CLI tool. Run with '--help' to see how aliases are displayed in the help text.
+This example demonstrates various decorator patterns and features with a dummy
+Git-like CLI tool. Run with '--help' to see how aliases are displayed in the help text.
 """
 
-from typer_extensions import ExtendedTyper, Context
+from typer_extensions import Context, ExtendedTyper
 
 # Case-insensitive aliases
 app = ExtendedTyper(
@@ -58,7 +59,7 @@ def status():
     """Show repository status."""
     print("On branch main")
     print("Your branch is up to date with 'origin/main'")
-    print("")
+    print()
     print("nothing to commit, working tree clean")
 
 

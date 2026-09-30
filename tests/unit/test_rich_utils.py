@@ -3,8 +3,11 @@
 This tests both the Rich-enabled and Rich-disabled code paths.
 """
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
+
 import pytest
+from rich.markdown import Markdown
+from rich.text import Text
 
 from typer_extensions import _rich_utils
 
@@ -152,6 +155,17 @@ class TestMakeRichText:
         )
         assert result is not None
 
+    @pytest.mark.skipif(not _rich_utils.RICH_AVAILABLE, reason="Rich not available")
+    def test_make_rich_text_with_ansi_escape_codes(self):
+        """Test _make_rich_text parses ANSI sequences instead of Rich markup"""
+        result = _rich_utils._make_rich_text(
+            text="\x1b[31mred\x1b[0m text",
+            style="",
+            markup_mode=_rich_utils.MARKUP_MODE_RICH,
+        )
+        assert isinstance(result, Text)
+        assert result.plain == "red text"
+
     def test_make_rich_text_when_rich_disabled(self):
         """Test _make_rich_text returns plain string when Rich disabled"""
         if not _rich_utils.RICH_AVAILABLE:
@@ -189,6 +203,89 @@ class TestMakeRichText:
             text="", style="", markup_mode=_rich_utils.MARKUP_MODE_RICH
         )
         assert result is not None
+
+
+class TestMakeCommandHelp:
+    """Tests for _make_command_help function."""
+
+    @pytest.mark.skipif(not _rich_utils.RICH_AVAILABLE, reason="Rich not available")
+    def test_make_command_help_first_paragraph_only(self):
+        """Test _make_command_help keeps only the first paragraph"""
+        result = _rich_utils._make_command_help(
+            help_text="First line\nsecond line\n\nSecond paragraph.",
+            markup_mode=_rich_utils.MARKUP_MODE_MARKDOWN,
+        )
+        assert isinstance(result, Markdown)
+        assert "Second paragraph" not in result.markup
+
+    @pytest.mark.skipif(not _rich_utils.RICH_AVAILABLE, reason="Rich not available")
+    @pytest.mark.parametrize(
+        "help_text",
+        [
+            "\bLine one\nLine two\n\nSecond paragraph.",
+            "\b\nLine one\nLine two\n\nSecond paragraph.",
+        ],
+        ids=["bare-marker", "marker-on-own-line"],
+    )
+    def test_make_command_help_strips_escape_marker(self, help_text):
+        """Test _make_command_help strips \\b and keeps the linebreaks after it"""
+        result = _rich_utils._make_command_help(
+            help_text=help_text,
+            markup_mode=_rich_utils.MARKUP_MODE_RICH,
+        )
+        assert isinstance(result, Text)
+        assert result.plain == "Line one\nLine two"
+
+    @pytest.mark.skipif(not _rich_utils.RICH_AVAILABLE, reason="Rich not available")
+    @pytest.mark.parametrize(
+        "help_text",
+        [
+            "\bLine one\nLine two\n\nSecond paragraph.",
+            "\b\nLine one\nLine two\n\nSecond paragraph.",
+        ],
+        ids=["bare-marker", "marker-on-own-line"],
+    )
+    def test_make_command_help_strips_escape_marker_in_markdown(self, help_text):
+        """Test the \\b marker never survives into Markdown source
+
+        Rich discards the control character when rendering Text, so a bare
+        marker is only observable on the markdown path.
+        """
+        result = _rich_utils._make_command_help(
+            help_text=help_text,
+            markup_mode=_rich_utils.MARKUP_MODE_MARKDOWN,
+        )
+        assert isinstance(result, Markdown)
+        assert "\b" not in result.markup
+
+    def test_make_command_help_when_rich_disabled(self):
+        """Test _make_command_help returns a plain collapsed string without Rich"""
+        with patch.object(_rich_utils, "RICH_AVAILABLE", False):
+            result = _rich_utils._make_command_help(
+                help_text="First line\nsecond line\n\nSecond paragraph.",
+                markup_mode=_rich_utils.MARKUP_MODE_RICH,
+            )
+        assert isinstance(result, str)
+        assert result == "First line second line"
+
+    @pytest.mark.parametrize(
+        "help_text",
+        [
+            "\bLine one\nLine two\n\nSecond paragraph.",
+            "\b\nLine one\nLine two\n\nSecond paragraph.",
+        ],
+        ids=["bare-marker", "marker-on-own-line"],
+    )
+    def test_make_command_help_escape_marker_when_rich_disabled(self, help_text):
+        """Test _make_command_help strips \\b and keeps linebreaks without Rich"""
+        with patch.object(_rich_utils, "RICH_AVAILABLE", False):
+            result = _rich_utils._make_command_help(
+                help_text=help_text,
+                markup_mode=_rich_utils.MARKUP_MODE_RICH,
+            )
+        assert isinstance(result, str)
+        assert result == "Line one\nLine two"
+        assert "\b" not in result
 
 
 class TestEscapeBeforeHtmlExport:
@@ -277,8 +374,8 @@ class TestGetTraceback:
         """Test get_traceback returns None when Rich disabled"""
         if not _rich_utils.RICH_AVAILABLE:
             try:
-                raise Exception("Test")
-            except Exception as e:
+                raise RuntimeError("Test")
+            except RuntimeError as e:
                 result = _rich_utils.get_traceback(e, None, [])
                 assert result is None
 
@@ -326,7 +423,7 @@ class TestRichFormatError:
 
     def test_format_error_with_click_exception(self):
         """Test formatting a click exception"""
-        import click
+        from typer_extensions._compat import click
 
         exc = click.ClickException("Test error")
         # Should not raise
@@ -361,14 +458,14 @@ class TestRichFormatError:
         Covers error formatting branches
         """
         from typer_extensions import _rich_utils
-        import click
+        from typer_extensions._compat import click
 
         # Test with ClickException
         exc = click.ClickException("Test error")
         _rich_utils.rich_format_error(exc)  # Should not crash
 
         # Test with UsageError
-        exc = click.UsageError("Usage error")
+        exc = click.exceptions.UsageError("Usage error")
         _rich_utils.rich_format_error(exc)  # Should not crash
 
     def test_rich_import_exception_handling(self):
@@ -476,14 +573,15 @@ class TestRichFormatError:
     )
     def test_rich_format_help_with_option_groups(self):
         """Test rich_format_help with grouped options"""
+        from typer.core import TyperOption as Option
+
         from typer_extensions import _rich_utils
-        from click import Option
 
-        opt1 = Option(["-v", "--verbose"], help="Verbose output")
-        setattr(opt1, "rich_help_panel", "Display Options")
+        opt1 = Option(param_decls=["-v", "--verbose"], help="Verbose output")
+        opt1.rich_help_panel = "Display Options"
 
-        opt2 = Option(["-q", "--quiet"], help="Quiet mode")
-        setattr(opt2, "rich_help_panel", "Display Options")
+        opt2 = Option(param_decls=["-q", "--quiet"], help="Quiet mode")
+        opt2.rich_help_panel = "Display Options"
 
         obj = MagicMock()
         obj.params = [opt1, opt2]
@@ -507,10 +605,13 @@ class TestRichFormatError:
     )
     def test_rich_format_help_with_required_options(self):
         """Test rich_format_help with required options"""
-        from typer_extensions import _rich_utils
-        from click import Option
+        from typer.core import TyperOption as Option
 
-        opt = Option(["-r", "--required"], required=True, help="Required option")
+        from typer_extensions import _rich_utils
+
+        opt = Option(
+            param_decls=["-r", "--required"], required=True, help="Required option"
+        )
 
         obj = MagicMock()
         obj.params = [opt]
@@ -534,10 +635,13 @@ class TestRichFormatError:
     )
     def test_rich_format_help_with_arguments(self):
         """Test rich_format_help with argument parameters"""
-        from typer_extensions import _rich_utils
-        from click import Argument
+        from typer.core import TyperArgument as Argument
 
-        arg = Argument(["input"])
+        from typer_extensions import _rich_utils
+
+        # nargs is explicit: TyperArgument defaults it to None and forwards it,
+        # which Click < 8.3 cannot compare against an int in Argument.__init__.
+        arg = Argument(param_decls=["input"], nargs=1)
 
         obj = MagicMock()
         obj.params = [arg]
@@ -587,10 +691,11 @@ class TestPrintOptionsPanel:
     )
     def test_print_options_panel_with_options(self):
         """Test _print_options_panel with option parameters"""
-        from typer_extensions import _rich_utils
-        from click import Option
+        from typer.core import TyperOption as Option
 
-        opt = Option(["-v", "--verbose"], help="Verbose output")
+        from typer_extensions import _rich_utils
+
+        opt = Option(param_decls=["-v", "--verbose"], help="Verbose output")
 
         ctx = MagicMock()
         ctx.auto_envvar_prefix = None
@@ -613,10 +718,11 @@ class TestPrintOptionsPanel:
     )
     def test_print_options_panel_with_negative_option(self):
         """Test _print_options_panel with negative option"""
-        from typer_extensions import _rich_utils
-        from click import Option
+        from typer.core import TyperOption as Option
 
-        opt = Option(["--no-verbose"], help="Disable verbose")
+        from typer_extensions import _rich_utils
+
+        opt = Option(param_decls=["--no-verbose"], help="Disable verbose")
 
         ctx = MagicMock()
         ctx.auto_envvar_prefix = None
@@ -639,10 +745,13 @@ class TestPrintOptionsPanel:
     )
     def test_print_options_panel_with_envvar(self):
         """Test _print_options_panel with environment variable"""
-        from typer_extensions import _rich_utils
-        from click import Option
+        from typer.core import TyperOption as Option
 
-        opt = Option(["-t", "--token"], envvar="API_TOKEN", help="API token")
+        from typer_extensions import _rich_utils
+
+        opt = Option(
+            param_decls=["-t", "--token"], envvar="API_TOKEN", help="API token"
+        )
 
         ctx = MagicMock()
         ctx.auto_envvar_prefix = None
@@ -665,10 +774,13 @@ class TestPrintOptionsPanel:
     )
     def test_print_options_panel_with_metavar(self):
         """Test _print_options_panel with custom metavar"""
-        from typer_extensions import _rich_utils
-        from click import Option
+        from typer.core import TyperOption as Option
 
-        opt = Option(["-f", "--file"], metavar="FILENAME", help="Input file")
+        from typer_extensions import _rich_utils
+
+        opt = Option(
+            param_decls=["-f", "--file"], metavar="FILENAME", help="Input file"
+        )
 
         ctx = MagicMock()
         ctx.auto_envvar_prefix = None
@@ -687,13 +799,14 @@ class TestPrintOptionsPanel:
 
     def test_print_options_panel_no_rich(self):
         """Test _print_options_panel fallback when Rich is disabled"""
+        from typer.core import TyperOption as Option
+
         from typer_extensions import _rich_utils
-        from click import Option
 
         # This test verifies the fallback behavior is defined
         # The actual code path is only taken when Rich is not available
         if not _rich_utils.RICH_AVAILABLE:
-            opt = Option(["-v", "--verbose"], help="Verbose")
+            opt = Option(param_decls=["-v", "--verbose"], help="Verbose")
             ctx = MagicMock()
             ctx.auto_envvar_prefix = None
 
@@ -720,8 +833,9 @@ class TestPrintCommandsPanel:
     )
     def test_print_commands_panel_with_commands(self):
         """Test _print_commands_panel with commands"""
+        from typer.core import TyperCommand as Command
+
         from typer_extensions import _rich_utils
-        from click import Command
 
         cmd = Command("test")
         cmd.help = "Test command"
@@ -746,8 +860,9 @@ class TestPrintCommandsPanel:
     )
     def test_print_commands_panel_with_deprecated_command(self):
         """Test _print_commands_panel with deprecated command"""
+        from typer.core import TyperCommand as Command
+
         from typer_extensions import _rich_utils
-        from click import Command
 
         cmd = Command("old")
         cmd.help = "Deprecated command"
@@ -773,8 +888,9 @@ class TestPrintCommandsPanel:
     )
     def test_print_commands_panel_with_extended_typer(self):
         """Test _print_commands_panel with extended_typer for aliases"""
+        from typer.core import TyperCommand as Command
+
         from typer_extensions import _rich_utils
-        from click import Command
 
         cmd = Command("deploy")
         cmd.help = "Deploy the application"
@@ -803,8 +919,9 @@ class TestPrintCommandsPanel:
     )
     def test_print_commands_panel_with_multiline_help(self):
         """Test _print_commands_panel with multiline help text"""
+        from typer.core import TyperCommand as Command
+
         from typer_extensions import _rich_utils
-        from click import Command
 
         cmd = Command("complex")
         cmd.help = "First line\n\nSecond paragraph\nWith continuation"
@@ -833,10 +950,13 @@ class TestGetParameterHelp:
     )
     def test_get_parameter_help_option_with_default(self):
         """Test _get_parameter_help with option having default value"""
-        from typer_extensions import _rich_utils
-        from click import Option
+        from typer.core import TyperOption as Option
 
-        opt = Option(["-n", "--name"], default="John", show_default=True, help="Name")
+        from typer_extensions import _rich_utils
+
+        opt = Option(
+            param_decls=["-n", "--name"], default="John", show_default=True, help="Name"
+        )
 
         ctx = MagicMock()
         ctx.show_default = False
@@ -851,10 +971,13 @@ class TestGetParameterHelp:
     )
     def test_get_parameter_help_option_with_multiple_envvars(self):
         """Test _get_parameter_help with option having multiple env vars"""
-        from typer_extensions import _rich_utils
-        from click import Option
+        from typer.core import TyperOption as Option
 
-        opt = Option(["-t", "--token"], envvar=["TOKEN", "API_KEY"], help="API token")
+        from typer_extensions import _rich_utils
+
+        opt = Option(
+            param_decls=["-t", "--token"], envvar=["TOKEN", "API_KEY"], help="API token"
+        )
 
         ctx = MagicMock()
         ctx.show_default = False
@@ -869,10 +992,11 @@ class TestGetParameterHelp:
     )
     def test_get_parameter_help_with_no_help_text(self):
         """Test _get_parameter_help with no help text"""
-        from typer_extensions import _rich_utils
-        from click import Option
+        from typer.core import TyperOption as Option
 
-        opt = Option(["-q", "--quiet"])
+        from typer_extensions import _rich_utils
+
+        opt = Option(param_decls=["-q", "--quiet"])
 
         ctx = MagicMock()
         ctx.auto_envvar_prefix = None
@@ -886,10 +1010,13 @@ class TestGetParameterHelp:
     )
     def test_get_parameter_help_with_auto_envvar_prefix(self):
         """Test _get_parameter_help with auto_envvar_prefix"""
-        from typer_extensions import _rich_utils
-        from click import Option
+        from typer.core import TyperOption as Option
 
-        opt = Option(["-a", "--api-key"], allow_from_autoenv=True, help="API key")
+        from typer_extensions import _rich_utils
+
+        opt = Option(
+            param_decls=["-a", "--api-key"], allow_from_autoenv=True, help="API key"
+        )
 
         ctx = MagicMock()
         ctx.auto_envvar_prefix = "MYAPP"
@@ -903,13 +1030,16 @@ class TestGetParameterHelp:
     )
     def test_get_parameter_help_with_callable_default(self):
         """Test _get_parameter_help with callable default value"""
+        from typer.core import TyperOption as Option
+
         from typer_extensions import _rich_utils
-        from click import Option
 
         def default_func():
             return "dynamic"
 
-        opt = Option(["-d", "--dynamic"], default=default_func, show_default=True)
+        opt = Option(
+            param_decls=["-d", "--dynamic"], default=default_func, show_default=True
+        )
 
         ctx = MagicMock()
         ctx.show_default = False
@@ -924,10 +1054,13 @@ class TestGetParameterHelp:
     )
     def test_get_parameter_help_with_required_option(self):
         """Test _get_parameter_help with required option"""
-        from typer_extensions import _rich_utils
-        from click import Option
+        from typer.core import TyperOption as Option
 
-        opt = Option(["-r", "--required"], required=True, help="Required field")
+        from typer_extensions import _rich_utils
+
+        opt = Option(
+            param_decls=["-r", "--required"], required=True, help="Required field"
+        )
 
         ctx = MagicMock()
         ctx.auto_envvar_prefix = None
@@ -937,11 +1070,12 @@ class TestGetParameterHelp:
 
     def test_get_parameter_help_no_rich(self):
         """Test _get_parameter_help when Rich is disabled"""
+        from typer.core import TyperOption as Option
+
         from typer_extensions import _rich_utils
-        from click import Option
 
         if not _rich_utils.RICH_AVAILABLE:
-            opt = Option(["-v", "--verbose"], help="Verbose output")
+            opt = Option(param_decls=["-v", "--verbose"], help="Verbose output")
             ctx = MagicMock()
 
             result = _rich_utils._get_parameter_help(
@@ -955,8 +1089,9 @@ class TestRichFormatHelpWithoutRich:
 
     def test_rich_format_help_fallback_no_rich(self):
         """Test rich_format_help fallback when Rich is disabled"""
+        from typer.core import TyperCommand as Command
+
         from typer_extensions import _rich_utils
-        from click import Command
 
         if not _rich_utils.RICH_AVAILABLE:
             cmd = Command("test")

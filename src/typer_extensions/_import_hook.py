@@ -3,10 +3,10 @@
 import logging
 import os
 import sys
+from collections.abc import Sequence
 from importlib.abc import Loader, MetaPathFinder
 from importlib.machinery import ModuleSpec
 from types import ModuleType
-from typing import Optional, Sequence
 
 logger = logging.getLogger(__name__)
 
@@ -22,9 +22,9 @@ class TyperRichUtilsInterceptor(MetaPathFinder, Loader):
     def find_spec(
         self,
         fullname: str,
-        path: Optional[Sequence[str]],
-        target: Optional[ModuleType] = None,
-    ) -> Optional[ModuleSpec]:
+        path: Sequence[str] | None,
+        target: ModuleType | None = None,
+    ) -> ModuleSpec | None:
         """Find module spec for typer.rich_utils.
 
         Args:
@@ -44,9 +44,10 @@ class TyperRichUtilsInterceptor(MetaPathFinder, Loader):
             )
             spec.submodule_search_locations = None
             return spec
+
         return None
 
-    def create_module(self, spec: ModuleSpec) -> Optional[ModuleType]:
+    def create_module(self, spec: ModuleSpec) -> ModuleType | None:
         """Create the module object.
 
         Args:
@@ -83,26 +84,9 @@ class TyperRichUtilsInterceptor(MetaPathFinder, Loader):
             if os.environ.get("TYPER_EXTENSIONS_DEBUG"):
                 logger.info("Rich utils loaded via import hook")
 
-        except Exception as e:
-            logger.error(f"Failed to load _rich_utils: {e}", exc_info=True)
+        except Exception:
+            logger.exception("Failed to load _rich_utils")
             raise
-
-    # Backwards compatibility for Python < 3.10
-    def find_module(
-        self, fullname: str, path: Optional[Sequence[str]] = None
-    ) -> Optional[Loader]:
-        """Older import protocol support.
-
-        Args:
-            fullname: The fully qualified name of the module.
-            path: The search path for the module.
-
-        Returns:
-            The loader for the module, or None if not found.
-        """
-        if fullname == "typer.rich_utils":
-            return self
-        return None
 
     def load_module(self, fullname: str) -> ModuleType:
         """Older import protocol support.
@@ -153,8 +137,8 @@ def install_import_hook() -> bool:
 
         return True
 
-    except Exception as e:
-        logger.error(f"Failed to install import hook: {e}", exc_info=True)
+    except Exception:
+        logger.exception("Failed to install import hook")
         return False
 
 

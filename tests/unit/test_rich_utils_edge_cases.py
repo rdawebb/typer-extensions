@@ -6,7 +6,10 @@ import importlib
 import json
 from unittest.mock import Mock, patch
 
-import click
+from rich.text import Text
+from typer.core import TyperArgument, TyperGroup, TyperOption
+
+from typer_extensions._compat import click
 
 
 class TestForceTerminalDisabled:
@@ -48,7 +51,7 @@ builtins.__import__ = fake_import
 try:
     from typer_extensions._rich_utils import _get_help_text
     from unittest.mock import Mock
-    import click
+    from typer_extensions._compat import click
 
     obj = Mock(spec=click.Command)
     obj.help = "Test help text"
@@ -98,7 +101,7 @@ builtins.__import__ = fake_import
 try:
     from typer_extensions._rich_utils import _get_help_text, DEPRECATED_STRING
     from unittest.mock import Mock
-    import click
+    from typer_extensions._compat import click
 
     obj = Mock(spec=click.Command)
     obj.help = "Test help text"
@@ -135,22 +138,20 @@ print(json.dumps(output))
 class TestParameterHelpEdgeCases:
     """Parameter help formatting edge cases."""
 
-    def test_typer_argument_with_default_value(self):
-        """TyperArgument with default_value_from_help."""
-        from typer_extensions._rich_utils import _get_parameter_help
+    def test_real_typer_argument_renders_help(self):
+        """Real TyperArgument instance (not a Mock) renders help."""
         from typer.core import TyperArgument
+
+        from typer_extensions._rich_utils import _get_parameter_help
 
         # Create a real TyperArgument instance
         param = TyperArgument(param_decls=["test_arg"], nargs=1)
         param.help = "Test argument"
         param.required = False
-        # Set the default_value_from_help attribute dynamically
-        setattr(param, "default_value_from_help", "42")
         param.envvar = None
 
         ctx = Mock()
 
-        # Should handle the default_value_from_help attribute
         result = _get_parameter_help(param=param, ctx=ctx, markup_mode="rich")
         assert result is not None
 
@@ -158,7 +159,7 @@ class TestParameterHelpEdgeCases:
         """Help text starting with \\b escape (no linebreak removal)."""
         from typer_extensions._rich_utils import _get_parameter_help
 
-        param = Mock(spec=click.Option)
+        param = Mock(spec=TyperOption)
         param.name = "test"
         param.help = "\bThis is verbatim\ntext with newlines"
         param.required = False
@@ -177,7 +178,7 @@ class TestParameterHelpEdgeCases:
         """Parameter with list/tuple default."""
         from typer_extensions._rich_utils import _get_parameter_help
 
-        param = Mock(spec=click.Option)
+        param = Mock(spec=TyperOption)
         param.name = "test_option"
         param.help = "Test option"
         param.required = False
@@ -195,7 +196,7 @@ class TestParameterHelpEdgeCases:
         """Parameter with tuple default."""
         from typer_extensions._rich_utils import _get_parameter_help
 
-        param = Mock(spec=click.Option)
+        param = Mock(spec=TyperOption)
         param.name = "test_option"
         param.help = "Test option"
         param.required = False
@@ -213,7 +214,7 @@ class TestParameterHelpEdgeCases:
         """Empty default string is not added to help."""
         from typer_extensions._rich_utils import _get_parameter_help
 
-        param = Mock(spec=click.Option)
+        param = Mock(spec=TyperOption)
         param.name = "test_option"
         param.help = "Test option"
         param.required = False
@@ -236,30 +237,32 @@ class TestOptionsPanelEdgeCases:
         """Parameter without help_record in fallback mode."""
         from typer_extensions._rich_utils import _print_options_panel
 
-        param = Mock(spec=click.Option)
+        param = Mock(spec=TyperOption)
         param.get_help_record = Mock(return_value=None)  # No help record
 
         console = Mock()
         ctx = Mock()
 
-        with patch("typer_extensions._rich_utils.RICH_AVAILABLE", False):
-            with patch("typer_extensions._rich_utils.click.echo") as mock_echo:
-                _print_options_panel(
-                    name="Test Options",
-                    params=[param],
-                    ctx=ctx,
-                    markup_mode="rich",
-                    console=console,
-                )
+        with (
+            patch("typer_extensions._rich_utils.RICH_AVAILABLE", False),
+            patch("typer_extensions._rich_utils.click.echo") as mock_echo,
+        ):
+            _print_options_panel(
+                name="Test Options",
+                params=[param],
+                ctx=ctx,
+                markup_mode="rich",
+                console=console,
+            )
 
-                # Should still print the panel name
-                mock_echo.assert_called()
+            # Should still print the panel name
+            mock_echo.assert_called()
 
     def test_highlighter_none_negative(self):
         """Test negative_highlighter is None."""
         from typer_extensions._rich_utils import _print_options_panel
 
-        param = Mock(spec=click.Option)
+        param = Mock(spec=TyperOption)
         param.name = "no-feature"  # Negative option
         param.opts = ["--no-feature"]
         param.secondary_opts = []
@@ -267,29 +270,38 @@ class TestOptionsPanelEdgeCases:
         param.help = "Disable feature"
         param.envvar = None
         param.default = None
+        param.make_metavar.return_value = "TEXT"
 
         ctx = Mock()
         console = Mock()
         console.print = Mock()
 
-        with patch("typer_extensions._rich_utils.RICH_AVAILABLE", True):
-            # Initialise opts_text even when highlighter is None
-            with patch("typer_extensions._rich_utils.negative_highlighter", None):
-                with patch("typer_extensions._rich_utils.highlighter", Mock()):
-                    with patch("typer_extensions._rich_utils._get_parameter_help"):
-                        _print_options_panel(
-                            name="Options",
-                            params=[param],
-                            ctx=ctx,
-                            markup_mode="rich",
-                            console=console,
-                        )
+        # Initialise opts_text even when negative_highlighter is None
+        with (
+            patch("typer_extensions._rich_utils.RICH_AVAILABLE", True),
+            patch("typer_extensions._rich_utils.negative_highlighter", None),
+            patch(
+                "typer_extensions._rich_utils.highlighter",
+                Mock(return_value=Text("--no-feature")),
+            ),
+            patch(
+                "typer_extensions._rich_utils._get_parameter_help",
+                return_value=Text("Disable feature"),
+            ),
+        ):
+            _print_options_panel(
+                name="Options",
+                params=[param],
+                ctx=ctx,
+                markup_mode="rich",
+                console=console,
+            )
 
     def test_highlighter_none_positive(self):
         """Test highlighter is None."""
         from typer_extensions._rich_utils import _print_options_panel
 
-        param = Mock(spec=click.Option)
+        param = Mock(spec=TyperOption)
         param.name = "feature"
         param.opts = ["--feature"]
         param.secondary_opts = []
@@ -297,29 +309,38 @@ class TestOptionsPanelEdgeCases:
         param.help = "Enable feature"
         param.envvar = None
         param.default = None
+        param.make_metavar.return_value = "TEXT"
 
         ctx = Mock()
         console = Mock()
         console.print = Mock()
 
-        with patch("typer_extensions._rich_utils.RICH_AVAILABLE", True):
-            # Initialise opts_text even when highlighter is None
-            with patch("typer_extensions._rich_utils.highlighter", None):
-                with patch("typer_extensions._rich_utils.negative_highlighter", Mock()):
-                    with patch("typer_extensions._rich_utils._get_parameter_help"):
-                        _print_options_panel(
-                            name="Options",
-                            params=[param],
-                            ctx=ctx,
-                            markup_mode="rich",
-                            console=console,
-                        )
+        # Initialise opts_text even when highlighter is None
+        with (
+            patch("typer_extensions._rich_utils.RICH_AVAILABLE", True),
+            patch("typer_extensions._rich_utils.highlighter", None),
+            patch(
+                "typer_extensions._rich_utils.negative_highlighter",
+                Mock(return_value=Text("--feature")),
+            ),
+            patch(
+                "typer_extensions._rich_utils._get_parameter_help",
+                return_value=Text("Enable feature"),
+            ),
+        ):
+            _print_options_panel(
+                name="Options",
+                params=[param],
+                ctx=ctx,
+                markup_mode="rich",
+                console=console,
+            )
 
     def test_param_with_metavar(self):
-        """Test Parameter with metavar."""
+        """Test Parameter with make_metavar returning a custom string."""
         from typer_extensions._rich_utils import _print_options_panel
 
-        param = Mock(spec=click.Option)
+        param = Mock(spec=TyperOption)
         param.name = "output"
         param.opts = ["--output"]
         param.secondary_opts = []
@@ -327,7 +348,8 @@ class TestOptionsPanelEdgeCases:
         param.help = "Output file"
         param.envvar = None
         param.default = None
-        param.metavar = "FILE"
+        param.show_default = False
+        param.make_metavar.return_value = "FILE"
 
         ctx = Mock()
         console = Mock()
@@ -343,10 +365,10 @@ class TestOptionsPanelEdgeCases:
             )
 
     def test_param_with_type_name(self):
-        """Test Parameter with type.name."""
+        """Test Parameter where make_metavar returns the type name."""
         from typer_extensions._rich_utils import _print_options_panel
 
-        param = Mock(spec=click.Option)
+        param = Mock(spec=TyperOption)
         param.name = "count"
         param.opts = ["--count"]
         param.secondary_opts = []
@@ -354,14 +376,8 @@ class TestOptionsPanelEdgeCases:
         param.help = "Number of items"
         param.envvar = None
         param.default = None
-
-        # Mock type with name
-        param_type = Mock()
-        param_type.name = "INTEGER"
-        param.type = param_type
-
-        # No metavar attribute
-        delattr(param, "metavar") if hasattr(param, "metavar") else None
+        param.show_default = False
+        param.make_metavar.return_value = "INTEGER"
 
         ctx = Mock()
         console = Mock()
@@ -380,7 +396,7 @@ class TestOptionsPanelEdgeCases:
         """Test Required parameter indicator."""
         from typer_extensions._rich_utils import _print_options_panel
 
-        param = Mock(spec=click.Option)
+        param = Mock(spec=TyperOption)
         param.name = "required_opt"
         param.opts = ["--required"]
         param.secondary_opts = []
@@ -388,6 +404,8 @@ class TestOptionsPanelEdgeCases:
         param.help = "Required option"
         param.envvar = None
         param.default = None
+        param.show_default = False
+        param.make_metavar.return_value = "TEXT"
 
         ctx = Mock()
         console = Mock()
@@ -402,43 +420,48 @@ class TestOptionsPanelEdgeCases:
                 console=console,
             )
 
-    def test_empty_options_table(self):
-        """Test lines 499->456, 502->exit: No rows in options table."""
+    def test_options_panel_with_param(self):
+        """Test that options panel is printed when params are provided."""
         from typer_extensions._rich_utils import _print_options_panel
 
-        # Param that returns None for help columns
-        param = Mock(spec=click.Option)
+        param = Mock(spec=TyperOption)
         param.name = "test"
         param.opts = ["--test"]
         param.secondary_opts = []
         param.required = False
-        param.help = None  # No help
+        param.help = "Test option"
         param.envvar = None
         param.default = None
+        param.make_metavar.return_value = "TEXT"
 
         ctx = Mock()
         console = Mock()
         console.print = Mock()
 
-        with patch("typer_extensions._rich_utils.RICH_AVAILABLE", True):
-            with patch(
-                "typer_extensions._rich_utils._get_parameter_help", return_value=None
-            ):
-                _print_options_panel(
-                    name="Options",
-                    params=[param],
-                    ctx=ctx,
-                    markup_mode="rich",
-                    console=console,
-                )
+        with (
+            patch("typer_extensions._rich_utils.RICH_AVAILABLE", True),
+            patch(
+                "typer_extensions._rich_utils._get_parameter_help",
+                return_value=Text("Test option"),
+            ),
+        ):
+            _print_options_panel(
+                name="Options",
+                params=[param],
+                ctx=ctx,
+                markup_mode="rich",
+                console=console,
+            )
 
-                # Should not print panel if no rows
-                if console.print.called:
-                    # Verify no Panel was printed
-                    for call in console.print.call_args_list:
-                        from rich.panel import Panel
+            # A Panel should be printed
+            from rich.panel import Panel
 
-                        assert not isinstance(call[0][0] if call[0] else None, Panel)
+            printed_panels = [
+                call[0][0]
+                for call in console.print.call_args_list
+                if call[0] and isinstance(call[0][0], Panel)
+            ]
+            assert len(printed_panels) == 1
 
 
 class TestCommandsPanelEdgeCases:
@@ -450,19 +473,21 @@ class TestCommandsPanelEdgeCases:
 
         console = Mock()
 
-        with patch("typer_extensions._rich_utils.RICH_AVAILABLE", False):
-            with patch("typer_extensions._rich_utils.click.echo") as mock_echo:
-                _print_commands_panel(
-                    name="Commands",
-                    commands=[],  # Empty list
-                    markup_mode="rich",
-                    console=console,
-                    cmd_len=20,
-                    extended_typer=None,
-                )
+        with (
+            patch("typer_extensions._rich_utils.RICH_AVAILABLE", False),
+            patch("typer_extensions._rich_utils.click.echo") as mock_echo,
+        ):
+            _print_commands_panel(
+                name="Commands",
+                commands=[],  # Empty list
+                markup_mode="rich",
+                console=console,
+                cmd_len=20,
+                extended_typer=None,
+            )
 
-                # Should not print anything for empty list
-                mock_echo.assert_not_called()
+            # Should not print anything for empty list
+            mock_echo.assert_not_called()
 
     def test_empty_commands_table(self):
         """Test empty commands table doesn't print panel."""
@@ -511,19 +536,22 @@ class TestRichFormatHelpEdgeCases:
         console = Mock()
         console.print = Mock()
 
-        with patch("typer_extensions._rich_utils.RICH_AVAILABLE", True):
-            with patch(
+        with (
+            patch("typer_extensions._rich_utils.RICH_AVAILABLE", True),
+            patch(
                 "typer_extensions._rich_utils._get_rich_console", return_value=console
-            ):
-                # This should execute the rich_format_help without errors
-                rich_format_help(obj=obj, ctx=ctx, markup_mode="rich")
+            ),
+        ):
+            # This should execute the rich_format_help without errors
+            rich_format_help(obj=obj, ctx=ctx, markup_mode="rich")
 
     def test_custom_argument_panel(self):
         """Test non-default argument panel name."""
         from typer_extensions._rich_utils import rich_format_help
 
-        arg = Mock(spec=click.Argument)
+        arg = Mock(spec=TyperArgument)
         arg.name = "file"
+        arg.param_type_name = "argument"
         arg.rich_help_panel = "Input Arguments"  # Custom panel name
 
         obj = Mock(spec=click.Command)
@@ -539,21 +567,19 @@ class TestRichFormatHelpEdgeCases:
         console = Mock()
         console.print = Mock()
 
-        with patch("typer_extensions._rich_utils.RICH_AVAILABLE", True):
-            with patch(
+        with (
+            patch("typer_extensions._rich_utils.RICH_AVAILABLE", True),
+            patch(
                 "typer_extensions._rich_utils._get_rich_console", return_value=console
-            ):
-                with patch(
-                    "typer_extensions._rich_utils._print_options_panel"
-                ) as mock_print:
-                    rich_format_help(obj=obj, ctx=ctx, markup_mode="rich")
+            ),
+            patch("typer_extensions._rich_utils._print_options_panel") as mock_print,
+        ):
+            rich_format_help(obj=obj, ctx=ctx, markup_mode="rich")
 
-                    # Should print custom panel
-                    calls = mock_print.call_args_list
-                    panel_names = [
-                        call[1]["name"] for call in calls if "name" in call[1]
-                    ]
-                    assert "Input Arguments" in panel_names
+            # Should print custom panel
+            calls = mock_print.call_args_list
+            panel_names = [call[1]["name"] for call in calls if "name" in call[1]]
+            assert "Input Arguments" in panel_names
 
     def test_custom_command_panel(self):
         """Test non-default command panel."""
@@ -568,7 +594,7 @@ class TestRichFormatHelpEdgeCases:
         cmd.rich_help_panel = "Special Commands"  # Custom panel
 
         # Create a group with the command
-        obj = Mock(spec=click.Group)
+        obj = Mock(spec=TyperGroup)
         obj.list_commands = Mock(return_value=["special"])
         obj.get_command = Mock(return_value=cmd)
         obj.get_params = Mock(return_value=[])
@@ -584,21 +610,19 @@ class TestRichFormatHelpEdgeCases:
         console = Mock()
         console.print = Mock()
 
-        with patch("typer_extensions._rich_utils.RICH_AVAILABLE", True):
-            with patch(
+        with (
+            patch("typer_extensions._rich_utils.RICH_AVAILABLE", True),
+            patch(
                 "typer_extensions._rich_utils._get_rich_console", return_value=console
-            ):
-                with patch(
-                    "typer_extensions._rich_utils._print_commands_panel"
-                ) as mock_print:
-                    rich_format_help(obj=obj, ctx=ctx, markup_mode="rich")
+            ),
+            patch("typer_extensions._rich_utils._print_commands_panel") as mock_print,
+        ):
+            rich_format_help(obj=obj, ctx=ctx, markup_mode="rich")
 
-                    # Should print custom panel
-                    calls = mock_print.call_args_list
-                    panel_names = [
-                        call[1]["name"] for call in calls if "name" in call[1]
-                    ]
-                    assert "Special Commands" in panel_names
+            # Should print custom panel
+            calls = mock_print.call_args_list
+            panel_names = [call[1]["name"] for call in calls if "name" in call[1]]
+            assert "Special Commands" in panel_names
 
 
 class TestCleandocEdgeCases:
@@ -679,16 +703,18 @@ class TestHTMLExportEdgeCases:
         """Test rich_to_html when console is falsy."""
         from typer_extensions._rich_utils import rich_to_html
 
-        with patch("typer_extensions._rich_utils.RICH_AVAILABLE", True):
-            # Mock Console to return a falsy value
-            with patch("typer_extensions._rich_utils.Console") as MockConsole:
-                # Create a mock that evaluates to False
-                mock_console = Mock()
-                mock_console.__bool__ = Mock(return_value=False)
-                MockConsole.return_value = mock_console
+        # Mock Console to return a falsy value
+        with (
+            patch("typer_extensions._rich_utils.RICH_AVAILABLE", True),
+            patch("typer_extensions._rich_utils.Console") as MockConsole,
+        ):
+            # Create a mock that evaluates to False
+            mock_console = Mock()
+            mock_console.__bool__ = Mock(return_value=False)
+            MockConsole.return_value = mock_console
 
-                result = rich_to_html("[bold]Test[/bold]")
-                assert result is not None
+            result = rich_to_html("[bold]Test[/bold]")
+            assert result is not None
 
 
 class TestCallableDefaultValue:
@@ -701,7 +727,7 @@ class TestCallableDefaultValue:
         def default_func():
             return "dynamic"
 
-        param = Mock(spec=click.Option)
+        param = Mock(spec=TyperOption)
         param.name = "test"
         param.help = "Test option"
         param.required = False

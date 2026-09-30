@@ -1,6 +1,8 @@
 """Help formatting customisation examples for typer-extensions
 
-This example demonstrates how to customise the display of aliases in help text. Run with '--help' to see how aliases are displayed in the help text with different formatting options.
+This example demonstrates how to customise the display of aliases in help text.
+Run with '--help' to see how aliases are displayed in the help text with different
+formatting options.
 """
 
 from typer_extensions import ExtendedTyper

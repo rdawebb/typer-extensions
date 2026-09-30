@@ -1,6 +1,8 @@
 """Programmatic API usage examples for typer-extensions
 
-This example demonstrates dynamic command and alias registration without decorators. Run with '--help' to see how the available commands and their aliases are displayed in the help text.
+This example demonstrates dynamic command and alias registration without decorators.
+Run with '--help' to see how the available commands and their aliases are displayed
+in the help text.
 """
 
 from typer_extensions import ExtendedTyper

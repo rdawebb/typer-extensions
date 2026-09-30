@@ -20,12 +20,14 @@ Guide for migrating from plain Typer to typer-extensions.
 ### Benefits of typer-extensions
 
 **Before (Plain Typer):**
+
 - Duplicate commands for aliases
 - Cluttered help text
 - More code to maintain
 - Inconsistent alias management
 
 **After (typer-extensions):**
+
 - Single command definition
 - Clean, grouped help text
 - Less code, easier maintenance
@@ -34,12 +36,14 @@ Guide for migrating from plain Typer to typer-extensions.
 ### When to Migrate
 
 ✅ **Good candidates:**
+
 - CLI tools with command shortcuts
 - Apps mimicking Git/NPM/etc conventions
 - Tools with platform-specific aliases
 - Projects with user-customizable commands
 
 ⚠️ **May not need migration:**
+
 - Simple CLIs with few commands
 - Apps with no aliases
 - Projects where duplication is intentional
@@ -56,6 +60,7 @@ Guide for migrating from plain Typer to typer-extensions.
    - Note any custom help formatting
 
 2. **Install typer-extensions**
+
    ```bash
    pip install typer-extensions
    ```
@@ -67,9 +72,10 @@ Guide for migrating from plain Typer to typer-extensions.
 
 ### Compatibility
 
-- **Python:** 3.9+ (same as Typer)
-- **Typer:** >= 0.9.0
-- **Click:** >= 8.0.0
+- **Python:** 3.11+
+- **Typer:** >= 0.21.0, < 0.28
+- **Click:** not a direct requirement; Typer supplies it below 0.26 and vendors
+  it from 0.26 onwards
 
 ✅ **Full backward compatibility:** typer-extensions extends Typer, doesn't replace it.
 
@@ -80,6 +86,7 @@ Guide for migrating from plain Typer to typer-extensions.
 ### Step 1: Import ExtendedTyper
 
 **Before:**
+
 ```python
 import typer
 
@@ -87,6 +94,7 @@ app = typer.Typer()
 ```
 
 **After:**
+
 ```python
 from typer_extensions import ExtendedTyper
 
@@ -110,16 +118,19 @@ app = ExtendedTyper(context_settings={"case_sensitive": False})
 Find command duplicates in your code:
 
 **Before:**
+
 ```python
 @app.command()
 def list_items():
     """List all items."""
     print("Listing...")
 
+
 @app.command()
 def ls():
     """List all items."""
     print("Listing...")
+
 
 @app.command()
 def l():
@@ -130,6 +141,7 @@ def l():
 ### Step 3: Consolidate to Single Command
 
 **After:**
+
 ```python
 @app.command("list", aliases=["ls", "l"])
 def list_items():
@@ -138,6 +150,7 @@ def list_items():
 ```
 
 **Result:**
+
 - 3 functions → 1 function
 - 3 help entries → 1 entry (with aliases shown)
 - Same functionality
@@ -167,16 +180,19 @@ Migrate remaining commands one at a time.
 ### Pattern 1: Simple Duplicates
 
 **Before:**
+
 ```python
 @app.command()
 def delete(name: str):
     """Delete an item."""
     remove_item(name)
 
+
 @app.command()
 def rm(name: str):
     """Delete an item."""
     remove_item(name)
+
 
 @app.command()
 def remove(name: str):
@@ -185,6 +201,7 @@ def remove(name: str):
 ```
 
 **After:**
+
 ```python
 @app.command("delete", aliases=["rm", "remove"])
 def delete_item(name: str):
@@ -195,15 +212,18 @@ def delete_item(name: str):
 ### Pattern 2: Wrapper Functions
 
 **Before:**
+
 ```python
 def _list_impl():
     """Actual implementation."""
     print("Listing...")
 
+
 @app.command()
 def list():
     """List items."""
     _list_impl()
+
 
 @app.command()
 def ls():
@@ -212,6 +232,7 @@ def ls():
 ```
 
 **After:**
+
 ```python
 @app.command("list", aliases=["ls"])
 def list_items():
@@ -222,11 +243,13 @@ def list_items():
 ### Pattern 3: Different Function Names
 
 **Before:**
+
 ```python
 @app.command(name="list")
 def list_items():
     """List items."""
     pass
+
 
 @app.command(name="ls")
 def list_short():
@@ -235,6 +258,7 @@ def list_short():
 ```
 
 **After:**
+
 ```python
 @app.command("list", aliases=["ls"])
 def list_items():
@@ -245,13 +269,16 @@ def list_items():
 ### Pattern 4: Commands with Options
 
 **Before:**
+
 ```python
 import typer
+
 
 @app.command()
 def list(verbose: bool = typer.Option(False, "-v")):
     """List items."""
     pass
+
 
 @app.command()
 def ls(verbose: bool = typer.Option(False, "-v")):
@@ -260,6 +287,7 @@ def ls(verbose: bool = typer.Option(False, "-v")):
 ```
 
 **After:**
+
 ```python
 @app.command("list", aliases=["ls"])
 def list_items(verbose: bool = app.Option(False, "-v")):
@@ -270,20 +298,25 @@ def list_items(verbose: bool = app.Option(False, "-v")):
 ### Pattern 5: Platform-Specific Commands
 
 **Before:**
+
 ```python
 import platform
+
 
 @app.command()
 def list():
     """List items."""
     pass
 
+
 if platform.system() == "Windows":
+
     @app.command()
     def dir():
         """List items."""
         pass
 else:
+
     @app.command()
     def ls():
         """List items."""
@@ -291,13 +324,16 @@ else:
 ```
 
 **After:**
+
 ```python
 import platform
+
 
 @app.command("list")
 def list_items():
     """List items."""
     pass
+
 
 # Add platform-specific aliases
 if platform.system() == "Windows":
@@ -336,10 +372,12 @@ Use this checklist for each command group:
 ### Fully Compatible
 
 ✅ **Standard Typer commands still work:**
+
 ```python
 from typer_extensions import ExtendedTyper
 
 app = ExtendedTyper()
+
 
 # Standard Typer command (no aliases)
 @app.command()
@@ -347,10 +385,12 @@ def hello():
     """Say hello."""
     pass
 
+
 # Works exactly like standard Typer
 ```
 
 ✅ **All Typer features work:**
+
 - Arguments and Options
 - Callbacks
 - Context
@@ -358,16 +398,19 @@ def hello():
 - Everything else
 
 ✅ **Can mix both styles:**
+
 ```python
 # Aliased command
 @app.command("list", aliases=["ls"])
 def list_items():
     pass
 
+
 # Standard command
 @app.command()
 def create():
     pass
+
 
 # Both work perfectly together
 ```
@@ -375,6 +418,7 @@ def create():
 ### API Changes
 
 **Only additions, no changes:**
+
 - `@app.command()` - Still works (unchanged); now accepts `aliases=[...]`
 - `app.add_command()` - NEW (added)
 - `app.add_typer()` - Still works (unchanged); now accepts `aliases=[...]` for sub-app names
@@ -394,6 +438,7 @@ from typer_extensions import ExtendedTyper
 
 app = ExtendedTyper()
 
+
 # Just use standard @app.command()
 # Ignore alias features
 @app.command()
@@ -406,10 +451,12 @@ def list():
 ```python
 # Change this:
 from typer_extensions import ExtendedTyper
+
 app = ExtendedTyper()
 
 # To this:
 import typer
+
 app = typer.Typer()
 
 # Remove @command decorators
@@ -425,15 +472,18 @@ from typer_extensions import ExtendedTyper
 
 app = ExtendedTyper()
 
+
 # Migrated command
 @app.command("list", aliases=["ls"])
 def list_items():
     pass
 
+
 # Not yet migrated (still works fine)
 @app.command()
 def delete():
     pass
+
 
 @app.command()
 def rm():
@@ -451,52 +501,61 @@ import typer
 
 app = typer.Typer()
 
+
 @app.command()
 def list():
     """List all items."""
     print("Listing items...")
+
 
 @app.command()
 def ls():
     """List all items."""
     print("Listing items...")
 
+
 @app.command()
 def l():
     """List all items."""
     print("Listing items...")
+
 
 @app.command()
 def delete(name: str):
     """Delete an item."""
     print(f"Deleting {name}")
 
+
 @app.command()
 def rm(name: str):
     """Delete an item."""
     print(f"Deleting {name}")
+
 
 @app.command()
 def remove(name: str):
     """Delete an item."""
     print(f"Deleting {name}")
 
+
 if __name__ == "__main__":
     app()
 ```
 
 **Help output:**
+
 ```
 Commands:
-  delete   Delete an item.
-  l        List all items.
-  list     List all items.
-  ls       List all items.
-  rm       Delete an item.
-  remove   Delete an item.
+  delete    Delete an item.
+  l         List all items.
+  list      List all items.
+  ls        List all items.
+  rm        Delete an item.
+  remove    Delete an item.
 ```
 
 **Issues:**
+
 - 6 functions for 2 commands
 - Cluttered help (6 entries)
 - Maintenance burden
@@ -508,28 +567,33 @@ from typer_extensions import ExtendedTyper
 
 app = ExtendedTyper()
 
+
 @app.command("list", aliases=["ls", "l"])
 def list_items():
     """List all items."""
     print("Listing items...")
+
 
 @app.command("delete", aliases=["rm", "remove"])
 def delete_item(name: str):
     """Delete an item."""
     print(f"Deleting {name}")
 
+
 if __name__ == "__main__":
     app()
 ```
 
 **Help output:**
+
 ```
 Commands:
-  list (ls, l)         List all items.
-  delete (rm, remove)  Delete an item.
+  list     (ls, l)          List all items.
+  delete   (rm, remove)     Delete an item.
 ```
 
 **Benefits:**
+
 - 2 functions (not 6)
 - Clean help (2 entries with aliases)
 - Easy to maintain
@@ -541,14 +605,17 @@ Commands:
 ### Test Suite Updates
 
 **Before:**
+
 ```python
 def test_list_command(cli_runner):
     result = cli_runner.invoke(app, ["list"])
     assert "Listing" in result.output
 
+
 def test_ls_command(cli_runner):
     result = cli_runner.invoke(app, ["ls"])
     assert "Listing" in result.output
+
 
 def test_l_command(cli_runner):
     result = cli_runner.invoke(app, ["l"])
@@ -556,6 +623,7 @@ def test_l_command(cli_runner):
 ```
 
 **After (more concise):**
+
 ```python
 @pytest.mark.parametrize("cmd", ["list", "ls", "l"])
 def test_list_commands_with_aliases(cli_runner, cmd):
@@ -570,11 +638,13 @@ def test_list_commands_with_aliases(cli_runner, cmd):
 ### Issue 1: Function Name Conflicts
 
 **Problem:**
+
 ```python
 # Can't have two functions named "list"
 @app.command(name="list")
 def list():
     pass
+
 
 @app.command(name="ls")
 def list():  # NameError!
@@ -582,6 +652,7 @@ def list():  # NameError!
 ```
 
 **Solution:**
+
 ```python
 @app.command("list", aliases=["ls"])
 def list_items():  # One function, different name
@@ -591,11 +662,13 @@ def list_items():  # One function, different name
 ### Issue 2: Different Help Text
 
 **Problem:**
+
 ```python
 @app.command()
 def list():
     """List items."""
     pass
+
 
 @app.command()
 def ls():
@@ -605,6 +678,7 @@ def ls():
 
 **Solution:**
 Choose one help text or consolidate:
+
 ```python
 @app.command("list", aliases=["ls"])
 def list_items():
@@ -620,18 +694,22 @@ def list_items():
 > **Don't migrate everything at once!** A phased approach lets you test each group independently, catch issues early, and maintain a working codebase throughout the migration.
 
 **Phase 1:** Install and test
+
 ```python
 from typer_extensions import ExtendedTyper
+
 app = ExtendedTyper()
 # Keep existing commands unchanged
 ```
 
 **Phase 2:** Migrate one command group
+
 ```python
 # Migrate list/ls/l first
 @app.command("list", aliases=["ls", "l"])
 def list_items():
     pass
+
 
 # Keep others unchanged
 @app.command()
@@ -640,11 +718,13 @@ def delete():
 ```
 
 **Phase 3:** Migrate remaining commands
+
 ```python
 # Migrate all command groups
 @app.command("list", aliases=["ls", "l"])
 def list_items():
     pass
+
 
 @app.command("delete", aliases=["rm", "remove"])
 def delete_item(name: str):
@@ -652,6 +732,7 @@ def delete_item(name: str):
 ```
 
 **Phase 4:** Clean up and optimize
+
 - Remove old functions
 - Update tests
 - Update documentation

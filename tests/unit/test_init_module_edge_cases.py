@@ -1,14 +1,12 @@
 """Tests for __init__.py edge cases"""
 
-import subprocess
-import sys
 import json as json_module
 
 
 class TestLazyRichPatchOptOut:
     """Test TYPER_EXTENSIONS_RICH environment variable"""
 
-    def test_rich_opt_out_via_env(self):
+    def test_rich_opt_out_via_env(self, subprocess_runner):
         """Test that rich patch can be disabled via env var"""
         # Use subprocess to test module initialization with different env vars
         code = """
@@ -30,11 +28,7 @@ result = {
 }
 print(json.dumps(result))
 """
-        result = subprocess.run(
-            [sys.executable, "-c", code],
-            capture_output=True,
-            text=True,
-        )
+        result = subprocess_runner(code)
         if result.returncode == 0 and result.stdout.strip():
             try:
                 output = json_module.loads(result.stdout.strip())
@@ -44,7 +38,7 @@ print(json.dumps(result))
                 # If we can't parse, module at least loaded without errors
                 assert result.returncode == 0
 
-    def test_rich_enabled_by_default(self):
+    def test_rich_enabled_by_default(self, subprocess_runner):
         """Test that rich patch is enabled by default"""
         # Use subprocess to test module initialisation with default settings
         code = """
@@ -61,11 +55,7 @@ import typer_extensions
 result = {"module_loaded": True}
 print(json.dumps(result))
 """
-        result = subprocess.run(
-            [sys.executable, "-c", code],
-            capture_output=True,
-            text=True,
-        )
+        result = subprocess_runner(code)
         if result.returncode == 0 and result.stdout.strip():
             try:
                 output = json_module.loads(result.stdout.strip())
@@ -79,7 +69,7 @@ print(json.dumps(result))
 class TestInitModuleDebugLogging:
     """Test debug logging during module initialisation"""
 
-    def test_patch_applied_debug_message(self):
+    def test_patch_applied_debug_message(self, subprocess_runner):
         """Test that debug message is logged when patch is applied"""
         # Test that __init__.py correctly checks TYPER_EXTENSIONS_DEBUG
         code = """
@@ -97,11 +87,7 @@ import typer_extensions
 result = {"module_loaded": True}
 print(json.dumps(result))
 """
-        result = subprocess.run(
-            [sys.executable, "-c", code],
-            capture_output=True,
-            text=True,
-        )
+        result = subprocess_runner(code)
         # Module should load successfully even with debug enabled
         if result.returncode == 0:
             assert "module_loaded" in result.stdout or result.stderr

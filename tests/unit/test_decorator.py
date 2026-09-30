@@ -16,7 +16,6 @@ class TestDecoratorSyntax:
         @app.command("list", aliases=["ls", "l"])
         def list_items():
             """List items."""
-            pass
 
         assert "list" in app._command_aliases
         assert app._command_aliases["list"] == ["ls", "l"]
@@ -30,7 +29,6 @@ class TestDecoratorSyntax:
         @app.command(aliases=["ls", "l"])
         def list():
             """List items."""
-            pass
 
         # Name should be inferred from function name
         assert "list" in app._command_aliases
@@ -43,7 +41,6 @@ class TestDecoratorSyntax:
         @app.command("list")
         def list_items():
             """List items."""
-            pass
 
         # Command registered but no aliases
         assert "list" not in app._command_aliases
@@ -56,14 +53,13 @@ class TestDecoratorSyntax:
         @app.command
         def list():
             """List items."""
-            pass
 
         # Name inferred, no aliases
         assert "list" not in app._command_aliases
         # But command should be registered via Typer
-        click_command = typer.main.get_command(app)
-        assert click_command is not None
-        assert getattr(click_command, "name", None) == "list"
+        typer_command = typer.main.get_command(app)
+        assert typer_command is not None
+        assert getattr(typer_command, "name", None) == "list"
 
     def test_decorator_with_empty_alias_list(self):
         """Test @app.command("name", aliases=[])"""
@@ -72,7 +68,6 @@ class TestDecoratorSyntax:
         @app.command("list", aliases=[])
         def list_items():
             """List items."""
-            pass
 
         assert "list" not in app._command_aliases
         assert len(app._alias_to_command) == 0
@@ -84,7 +79,6 @@ class TestDecoratorSyntax:
         @app.command("list", aliases=None)
         def list_items():
             """List items."""
-            pass
 
         assert "list" not in app._command_aliases
         assert len(app._alias_to_command) == 0
@@ -100,7 +94,6 @@ class TestDecoratorNameInference:
         @app.command(aliases=["ls"])
         def list_items():
             """List items."""
-            pass
 
         # Should use function name as command name
         assert "list_items" in app._command_aliases
@@ -113,7 +106,6 @@ class TestDecoratorNameInference:
         @app.command("list", aliases=["ls"])
         def list_all_items():
             """List items."""
-            pass
 
         # Should use explicit name, not function name
         assert "list" in app._command_aliases
@@ -127,7 +119,6 @@ class TestDecoratorNameInference:
         @app.command(aliases=["ls"])
         def list_all_items():
             """List items."""
-            pass
 
         # Typer keeps underscores in command names by default
         assert "list_all_items" in app._command_aliases
@@ -143,10 +134,9 @@ class TestDecoratorHelpText:
         @app.command("list", aliases=["ls"])
         def list_items():
             """List all items in the system."""
-            pass
 
-        click_group = typer.main.get_command(app)
-        ctx = Context(click_group)
+        typer_group = typer.main.get_command(app)
+        ctx = Context(typer_group)
         cmd = app._get_command(ctx, "list")
         assert cmd is not None
         assert "List all items" in (cmd.help or "")
@@ -158,10 +148,9 @@ class TestDecoratorHelpText:
         @app.command("list", aliases=["ls"], help="Custom help text")
         def list_items():
             """Original docstring."""
-            pass
 
-        click_group = typer.main.get_command(app)
-        ctx = Context(click_group)
+        typer_group = typer.main.get_command(app)
+        ctx = Context(typer_group)
         cmd = app._get_command(ctx, "list")
         assert cmd is not None
         # Explicit help should override docstring
@@ -180,10 +169,9 @@ class TestDecoratorKwargs:
         )
         def list_items():
             """List items."""
-            pass
 
-        click_group = typer.main.get_command(app)
-        ctx = Context(click_group)
+        typer_group = typer.main.get_command(app)
+        ctx = Context(typer_group)
         cmd = app._get_command(ctx, "list")
         assert cmd is not None
         assert cmd.context_settings is not None
@@ -195,10 +183,9 @@ class TestDecoratorKwargs:
         @app.command("list", aliases=["ls"], deprecated=True)
         def list_items():
             """List items."""
-            pass
 
-        click_group = typer.main.get_command(app)
-        ctx = Context(click_group)
+        typer_group = typer.main.get_command(app)
+        ctx = Context(typer_group)
         cmd = app._get_command(ctx, "list")
         assert cmd is not None
         assert cmd.deprecated is True
@@ -217,8 +204,8 @@ class TestDecoratorKwargs:
         def list_items():
             pass
 
-        click_group = typer.main.get_command(app)
-        ctx = Context(click_group)
+        typer_group = typer.main.get_command(app)
+        ctx = Context(typer_group)
         cmd = app._get_command(ctx, "list")
         assert cmd is not None
         assert "List items" in (cmd.help or "")
@@ -234,7 +221,6 @@ class TestDecoratorEdgeCases:
         @app.command("list", aliases=["ls"])
         def list_items():
             """List items."""
-            pass
 
         assert app._command_aliases["list"] == ["ls"]
 
@@ -247,7 +233,6 @@ class TestDecoratorEdgeCases:
         @app.command("list", aliases=aliases)
         def list_items():
             """List items."""
-            pass
 
         assert app._command_aliases["list"] == aliases
         for alias in aliases:
@@ -260,14 +245,12 @@ class TestDecoratorEdgeCases:
         @app.command("list", aliases=["ls"])
         def list_items():
             """List items."""
-            pass
 
         with pytest.raises(ValueError, match="already registered"):
 
             @app.command("delete", aliases=["ls"])
             def delete_items():
                 """Delete items."""
-                pass
 
     def test_decorator_on_lambda_raises_no_error(self):
         """Test decorator can work with lambda (though not recommended)."""
@@ -292,7 +275,6 @@ class TestDecoratorReturnValue:
         @app.command("list", aliases=["ls"])
         def list_items():
             """List items."""
-            pass
 
         # The decorator should have returned something
         # (Note: The decorated function is now a Command)
@@ -323,12 +305,10 @@ class TestDecoratorMultipleCommands:
         @app.command("list", aliases=["ls", "l"])
         def list_items():
             """List items."""
-            pass
 
         @app.command("delete", aliases=["rm", "remove"])
         def delete_item():
             """Delete item."""
-            pass
 
         assert "list" in app._command_aliases
         assert "delete" in app._command_aliases
@@ -342,16 +322,14 @@ class TestDecoratorMultipleCommands:
         @app.command("list", aliases=["ls"])
         def list_items():
             """List items."""
-            pass
 
         @app.command()
         def hello():
             """Say hello."""
-            pass
 
         # Both should be registered
-        click_group = typer.main.get_command(app)
-        ctx = Context(click_group)
+        typer_group = typer.main.get_command(app)
+        ctx = Context(typer_group)
         assert app._get_command(ctx, "list") is not None
         assert app._get_command(ctx, "hello") is not None
 

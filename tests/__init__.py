@@ -1,1 +1,1 @@
-"""Tests for the typer-aliases extension"""
+"""Tests for the typer-extensions package"""

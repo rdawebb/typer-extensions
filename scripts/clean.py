@@ -12,6 +12,7 @@ def remove_path(path: Path) -> None:
     """
     if path.is_dir():
         shutil.rmtree(path, ignore_errors=True)
+
     elif path.is_file():
         path.unlink()
 

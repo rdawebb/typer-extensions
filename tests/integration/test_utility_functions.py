@@ -49,7 +49,6 @@ class TestUtilityFunctions:
         @app.command()
         def dummy():
             """Dummy command."""
-            pass
 
         result = cli_runner.invoke(app, ["greet"], input="\n")
         assert result.exit_code == 0
@@ -68,7 +67,6 @@ class TestUtilityFunctions:
         @app.command()
         def dummy():
             """Dummy command."""
-            pass
 
         # Valid int
         result = cli_runner.invoke(app, ["ask_age"], input="30\n")
@@ -122,7 +120,6 @@ class TestUtilityFunctions:
         @app.command()
         def dummy():
             """Dummy command."""
-            pass
 
         # Uppercase "Y"
         result = cli_runner.invoke(app, ["save_file"], input="Y\n")
@@ -152,7 +149,6 @@ class TestUtilityFunctions:
         @app.command()
         def dummy():
             """Dummy command."""
-            pass
 
         result = cli_runner.invoke(app, ["getchar"], input="A\n")
         assert result.exit_code == 0
@@ -179,7 +175,6 @@ class TestUtilityFunctions:
         @app.command()
         def dummy():
             """Dummy command."""
-            pass
 
         # Space
         result = cli_runner.invoke(app, ["getchar"], input=" \n")
@@ -214,7 +209,6 @@ class TestUtilityFunctions:
         @app.command()
         def dummy():
             """Dummy command."""
-            pass
 
         with patch.object(ExtendedTyper, "launch") as mock_launch:
             result = cli_runner.invoke(app, ["launch"])

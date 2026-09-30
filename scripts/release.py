@@ -24,6 +24,7 @@ def run_command(cmd: list[str], description: str) -> bool:
     try:
         subprocess.run(cmd, check=True)
         return True
+
     except subprocess.CalledProcessError as e:
         print(f"\n❌ {description} failed with exit code {e.returncode}\n")
         return False
@@ -65,6 +66,7 @@ def build() -> int:
     try:
         subprocess.run(pip_cmd, shell=True, check=True, executable="/bin/bash")
         print(f"Installed {wheel_path.name}")
+
     except subprocess.CalledProcessError as e:
         print(f"\n❌ Installation failed with exit code {e.returncode}")
         return 1
@@ -74,6 +76,7 @@ def build() -> int:
     import_cmd = f"source {TEST_ENV}/bin/activate && python -c 'import typer_extensions; print(f\"Version: {{typer_extensions.__version__}}\")'"
     try:
         subprocess.run(import_cmd, shell=True, check=True, executable="/bin/bash")
+
     except subprocess.CalledProcessError as e:
         print(f"\n❌ Import test failed with exit code {e.returncode}\n")
         return 1
@@ -83,6 +86,7 @@ def build() -> int:
     check_cmd = f"source {TEST_ENV}/bin/activate && twine check {wheel_path}"
     try:
         subprocess.run(check_cmd, shell=True, check=True, executable="/bin/bash")
+
     except subprocess.CalledProcessError as e:
         print(f"\n❌ Distribution check failed with exit code {e.returncode}\n")
         return 1
@@ -92,6 +96,7 @@ def build() -> int:
     test_cmd = f"source {TEST_ENV}/bin/activate && pytest -v tests/"
     try:
         subprocess.run(test_cmd, shell=True, check=True, executable="/bin/bash")
+
     except subprocess.CalledProcessError as e:
         print(f"\n❌ Tests failed with exit code {e.returncode}\n")
         return 1

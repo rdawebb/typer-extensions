@@ -1,9 +1,10 @@
 """Tests for specific _rich_utils coverage gaps with Rich enabled"""
 
-import pytest
 from unittest.mock import MagicMock, patch
-from typer_extensions import _rich_utils
 
+import pytest
+
+from typer_extensions import _rich_utils
 
 pytestmark = pytest.mark.skipif(
     not _rich_utils.RICH_AVAILABLE, reason="Rich not available"
@@ -15,7 +16,7 @@ class TestGetHelpTextEdgeCases:
 
     def test_get_help_text_with_markdown_multiline(self):
         """Test _get_help_text with markdown mode and multiline help"""
-        from click import Command
+        from typer.core import TyperCommand as Command
 
         cmd = Command("test")
         cmd.help = "First paragraph\n\nSecond paragraph\n\nThird paragraph"
@@ -25,7 +26,7 @@ class TestGetHelpTextEdgeCases:
 
     def test_get_help_text_with_formfeed_markdown(self):
         """Test _get_help_text with formfeed in markdown mode"""
-        from click import Command
+        from typer.core import TyperCommand as Command
 
         cmd = Command("test")
         cmd.help = "Visible part\fHidden part after formfeed"
@@ -35,7 +36,7 @@ class TestGetHelpTextEdgeCases:
 
     def test_get_help_text_with_newlines_in_first_line_rich_mode(self):
         """Test _get_help_text with newlines in first line for rich mode"""
-        from click import Command
+        from typer.core import TyperCommand as Command
 
         cmd = Command("test")
         cmd.help = "First\nline\nwith\nnewlines\n\nSecond paragraph"
@@ -45,7 +46,7 @@ class TestGetHelpTextEdgeCases:
 
     def test_get_help_text_with_breaklines_marker(self):
         """Test _get_help_text with \\b marker (preserve line breaks)"""
-        from click import Command
+        from typer.core import TyperCommand as Command
 
         cmd = Command("test")
         cmd.help = "\\bFirst line\nSecond line\nThird line"
@@ -59,10 +60,10 @@ class TestGetParameterHelpEdgeCases:
 
     def test_get_parameter_help_with_multiple_paragraphs(self):
         """Test _get_parameter_help with multi-paragraph help text"""
-        from click import Option
+        from typer.core import TyperOption as Option
 
         opt = Option(
-            ["-c", "--config"],
+            param_decls=["-c", "--config"],
             help="First paragraph\n\nSecond paragraph with more details\n\nThird paragraph",
         )
         ctx = MagicMock()
@@ -73,10 +74,12 @@ class TestGetParameterHelpEdgeCases:
 
     def test_get_parameter_help_with_breaklines_marker(self):
         """Test _get_parameter_help with \\b marker"""
-        from click import Option
+        from typer.core import TyperOption as Option
 
         opt = Option(
-            ["-f", "--format"], help="\\bLine 1\nLine 2\nLine 3", metavar="FORMAT"
+            param_decls=["-f", "--format"],
+            help="\\bLine 1\nLine 2\nLine 3",
+            metavar="FORMAT",
         )
         ctx = MagicMock()
         ctx.auto_envvar_prefix = None
@@ -85,12 +88,14 @@ class TestGetParameterHelpEdgeCases:
         assert result is not None
 
     def test_get_parameter_help_with_range_constraint(self):
-        """Test _get_parameter_help with click.IntRange"""
-        from click import Option, IntRange
+        """Test _get_parameter_help with click.types.IntRange"""
+        from typer.core import TyperOption as Option
+
+        from typer_extensions._compat import types
 
         opt = Option(
-            ["-p", "--port"],
-            type=IntRange(1, 65535),
+            param_decls=["-p", "--port"],
+            type=types.IntRange(1, 65535),
             help="Port number",
         )
         ctx = MagicMock()
@@ -101,13 +106,48 @@ class TestGetParameterHelpEdgeCases:
         )
         assert result is not None
 
+    def test_get_parameter_help_non_typer_param_default_fallback(self):
+        """Non-Typer params use the manual default-string fallback.
+
+        Typer apps only ever emit TyperOption/TyperArgument, but the fallback
+        branch still renders defaults for plain Click parameters, covering
+        list/tuple, callable ("dynamic"), and scalar defaults, as well as the
+        no-default (skip) and empty-default-string (not appended) paths.
+        """
+        from typer_extensions._compat import click
+
+        def build(default):
+            # spec=click.Parameter (the ABC) is deliberately NOT a
+            # TyperOption/TyperArgument, so _get_parameter_help takes the
+            # fallback branch.
+            param = MagicMock(spec=click.Parameter)
+            param.name = "value"
+            param.help = None
+            param.envvar = None
+            param.required = False
+            param.show_default = True
+            param.default = default
+            return param
+
+        ctx = MagicMock()
+        ctx.auto_envvar_prefix = None
+        ctx.show_default = False
+
+        # list/tuple, callable -> "(dynamic)", scalar, empty string (not
+        # appended), and None (default block skipped entirely)
+        for default in (["a", "b"], lambda: 5, "scalar", "", None):
+            result = _rich_utils._get_parameter_help(
+                param=build(default), ctx=ctx, markup_mode="rich"
+            )
+            assert result is not None
+
 
 class TestPrintCommandsPanelAliases:
     """Test _print_commands_panel with alias support"""
 
     def test_print_commands_panel_with_alias_lookup_error(self):
         """Test _print_commands_panel when alias lookup raises exception"""
-        from click import Command
+        from typer.core import TyperCommand as Command
 
         cmd = Command("deploy")
         cmd.help = "Deploy the application"
@@ -132,7 +172,7 @@ class TestPrintCommandsPanelAliases:
 
     def test_print_commands_panel_with_multiline_help_markdown(self):
         """Test _print_commands_panel with multiline help in markdown mode"""
-        from click import Command
+        from typer.core import TyperCommand as Command
 
         cmd = Command("complex")
         cmd.help = "First line\n\nSecond paragraph\n\nThird paragraph"
@@ -152,7 +192,7 @@ class TestPrintCommandsPanelAliases:
 
     def test_print_commands_panel_empty_help(self):
         """Test _print_commands_panel with command that has no help"""
-        from click import Command
+        from typer.core import TyperCommand as Command
 
         cmd = Command("nohelp")
         cmd.help = None
@@ -176,13 +216,16 @@ class TestRichFormatHelpEdgeCases:
 
     def test_rich_format_help_with_hidden_params(self):
         """Test rich_format_help with hidden parameters"""
-        from click import Command, Option, Context
+        from typer.core import TyperCommand as Command
+        from typer.core import TyperOption as Option
+
+        from typer_extensions._compat import Context
 
         cmd = Command("test")
         cmd.help = "Test command"
         cmd.params = [
-            Option(["-v", "--verbose"], help="Verbose", hidden=False),
-            Option(["--secret"], help="Secret option", hidden=True),
+            Option(param_decls=["-v", "--verbose"], help="Verbose", hidden=False),
+            Option(param_decls=["--secret"], help="Secret option", hidden=True),
         ]
 
         # Create a proper context
@@ -194,9 +237,12 @@ class TestRichFormatHelpEdgeCases:
 
     def test_rich_format_help_group_with_subcommands(self):
         """Test rich_format_help with a Group that has subcommands"""
-        from click import Group, Command, Context
+        from typer.core import TyperCommand as Command
+        from typer.core import TyperGroup as Group
 
-        grp = Group("main")
+        from typer_extensions._compat import Context
+
+        grp = Group(name="main")
         grp.help = "Main command group"
         cmd1 = Command("sub1")
         cmd1.help = "Subcommand 1"
@@ -214,7 +260,9 @@ class TestRichFormatHelpEdgeCases:
 
     def test_rich_format_help_with_epilog(self):
         """Test rich_format_help with epilog text"""
-        from click import Command, Context
+        from typer.core import TyperCommand as Command
+
+        from typer_extensions._compat import Context
 
         cmd = Command("test")
         cmd.help = "Test command"
@@ -229,14 +277,17 @@ class TestRichFormatHelpEdgeCases:
 
     def test_rich_format_help_with_custom_panels(self):
         """Test rich_format_help with custom help panels"""
-        from click import Command, Option, Context
+        from typer.core import TyperCommand as Command
+        from typer.core import TyperOption as Option
+
+        from typer_extensions._compat import Context
 
         cmd = Command("test")
         cmd.help = "Test command"
-        opt1 = Option(["-a"], help="Option A")
-        setattr(opt1, "rich_help_panel", "Custom Panel 1")
-        opt2 = Option(["-b"], help="Option B")
-        setattr(opt2, "rich_help_panel", "Custom Panel 2")
+        opt1 = Option(param_decls=["-a"], help="Option A")
+        opt1.rich_help_panel = "Custom Panel 1"
+        opt2 = Option(param_decls=["-b"], help="Option B")
+        opt2.rich_help_panel = "Custom Panel 2"
         cmd.params = [opt1, opt2]
 
         # Create a proper context
@@ -284,7 +335,7 @@ class TestRichFormatHelpHighlighterNone:
 
     def test_rich_format_help_without_highlighter(self):
         """Test rich_format_help when highlighter is None"""
-        from click import Command
+        from typer.core import TyperCommand as Command
 
         cmd = Command("test")
         cmd.help = "Test command"
@@ -329,8 +380,8 @@ class TestGetTracebackWithConfig:
     def test_get_traceback_with_show_locals_enabled(self):
         """Test get_traceback with show_locals configuration"""
         try:
-            _x = 42  # noqa: F841
-            _y = "test"  # noqa: F841
+            _x = 42
+            _y = "test"
             raise ValueError("Test error with locals")
         except ValueError as e:
             # Create a mock config with show_locals enabled
