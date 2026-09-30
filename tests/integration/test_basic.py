@@ -208,3 +208,113 @@ class TestTyperCompatibility:
 
         # Should show command name as default Typer behaviour
         assert "Command:" in clean_result
+
+
+class TestAliasedAppCallback:
+    """Tests that aliased apps keep their callback and group settings."""
+
+    def test_callback_option_reaches_callback(self, cli_runner):
+        """Test that a parameterised callback receives its option via an alias."""
+        app = ExtendedTyper()
+
+        @app.callback()
+        def main(verbose: bool = False):
+            """Main callback."""
+            print(f"verbose={verbose}")
+
+        @app.command("list", aliases=["ls"])
+        def list_items():
+            """List all items."""
+            print("Listing items...")
+
+        @app.command("delete")
+        def delete_items():
+            """Delete all items."""
+
+        result = cli_runner.invoke(app, ["--verbose", "ls"])
+        assert result.exit_code == 0, result.output
+        assert "verbose=True" in result.output
+        assert "Listing items..." in result.output
+
+    def test_invoke_without_command_runs_callback(self, cli_runner):
+        """Test that invoke_without_command runs the callback with no subcommand."""
+        app = ExtendedTyper()
+
+        @app.callback(invoke_without_command=True)
+        def main(ctx: Context):
+            """Main callback."""
+            if ctx.invoked_subcommand is None:
+                print("No subcommand")
+
+        @app.command("list", aliases=["ls"])
+        def list_items():
+            """List all items."""
+
+        @app.command("delete")
+        def delete_items():
+            """Delete all items."""
+
+        result = cli_runner.invoke(app, [])
+        assert result.exit_code == 0, result.output
+        assert "No subcommand" in result.output
+
+    def test_no_args_is_help_shows_help(self, cli_runner, clean_output):
+        """Test that no_args_is_help prints help when called with no arguments."""
+        app = ExtendedTyper(no_args_is_help=True)
+
+        @app.command("list", aliases=["ls"])
+        def list_items():
+            """List all items."""
+
+        @app.command("delete")
+        def delete_items():
+            """Delete all items."""
+
+        result = cli_runner.invoke(app, [])
+        assert "Usage:" in clean_output(result.output)
+        assert "List all items." in clean_output(result.output)
+
+    def test_add_help_option_false_disables_help(self, cli_runner):
+        """Test that add_help_option=False removes --help from an aliased app."""
+        app = ExtendedTyper(add_help_option=False)
+
+        @app.command("list", aliases=["ls"])
+        def list_items():
+            """List all items."""
+
+        @app.command("delete")
+        def delete_items():
+            """Delete all items."""
+
+        result = cli_runner.invoke(app, ["--help"])
+        assert result.exit_code != 0
+        assert "No such option" in result.output
+
+    def test_hidden_and_deprecated_sub_app(self, cli_runner, clean_output):
+        """Test that an aliased sub-app keeps its hidden and deprecated settings."""
+        app = ExtendedTyper()
+        visible = ExtendedTyper(deprecated=True)
+        secret = ExtendedTyper(hidden=True)
+
+        for sub in (visible, secret):
+
+            @sub.command("list", aliases=["ls"])
+            def list_items():
+                """List all items."""
+                print("Listing items...")
+
+            @sub.command("delete")
+            def delete_items():
+                """Delete all items."""
+
+        app.add_typer(visible, name="visible")
+        app.add_typer(secret, name="secret")
+
+        help_output = clean_output(cli_runner.invoke(app, ["--help"]).output)
+        assert "visible" in help_output
+        assert "deprecated" in help_output.lower()
+        assert "secret" not in help_output
+
+        result = cli_runner.invoke(app, ["secret", "ls"])
+        assert result.exit_code == 0, result.output
+        assert "Listing items..." in result.output

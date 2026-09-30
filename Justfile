@@ -27,10 +27,7 @@ type:
   uv run ty check src tests
 
 # Check all Python files (ruff + ty)
-check:
-  uv run ruff format src tests
-  uv run ruff check src tests
-  uv run ty check src tests
+check: lint format type
 
 # Run all pre-commit hooks
 pre:

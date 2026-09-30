@@ -4,11 +4,11 @@ build-backend = "hatchling.build"
 
 [project]
 name = "typer-extensions"
-version = "0.3.0"
+version = "0.4.0"
 description = "Command aliases for Typer CLI applications"
 readme = "README.md"
 authors = [{name = "Rob Webb"}]
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 license = {text = "MIT"}
 keywords = ["typer", "cli", "aliases", "command-line", "click"]
 classifiers = [

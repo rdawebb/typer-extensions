@@ -4,6 +4,36 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+## [0.4.0] - 2026-09-22
+
+### Changed
+
+- **BREAKING:** Raised minimum Python version to 3.11, ahead of 3.10 reaching end of life in October 2026
+- **BREAKING:** The supported Typer version range is now `>=0.21.0,<0.28`
+- **BREAKING:** `add_alias()` now raises `TypeError` rather than `ValueError` when called on a single-command app
+- `ValueError` is still raised for unknown commands and for conflicting aliases
+- `click` is now resolved from Typer versions that require it, rather than a declared dependency
+- Help output now matches `typer.rich_utils` in Typer 0.26.x:
+  - Option panels use a six-column layout that separates long, short and `--no-*` option names from the metavar
+  - Annotates numeric ranges and dims metavar delimiters
+  - Panels expand to the full terminal width
+  - Environment variables are only listed when `show_envvar=True`, and appear before the default value
+  - `show_default` strings and dynamic defaults render as they do in Typer
+  - Multi-paragraph parameter help is kept in one block, with `\b` verbatim sections preserved per paragraph
+  - Command lists use `short_help` when set, and deprecated command names are styled
+  - ANSI escape codes in help text are rendered instead of printed literally
+  - Tracebacks use the full console width and wrap long lines
+
+### Fixed
+
+- Aliased apps now work with a parameterised `@app.callback()`, and respect `invoke_without_command`, `no_args_is_help`, `hidden`, `deprecated` and `add_help_option` ([#1])
+- The bundled help renderer now checks the correct `TYPER_EXTENSIONS_RICH` env var
+- With Rich unavailable, `--help` now falls back to plain help
+- `ExtendedGroup` now formats the command list itself for plain help, honouring `show_aliases_in_help`, `alias_display_format`, `alias_separator` and `max_num_aliases` as the Rich output does
+- The command column is now measured against the longest one in help panels holding no aliased commands
+
 ## [0.3.0] - 2026-06-20
 
 ### Added
@@ -204,7 +234,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 - Pre-commit hooks for code quality (linting, formatting, type checking, syntax validation)
 - Initial project structure with Makefile and development tooling
 
-[Unreleased]: https://github.com/rdawebb/typer-extensions/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/rdawebb/typer-extensions/compare/v0.4.0...HEAD
+[#1]: https://github.com/rdawebb/typer-extensions/issues/1
+[0.4.0]: https://github.com/rdawebb/typer-extensions/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/rdawebb/typer-extensions/compare/v0.2.2...v0.3.0
 [0.2.2]: https://github.com/rdawebb/typer-extensions/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/rdawebb/typer-extensions/compare/v0.2.0...v0.2.1
