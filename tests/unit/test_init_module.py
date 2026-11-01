@@ -1,82 +1,6 @@
-"""Tests for typer_extensions.__init__ module initialisation and patch application."""
-
-import os
+"""Tests for typer_extensions.__init__ module initialisation."""
 
 import pytest
-
-
-class TestPatchFunctionality:
-    """Test the core patch functions directly"""
-
-    def test_apply_rich_patch_function_returns_bool(self):
-        """Test that apply_rich_patch returns a boolean"""
-        from typer_extensions._patch import apply_rich_patch
-
-        result = apply_rich_patch()
-        assert isinstance(result, bool)
-
-    def test_is_patch_applied_returns_bool(self):
-        """Test that is_patch_applied returns a boolean"""
-        from typer_extensions._patch import is_patch_applied
-
-        result = is_patch_applied()
-        assert isinstance(result, bool)
-
-    def test_get_patch_info_returns_dict(self):
-        """Test that get_patch_info returns a dictionary with required keys"""
-        from typer_extensions._patch import get_patch_info
-
-        info = get_patch_info()
-        assert isinstance(info, dict)
-        assert "applied" in info
-        assert isinstance(info["applied"], bool)
-
-    def test_get_patch_status_returns_string(self):
-        """Test that get_patch_status returns a non-empty string"""
-        from typer_extensions._patch import get_patch_status
-
-        status = get_patch_status()
-        assert isinstance(status, str)
-        assert len(status) > 0
-
-    def test_undo_rich_patch_returns_none(self):
-        """Test that undo_rich_patch can be called safely"""
-        from typer_extensions._patch import undo_rich_patch
-
-        # Should not raise and should return None
-        result = undo_rich_patch()
-        assert result is None
-
-
-class TestEnvironmentVariableLogic:
-    """Test the environment variable control logic"""
-
-    def test_rich_env_var_true(self):
-        """Test TYPER_EXTENSIONS_RICH=1 means patching is enabled"""
-        # Directly test the logic
-        should_apply = os.environ.get("TYPER_EXTENSIONS_RICH", "1") == "1"
-        assert should_apply is True
-
-    def test_rich_env_var_false(self):
-        """Test TYPER_EXTENSIONS_RICH=0 means patching is disabled"""
-        # Directly test the logic
-        should_not_apply = os.environ.get("TYPER_EXTENSIONS_RICH_DISABLED", "0") == "1"
-        assert should_not_apply is False
-
-    def test_lazy_rich_env_var_default(self):
-        """Test TYPER_EXTENSIONS_LAZY_RICH defaults to enabled"""
-        # Directly test the logic
-        should_apply = os.environ.get("TYPER_EXTENSIONS_LAZY_RICH_NOTSET", "1") == "1"
-        assert should_apply is True
-
-    def test_debug_env_var_logic(self):
-        """Test TYPER_EXTENSIONS_DEBUG environment variable logic"""
-        # When not set, should be None
-        debug_off = os.environ.get("TYPER_EXTENSIONS_DEBUG_NOTSET")
-        assert debug_off is None
-        # When set to "1", should be truthy
-        debug_on = os.environ.get("TYPER_EXTENSIONS_DEBUG_NOTSET", "1")
-        assert debug_on == "1"
 
 
 class TestModuleExports:
@@ -182,23 +106,6 @@ class TestModuleImportBehavior:
 
         assert typer_extensions is not None
 
-    def test_patch_module_is_importable(self):
-        """Test that the _patch module exists and is importable"""
-        from typer_extensions import _patch
-
-        assert hasattr(_patch, "apply_rich_patch")
-        assert hasattr(_patch, "is_patch_applied")
-        assert hasattr(_patch, "get_patch_info")
-        assert hasattr(_patch, "get_patch_status")
-        assert hasattr(_patch, "undo_rich_patch")
-
-    def test_import_hook_module_is_importable(self):
-        """Test that the _import_hook module exists and is importable"""
-        from typer_extensions import _import_hook
-
-        assert hasattr(_import_hook, "install_import_hook")
-        assert hasattr(_import_hook, "uninstall_import_hook")
-
     def test_core_module_components_available(self):
         """Test that core module components are available through the package"""
         import typer_extensions
@@ -207,32 +114,6 @@ class TestModuleImportBehavior:
         # These should be available from the main package
         assert typer_extensions.ExtendedTyper is ExtendedTyper
         assert typer_extensions.Context is Context
-
-
-class TestPatchExceptionHandling:
-    """Test that patch exceptions don't break module initialization"""
-
-    def test_patch_function_handles_already_applied(self):
-        """Test that calling apply_rich_patch twice is safe"""
-        from typer_extensions._patch import apply_rich_patch
-
-        # First call
-        result1 = apply_rich_patch()
-        # Second call should return early
-        result2 = apply_rich_patch()
-
-        # Both should return booleans
-        assert isinstance(result1, bool)
-        assert isinstance(result2, bool)
-
-    def test_patch_state_initialization(self):
-        """Test that PATCH_STATE is properly initialized"""
-        from typer_extensions._patch import PATCH_STATE
-
-        assert isinstance(PATCH_STATE, dict)
-        assert "applied" in PATCH_STATE
-        assert "skipped_reason" in PATCH_STATE
-        assert isinstance(PATCH_STATE["applied"], bool)
 
 
 class TestModuleInitializationRobustness:
@@ -259,61 +140,6 @@ class TestModuleInitializationRobustness:
         assert Context is not None
 
 
-class TestPatchApplicationWithDebugFlag:
-    """Test patch application code paths with debug flag set"""
-
-    def test_patch_applied_debug_flag_enabled(self, monkeypatch):
-        """Test that debug message is logged when patch is applied with debug flag"""
-        import sys
-
-        from typer_extensions._patch import PATCH_STATE, apply_rich_patch
-
-        original_state = PATCH_STATE.copy()
-        # Save original modules
-        original_typer = sys.modules.get("typer")
-        original_rich_utils = sys.modules.get("typer.rich_utils")
-
-        PATCH_STATE.clear()
-        PATCH_STATE.update(
-            {
-                "applied": False,
-                "typer_version": None,
-                "patched_functions": [],
-                "originals": {},
-                "skipped_reason": None,
-            }
-        )
-
-        try:
-            monkeypatch.setenv("TYPER_EXTENSIONS_RICH", "1")
-            monkeypatch.setenv("TYPER_EXTENSIONS_DEBUG", "1")
-
-            # Ensure clean state for testing
-            if "typer.rich_utils" in sys.modules:
-                del sys.modules["typer.rich_utils"]
-            if "typer" in sys.modules:
-                del sys.modules["typer"]
-
-            # Mock successful import hook installation
-            from unittest.mock import patch
-
-            with patch(
-                "typer_extensions._import_hook.install_import_hook", return_value=True
-            ):
-                result = apply_rich_patch()
-                assert result is True
-                assert PATCH_STATE["applied"] is True
-
-        finally:
-            PATCH_STATE.clear()
-            PATCH_STATE.update(original_state)
-            # Restore original modules
-            if original_typer is not None:
-                sys.modules["typer"] = original_typer
-            if original_rich_utils is not None:
-                sys.modules["typer.rich_utils"] = original_rich_utils
-
-
 class TestInitModuleAttributeAccess:
     """Test __getattr__ function in __init__.py"""
 
@@ -326,31 +152,3 @@ class TestInitModuleAttributeAccess:
         # Access an attribute that's not explicitly exported
         attr = typer_extensions.__getattr__("Argument")
         assert attr is typer.Argument
-
-
-class TestExceptionHandlingDuringModuleInit:
-    """Test exception handling during module initialization"""
-
-    def test_patch_exception_logged_but_module_loads(self, monkeypatch, caplog):
-        """Test that exceptions during patch application are caught and logged"""
-        import logging
-        from unittest.mock import patch
-
-        # Set up to trigger the exception path
-        with (
-            caplog.at_level(logging.ERROR),
-            patch(
-                "typer_extensions._patch.apply_rich_patch",
-                side_effect=RuntimeError("Test error"),
-            ),
-        ):
-            # This simulates what happens during module import
-            try:
-                # If we're in the test, the module is already imported, so we need to mock carefully
-                from typer_extensions._patch import apply_rich_patch
-
-                apply_rich_patch()  # This will raise
-
-            except RuntimeError as e:
-                # Expected
-                assert str(e) == "Test error"

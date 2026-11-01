@@ -607,28 +607,13 @@ class TestPlainHelpAliasDisplay:
         assert "(" not in clean_result.split("Commands:")[1]
 
     def test_plain_help_shows_aliases_without_rich(self, subprocess_runner):
-        """Test the alias column when Rich is genuinely unavailable.
+        """Test the alias column when Rich is switched off with TYPER_USE_RICH=0.
 
-        This path reaches Click's formatter through rich_format_help's fallback
-        rather than Typer's, so it needs a subprocess where 'rich' cannot import.
+        Typer reads the variable at import time, so it needs a subprocess.
         """
         code = """
-import builtins
-
-real_import = builtins.__import__
-
-def fake_import(name, *args, **kwargs):
-    if name.startswith("rich"):
-        raise ImportError("No module named 'rich'")
-    return real_import(name, *args, **kwargs)
-
-builtins.__import__ = fake_import
-
 from typer.testing import CliRunner
 from typer_extensions import ExtendedTyper
-from typer_extensions._rich_utils import RICH_AVAILABLE
-
-assert RICH_AVAILABLE is False, "Rich should be unavailable in this subprocess"
 
 app = ExtendedTyper()
 
@@ -640,12 +625,10 @@ def list_items():
 def status():
     \"\"\"Show status.\"\"\"
 
-builtins.__import__ = real_import
-
 result = CliRunner().invoke(app, ["--help"])
 print(result.output)
 """
-        result = subprocess_runner(code)
+        result = subprocess_runner(code, env={"TYPER_USE_RICH": "0"})
         assert result.returncode == 0, result.stderr
         assert "(ls, l)" in result.stdout
         assert "List all items" in result.stdout

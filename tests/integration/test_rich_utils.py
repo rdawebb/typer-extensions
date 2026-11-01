@@ -1,4 +1,4 @@
-"""Integration tests for _rich_utils module with Typer commands.
+"""Integration tests for Typer's Rich rendering with ExtendedTyper commands.
 
 Tests both Rich-enabled and Rich-disabled code paths through actual CLI commands.
 """
@@ -115,7 +115,7 @@ class TestRichUtilsErrorFormatting:
 
 
 class TestRichUtilsWithRichDisabled:
-    """Tests for _rich_utils when Rich rendering is disabled."""
+    """Tests for help and errors when Rich rendering is disabled."""
 
     def test_help_works_with_rich_disabled(self, cli_runner):
         """Test that help still works when Rich output is disabled"""
