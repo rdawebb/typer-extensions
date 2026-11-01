@@ -35,8 +35,8 @@ pre:
 
 # Pre-release build & test
 release:
-    @which python3 > /dev/null && python3 scripts/release.py || python scripts/release.py
+    uv run python scripts/release.py
 
 # Clean up temporary files, caches, and artifacts
 clean:
-    @which python3 > /dev/null && uv run python3 scripts/clean.py || uv run python scripts/clean.py
+    uv run python scripts/clean.py
