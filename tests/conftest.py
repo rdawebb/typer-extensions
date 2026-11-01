@@ -68,14 +68,6 @@ def assert_formatted_cmd():
     return assert_formatted_command
 
 
-def pytest_configure(config):
-    """Register custom markers."""
-    config.addinivalue_line(
-        "markers",
-        "isolated: mark test to run in isolated subprocess (deselect with '-m \"not isolated\"')",
-    )
-
-
 @pytest.fixture
 def subprocess_runner():
     """Fixture for running code in isolated subprocess."""
