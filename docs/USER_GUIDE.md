@@ -761,7 +761,6 @@ app = ExtendedTyper(alias_case_sensitive=False)
 ## Next Steps
 
 - **[API Reference](API_REFERENCE.md)** - Complete API documentation
-- **[Best Practices](BEST_PRACTICES.md)** - Detailed recommendations
 - **[Migration Guide](MIGRATION.md)** - Migrating from plain Typer
 - **[Examples](../examples/)** - More code examples
 

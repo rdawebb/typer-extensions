@@ -771,6 +771,5 @@ app.get_aliases("nonexistent")  # Returns [], no error
 ## See Also
 
 - **[User Guide](USER_GUIDE.md)** - Tutorials and patterns
-- **[Best Practices](BEST_PRACTICES.md)** - Recommendations
 - **[Migration Guide](MIGRATION.md)** - From plain Typer
 - **[Examples](../examples/)** - Runnable code examples
