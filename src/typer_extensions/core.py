@@ -596,14 +596,18 @@ class ExtendedTyper(typer.Typer):
         del self._alias_to_command[normalised_alias]
 
         if primary_name in self._command_aliases:
-            try:
-                self._command_aliases[primary_name].remove(alias)
+            # Aliases keep their registered case, so match on the normalised form
+            remaining = [
+                name
+                for name in self._command_aliases[primary_name]
+                if self._normalise_name(name) != normalised_alias
+            ]
 
-                if not self._command_aliases[primary_name]:
-                    del self._command_aliases[primary_name]
+            if remaining:
+                self._command_aliases[primary_name] = remaining
 
-            except ValueError:
-                pass
+            else:
+                del self._command_aliases[primary_name]
 
         return True
 

@@ -1,1 +1,1 @@
-"""Unit tests for typer-aliases"""
+"""Unit tests for typer-extensions"""

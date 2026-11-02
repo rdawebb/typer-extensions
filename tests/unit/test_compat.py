@@ -13,7 +13,7 @@ import typer_extensions._compat as compat
 class TestVendoredClick:
     """Test the Typer >= 0.26 path, where Click is vendored as typer._click."""
 
-    def test_resolves_vendored_click(self):
+    def test_resolves_vendored_click(self) -> None:
         """Test the shim resolves Click from typer._click"""
         assert compat.click.__name__ == "typer._click"
         assert compat.Command is compat.click.Command
@@ -25,7 +25,7 @@ class TestVendoredClick:
 class TestStandaloneClickFallback:
     """Test the Typer < 0.26 path, where the standalone click package is used."""
 
-    def test_falls_back_to_standalone_click(self, monkeypatch):
+    def test_falls_back_to_standalone_click(self, monkeypatch) -> None:
         """Test the shim falls back to standalone click when typer._click is absent
 
         Typer >= 0.26 is installed, so the fallback is reached by making the
@@ -73,9 +73,7 @@ class TestStandaloneClickFallback:
             assert compat.types is fake_types
 
         finally:
-            # _print_options_panel re-imports types from _compat on every call,
-            # so the module must be restored before any later test runs; undo
-            # explicitly rather than at teardown, so the reload sees real typer
+            # Undo explicitly rather than at teardown, so the reload sees real typer
             monkeypatch.undo()
             importlib.reload(compat)
 
