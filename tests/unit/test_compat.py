@@ -7,6 +7,8 @@ import importlib
 import sys
 import types as pytypes
 
+import pytest
+
 import typer_extensions._compat as compat
 
 
@@ -15,6 +17,8 @@ class TestVendoredClick:
 
     def test_resolves_vendored_click(self) -> None:
         """Test the shim resolves Click from typer._click"""
+        pytest.importorskip("typer._click")
+
         assert compat.click.__name__ == "typer._click"
         assert compat.Command is compat.click.Command
         assert compat.Context is compat.click.Context
@@ -50,6 +54,7 @@ class TestStandaloneClickFallback:
             types=fake_types,
         )
 
+        real_click = compat.click
         real_import = builtins.__import__
 
         def fake_import(name, globals=None, locals=None, fromlist=(), level=0):
@@ -77,5 +82,5 @@ class TestStandaloneClickFallback:
             monkeypatch.undo()
             importlib.reload(compat)
 
-        assert compat.click.__name__ == "typer._click"
-        assert compat.Command is compat.click.Command
+        assert compat.click is real_click
+        assert compat.Command is real_click.Command

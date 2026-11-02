@@ -71,7 +71,11 @@ strict = true
 testpaths = ["tests/*"]
 python_files = ["test_*.py"]
 addopts = ["-ra", "--showlocals"]
-filterwarnings = ["error"]
+filterwarnings = [
+    "error",
+    # Typer < 0.26 imports Click APIs that Click 8.5 deprecates
+    "ignore:.*will be removed in Click:DeprecationWarning",
+]
 
 [tool.coverage.run]
 source = ["src"]
