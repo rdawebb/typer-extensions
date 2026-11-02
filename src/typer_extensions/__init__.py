@@ -1,23 +1,6 @@
 """Typer extension for command aliases with grouped help display"""
 
-import logging
-import os
 from typing import Any
-
-# Apply lazy Rich patch if enabled (opt-out via TYPER_EXTENSIONS_RICH=0)
-if os.environ.get("TYPER_EXTENSIONS_RICH", "1") == "1":  # pragma: no cover
-    try:
-        from typer_extensions._patch import apply_rich_patch
-
-        _patch_applied = apply_rich_patch()
-        if os.environ.get("TYPER_EXTENSIONS_DEBUG") and _patch_applied:
-            logging.getLogger(__name__).debug("Rich patch applied")
-
-    # An optional patch must never break import
-    except Exception:
-        logging.getLogger(__name__).exception("Failed to apply Rich patch")
-        # Fall back to default behavior
-
 
 from typer_extensions._version import __version__
 from typer_extensions.core import Context, ExtendedTyper

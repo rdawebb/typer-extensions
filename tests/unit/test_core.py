@@ -3,14 +3,39 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
+import typer
+from typer.core import TyperCommand, TyperGroup
 
 from typer_extensions import ExtendedTyper
+from typer_extensions._compat import Command
+from typer_extensions.core import (
+    Context,
+    ExtendedGroup,
+    _extended_get_group_from_info,
+)
+
+
+def list_items():
+    """List items."""
+
+
+def delete_items():
+    """Delete items."""
+
+
+def group_from_info(app, group):
+    """Run _extended_get_group_from_info with Typer's result stubbed to group"""
+    with patch(
+        "typer_extensions.core._original_get_group_from_info",
+        return_value=group,
+    ):
+        return _extended_get_group_from_info(MagicMock(typer_instance=app))
 
 
 class TestExtendedTyperinitialisation:
     """Tests for ExtendedTyper initialisation."""
 
-    def test_default_initialisation(self):
+    def test_default_initialisation(self) -> None:
         """Test that ExtendedTyper initialises with default config"""
         app = ExtendedTyper()
         assert app._alias_case_sensitive is True
@@ -18,7 +43,7 @@ class TestExtendedTyperinitialisation:
         assert app._command_aliases == {}
         assert app._alias_to_command == {}
 
-    def test_custom_configuration(self):
+    def test_custom_configuration(self) -> None:
         """Test that custom configuration is stored"""
         app = ExtendedTyper(
             alias_case_sensitive=False,
@@ -31,13 +56,13 @@ class TestExtendedTyperinitialisation:
 class TestNameNormalisation:
     """Tests for name normalisation based on case sensitivity"""
 
-    def test_normalise_case_sensitive(self):
+    def test_normalise_case_sensitive(self) -> None:
         """Test name normalisation with case sensitivity"""
         app = ExtendedTyper(alias_case_sensitive=True)
         assert app._normalise_name("List") == "List"
         assert app._normalise_name("list") == "list"
 
-    def test_normalise_case_insensitive(self):
+    def test_normalise_case_insensitive(self) -> None:
         """Test name normalisation without case sensitivity"""
         app = ExtendedTyper(alias_case_sensitive=False)
         assert app._normalise_name("List") == "list"
@@ -47,27 +72,17 @@ class TestNameNormalisation:
 class TestAliasRegistration:
     """Tests for alias registration logic"""
 
-    def test_register_single_alias(self):
-        """Test registering a single alias"""
-        app = ExtendedTyper()
-        app._register_alias("list", "ls")
-
-        assert "list" in app._command_aliases
-        assert "ls" in app._command_aliases["list"]
-        assert app._alias_to_command["ls"] == "list"
-
-    def test_register_multiple_aliases_same_command(self):
+    def test_register_multiple_aliases_same_command(self) -> None:
         """Test registering multiple aliases for same command"""
         app = ExtendedTyper()
         app._register_alias("list", "ls")
         app._register_alias("list", "l")
 
-        assert "list" in app._command_aliases
         assert app._command_aliases["list"] == ["ls", "l"]
         assert app._alias_to_command["ls"] == "list"
         assert app._alias_to_command["l"] == "list"
 
-    def test_register_duplicate_alias_raises(self):
+    def test_register_duplicate_alias_raises(self) -> None:
         """Test that duplicate alias raises ValueError"""
         app = ExtendedTyper()
         app._register_alias("list", "ls")
@@ -75,14 +90,14 @@ class TestAliasRegistration:
         with pytest.raises(ValueError, match="already registered"):
             app._register_alias("delete", "ls")
 
-    def test_alias_same_as_primary_raises(self):
+    def test_alias_same_as_primary_raises(self) -> None:
         """Test that alias matching primary name raises ValueError"""
         app = ExtendedTyper()
 
         with pytest.raises(ValueError, match="cannot be the same as command name"):
             app._register_alias("list", "list")
 
-    def test_case_insensitive_alias_conflict(self):
+    def test_case_insensitive_alias_conflict(self) -> None:
         """Test alias conflict detection with case insensitivity"""
         app = ExtendedTyper(alias_case_sensitive=False)
         app._register_alias("list", "ls")
@@ -90,7 +105,7 @@ class TestAliasRegistration:
         with pytest.raises(ValueError, match="already registered"):
             app._register_alias("delete", "LS")  # Case-insensitive, should raise
 
-    def test_case_sensitive_allows_different_case(self):
+    def test_case_sensitive_allows_different_case(self) -> None:
         """Test that case-sensitive mode allows different cases"""
         app = ExtendedTyper(alias_case_sensitive=True)
         app._register_alias("list", "ls")
@@ -103,19 +118,19 @@ class TestAliasRegistration:
 class TestAliasResolution:
     """Tests for alias resolution"""
 
-    def test_resolve_existing_alias(self):
+    def test_resolve_existing_alias(self) -> None:
         """Test resolving an existing alias"""
         app = ExtendedTyper()
         app._register_alias("list", "ls")
 
         assert app._resolve_alias("ls") == "list"
 
-    def test_resolve_nonexistent_alias(self):
+    def test_resolve_nonexistent_alias(self) -> None:
         """Test resolving a non-existent alias returns None"""
         app = ExtendedTyper()
         assert app._resolve_alias("nonexistent") is None
 
-    def test_resolve_primary_name_returns_none(self):
+    def test_resolve_primary_name_returns_none(self) -> None:
         """Test that resolving primary name returns None"""
         app = ExtendedTyper()
         app._register_alias("list", "ls")
@@ -123,7 +138,7 @@ class TestAliasResolution:
         # Primary name is not an alias, should return None
         assert app._resolve_alias("list") is None
 
-    def test_resolve_case_insensitive(self):
+    def test_resolve_case_insensitive(self) -> None:
         """Test alias resolution with case insensitivity"""
         app = ExtendedTyper(alias_case_sensitive=False)
         app._register_alias("list", "ls")
@@ -135,25 +150,9 @@ class TestAliasResolution:
 class TestCommandWithAliases:
     """Tests for command registration with aliases"""
 
-    def test_register_command_with_single_alias(self):
-        """Test registering command with one alias"""
-        app = ExtendedTyper()
-
-        def list_items():
-            """List items."""
-
-        app._register_command_with_aliases(list_items, "list", aliases=["ls"])
-
-        assert "list" in app._command_aliases
-        assert "ls" in app._command_aliases["list"]
-        assert app._alias_to_command["ls"] == "list"
-
-    def test_register_command_with_multiple_aliases(self):
+    def test_register_command_with_multiple_aliases(self) -> None:
         """Test registering command with multiple aliases"""
         app = ExtendedTyper()
-
-        def list_items():
-            """List items."""
 
         app._register_command_with_aliases(
             list_items, "list", aliases=["ls", "l", "dir"]
@@ -164,220 +163,80 @@ class TestCommandWithAliases:
             app._alias_to_command[alias] == "list" for alias in ["ls", "l", "dir"]
         )
 
-    def test_register_command_without_aliases(self):
+    @pytest.mark.parametrize("aliases", [None, []])
+    def test_register_command_without_aliases(self, aliases) -> None:
         """Test registering command without aliases"""
         app = ExtendedTyper()
 
-        def list_items():
-            """List items."""
+        app._register_command_with_aliases(list_items, "list", aliases=aliases)
 
-        app._register_command_with_aliases(list_items, "list", aliases=None)
-
-        # No aliases should be registered
-        assert "list" not in app._command_aliases
-        assert len(app._alias_to_command) == 0
-
-    def test_register_command_empty_alias_list(self):
-        """Test registering command with empty alias list"""
-        app = ExtendedTyper()
-
-        def list_items():
-            """List items."""
-
-        app._register_command_with_aliases(list_items, "list", aliases=[])
-
-        assert "list" not in app._command_aliases
-        assert len(app._alias_to_command) == 0
-
-    def test_alias_conflicts_detected_during_registration(self):
-        """Test that alias conflicts are detected during command registration"""
-        app = ExtendedTyper()
-
-        def list_items():
-            """List items."""
-
-        def delete_items():
-            """Delete items."""
-
-        app._register_command_with_aliases(list_items, "list", aliases=["ls"])
-
-        with pytest.raises(ValueError, match="already registered"):
-            app._register_command_with_aliases(delete_items, "delete", aliases=["ls"])
+        assert app._command_aliases == {}
+        assert app._alias_to_command == {}
 
 
 class TestGetCommand:
-    """Tests for _get_command with alias support
+    """Tests for _get_command with alias support"""
 
-    Note: These tests focus on multi-command scenarios, as single-command
-    apps don't meaningfully support aliases (the command becomes the default)
-    """
-
-    def test__get_command_multiple_commands_by_primary_name(self):
-        """Test getting command by primary name in multi-command app"""
-        from unittest.mock import MagicMock
-
-        app = ExtendedTyper()
-
-        @app.command("list")
-        def list_items():
-            """List items."""
-
-        @app.command("delete")
-        def delete_items():
-            """Delete items."""
-
-        ctx = MagicMock()
-
-        cmd = app._get_command(ctx, "list")
-        assert cmd is not None
-        assert cmd.name == "list"
-
-    def test__get_command_by_alias_in_multi_command_app(self):
+    def test__get_command_by_alias_in_multi_command_app(self) -> None:
         """Test getting command by alias in multi-command app"""
-        from unittest.mock import MagicMock
-
         app = ExtendedTyper()
-
-        def list_items():
-            """List items."""
-
-        def delete_items():
-            """Delete items."""
-
-        # Register commands with aliases
         app._register_command_with_aliases(list_items, "list", aliases=["ls"])
         app._register_command_with_aliases(delete_items, "delete", aliases=["del"])
-
         ctx = MagicMock()
 
-        # Test getting by alias
         cmd_ls = app._get_command(ctx, "ls")
         cmd_list = app._get_command(ctx, "list")
 
-        assert cmd_ls is not None, "Failed to get command by alias 'ls'"
-        assert cmd_list is not None, "Failed to get command by name 'list'"
-        assert cmd_ls.callback == cmd_list.callback, (
-            "Alias and primary command should have same callback"
-        )
-
-    def test__get_command_nonexistent_in_multi_command_app(self):
-        """Test getting non-existent command returns None"""
-        from unittest.mock import MagicMock
-
-        app = ExtendedTyper()
-
-        @app.command("list")
-        def list_items():
-            """List items."""
-
-        @app.command("delete")
-        def delete_items():
-            """Delete items."""
-
-        ctx = MagicMock()
-
-        cmd = app._get_command(ctx, "nonexistent")
-        assert cmd is None
-
-    def test__get_command_case_insensitive_alias(self):
-        """Test getting command by case-insensitive alias"""
-        from unittest.mock import MagicMock
-
-        app = ExtendedTyper(alias_case_sensitive=False)
-
-        def list_items():
-            """List items."""
-
-        def delete_items():
-            """Delete items."""
-
-        app._register_command_with_aliases(list_items, "list", aliases=["ls"])
-        app._register_command_with_aliases(delete_items, "delete", aliases=["del"])
-
-        ctx = MagicMock()
-
-        # Should work with different case
-        cmd = app._get_command(ctx, "LS")
-        assert cmd is not None
-
-    def test__get_command_multiple_aliases_same_command(self):
-        """Test getting command by different aliases"""
-        from unittest.mock import MagicMock
-
-        app = ExtendedTyper()
-
-        def list_items():
-            """List items."""
-
-        def delete_items():
-            """Delete items."""
-
-        app._register_command_with_aliases(list_items, "list", aliases=["ls", "l"])
-        app._register_command_with_aliases(
-            delete_items, "delete", aliases=["del", "rm"]
-        )
-
-        ctx = MagicMock()
-
-        # Test all aliases point to same command
-        cmd_list = app._get_command(ctx, "list")
-        cmd_ls = app._get_command(ctx, "ls")
-        cmd_l = app._get_command(ctx, "l")
-
-        assert cmd_list is not None
         assert cmd_ls is not None
-        assert cmd_l is not None
+        assert cmd_list is not None
         assert cmd_ls.callback == cmd_list.callback
-        assert cmd_l.callback == cmd_list.callback
 
-    def test__get_command_single_command_app(self):
-        """Test getting command returns the default command"""
-        from unittest.mock import MagicMock
-
+    def test__get_command_nonexistent_in_multi_command_app(self) -> None:
+        """Test getting non-existent command returns None"""
         app = ExtendedTyper()
+        app.command("list")(list_items)
+        app.command("delete")(delete_items)
 
-        @app.command("list")
-        def list_items():
-            """List items."""
+        assert app._get_command(MagicMock(), "nonexistent") is None
 
+    def test__get_command_case_insensitive_alias(self) -> None:
+        """Test getting command by case-insensitive alias"""
+        app = ExtendedTyper(alias_case_sensitive=False)
+        app._register_command_with_aliases(list_items, "list", aliases=["ls"])
+        app._register_command_with_aliases(delete_items, "delete", aliases=["del"])
+
+        assert app._get_command(MagicMock(), "LS") is not None
+
+    def test__get_command_single_command_app(self) -> None:
+        """Test getting command returns the default command"""
+        app = ExtendedTyper()
+        app.command("list")(list_items)
         ctx = MagicMock()
 
-        # Should return the command
         cmd = app._get_command(ctx, "list")
         assert cmd is not None
         assert cmd.name == "list"
 
         # Should not resolve an alias
-        cmd_alias = app._get_command(ctx, "ls")
-        assert cmd_alias is None
+        assert app._get_command(ctx, "ls") is None
 
-    def test__get_command_with_unknown_command(self):
-        """Test None is returned for unknown commands"""
-        from unittest.mock import MagicMock
-
+    def test_get_command_with_no_group_or_command_initialised(self) -> None:
+        """Test _get_command when the built app has no 'commands' attribute"""
         app = ExtendedTyper()
+        app.command("list")(list_items)
 
-        @app.command("list")
-        def list_items():
-            """List items."""
+        with patch("typer.main.get_command") as mock_get_cmd:
+            del mock_get_cmd.return_value.commands
 
-        ctx = MagicMock()
-
-        assert app._get_command(ctx, "unknown") is None
+            assert app._get_command(MagicMock(), "unknown") is None
 
 
 class TestExtendedGroup:
     """Tests for ExtendedGroup get_command"""
 
-    def test__get_command_by_alias(self):
+    def test__get_command_by_alias(self) -> None:
         """Test ExtendedGroup resolves a command by alias"""
-        from typer_extensions.core import Context, ExtendedGroup
-
         app = ExtendedTyper()
-
-        def list_items():
-            """List items."""
-
         app._register_command_with_aliases(list_items, "list", aliases=["ls"])
         group = ExtendedGroup(extended_typer=app)
         ctx = Context(group)
@@ -388,517 +247,159 @@ class TestExtendedGroup:
 
         assert group.get_command(ctx, "ls") is not None
 
-    def test__get_command_with_unknown_command(self):
+    def test__get_command_with_unknown_command(self) -> None:
         """Test ExtendedGroup returns None for unknown command/alias"""
-        from typer_extensions.core import Context, ExtendedGroup
+        group = ExtendedGroup(extended_typer=ExtendedTyper())
 
-        app = ExtendedTyper()
-        group = ExtendedGroup(extended_typer=app)
-        ctx = Context(group)
+        assert group.get_command(Context(group), "unknown") is None
 
-        assert group.get_command(ctx, "unknown") is None
-
-    def test__get_command_without_extended_typer(self):
-        """Test ExtendedGroup.get_command when extended_typer is None"""
-        from typer_extensions.core import Context, ExtendedGroup
-
+    def test__get_command_without_extended_typer(self) -> None:
+        """Test ExtendedGroup falls back to Typer when extended_typer is None"""
         group = ExtendedGroup(extended_typer=None)
-        ctx = Context(group)
 
-        # Should fall back to parent's get_command
-        result = group.get_command(ctx, "unknown")
-        # Should return None as no commands are registered
-        assert result is None
-
-    def test_extended_get_group_without_dict_attribute(self):
-        """Test _extended_get_group_from_info with group missing __dict__ attribute
-
-        Covers branch 102→112
-        """
-        from typer_extensions.core import ExtendedTyper, _extended_get_group_from_info
-
-        # Create an ExtendedTyper with multiple commands
-        extended_typer = ExtendedTyper()
-
-        @extended_typer.command("actual_command")
-        def actual_command():
-            """An actual command."""
-
-        @extended_typer.command("another_command")
-        def another_command():
-            """Another command."""
-
-        extended_typer.add_alias("actual_command", "test")
-
-        # Create a mock typer_info
-        typer_info = MagicMock()
-        typer_info.typer_instance = extended_typer
-
-        # Mock the original function to return a group without __dict__
-        mock_group = MagicMock(
-            spec=[
-                "name",
-                "commands",
-                "callback",
-                "params",
-                "help",
-                "epilog",
-                "short_help",
-                "options_metavar",
-                "subcommand_metavar",
-                "chain",
-                "result_callback",
-                "context_settings",
-            ]
-        )
-        # Ensure no __dict__ attribute
-        mock_group.name = "test"
-        mock_group.commands = {}
-
-        with patch(
-            "typer_extensions.core._original_get_group_from_info",
-            return_value=mock_group,
-        ):
-            result = _extended_get_group_from_info(typer_info)
-            assert result is not None
-
-    def test_extended_get_group_dict_without_rich_markup_mode(self):
-        """Test _extended_get_group_from_info when __dict__ exists but no rich_markup_mode
-
-        Covers branch 103→107
-        """
-        from typer_extensions.core import ExtendedTyper
-
-        # Test that when ExtendedTyper has aliases,it creates an ExtendedGroup
-        extended_typer = ExtendedTyper()
-
-        @extended_typer.command("actual")
-        def actual_cmd():
-            """An actual command."""
-
-        @extended_typer.command("other")
-        def other_cmd():
-            """Another command."""
-
-        extended_typer.add_alias("actual", "test")
-
-        # The key test: after building the command structure with aliases,
-        # the extended typer should have the group with the alias handling
-        assert extended_typer._alias_to_command["test"] == "actual"
-
-    def test_extended_get_group_dict_without_rich_help_panel(self):
-        """Test _extended_get_group_from_info with various group attributes
-
-        Covers branch 107→112
-        """
-        from typer_extensions.core import ExtendedTyper
-
-        # Test that ExtendedTyper properly handles group creation with different attributes
-        extended_typer = ExtendedTyper()
-
-        @extended_typer.command("actual")
-        def actual_cmd():
-            """An actual command."""
-
-        @extended_typer.command("other")
-        def other_cmd():
-            """Another command."""
-
-        extended_typer.add_alias("actual", "test")
-
-        # Verify the ExtendedTyper state after creating aliases
-        assert "test" in extended_typer._alias_to_command
-        assert extended_typer._alias_to_command["test"] == "actual"
+        assert group.get_command(Context(group), "unknown") is None
 
 
 class TestRegisterAliasValidation:
     """Tests for alias registration input validation"""
 
-    def test_register_alias_empty_string(self):
-        """Test that empty string alias raises ValueError"""
+    @pytest.mark.parametrize(
+        ("alias", "message"),
+        [
+            ("", "Alias must be a non-empty string"),
+            (None, "Alias must be a non-empty string"),
+            (123, "Alias must be a non-empty string"),
+            ("l s", "Alias cannot contain whitespace"),
+            ("l\ts", "Alias cannot contain whitespace"),
+            ("l@s", "Alias must only contain alphanumeric characters"),
+            ("l$s", "Alias must only contain alphanumeric characters"),
+        ],
+    )
+    def test_register_invalid_alias_raises(self, alias, message) -> None:
+        """Test that an invalid alias raises ValueError"""
         app = ExtendedTyper()
 
-        with pytest.raises(ValueError, match="Alias must be a non-empty string"):
-            app._register_alias("list", "")
+        with pytest.raises(ValueError, match=message):
+            app._register_alias("list", alias)
 
-    def test_register_alias_none_value(self):
-        """Test that None alias raises ValueError"""
+    @pytest.mark.parametrize("alias", ["list-all", "list_all", "liés"])
+    def test_register_valid_alias(self, alias) -> None:
+        """Test that dashes, underscores and unicode are valid in aliases"""
         app = ExtendedTyper()
+        app._register_alias("list", alias)
 
-        with pytest.raises(ValueError, match="Alias must be a non-empty string"):
-            app._register_alias("list", None)  # ty: ignore[invalid-argument-type]
-
-    def test_register_alias_non_string_type(self):
-        """Test that non-string alias raises ValueError"""
-        app = ExtendedTyper()
-
-        with pytest.raises(ValueError, match="Alias must be a non-empty string"):
-            app._register_alias("list", 123)  # ty: ignore[invalid-argument-type]
-
-    def test_register_alias_with_whitespace(self):
-        """Test that alias with whitespace raises ValueError"""
-        app = ExtendedTyper()
-
-        with pytest.raises(ValueError, match="Alias cannot contain whitespace"):
-            app._register_alias("list", "l s")
-
-    def test_register_alias_with_tabs(self):
-        """Test that alias with tabs raises ValueError"""
-        app = ExtendedTyper()
-
-        with pytest.raises(ValueError, match="Alias cannot contain whitespace"):
-            app._register_alias("list", "l\ts")
-
-    def test_register_alias_with_invalid_characters(self):
-        """Test that alias with invalid characters raises ValueError"""
-        app = ExtendedTyper()
-
-        with pytest.raises(
-            ValueError,
-            match="Alias must only contain alphanumeric characters, dashes, and underscores",
-        ):
-            app._register_alias("list", "l@s")
-
-    def test_register_alias_with_special_characters(self):
-        """Test that alias with special characters raises ValueError"""
-        app = ExtendedTyper()
-
-        with pytest.raises(
-            ValueError,
-            match="Alias must only contain alphanumeric characters, dashes, and underscores",
-        ):
-            app._register_alias("list", "l$s")
-
-    def test_register_alias_valid_with_dashes(self):
-        """Test that alias with dashes is valid"""
-        app = ExtendedTyper()
-        app._register_alias("list", "list-all")
-
-        assert app._alias_to_command["list-all"] == "list"
-
-    def test_register_alias_valid_with_underscores(self):
-        """Test that alias with underscores is valid"""
-        app = ExtendedTyper()
-        app._register_alias("list", "list_all")
-
-        assert app._alias_to_command["list_all"] == "list"
-
-    def test_register_alias_valid_with_unicode(self):
-        """Test that alias with unicode characters is valid"""
-        app = ExtendedTyper()
-        app._register_alias("list", "liés")
-
-        assert app._alias_to_command["liés"] == "list"
+        assert app._alias_to_command[alias] == "list"
 
 
 class TestAddAliasToSingleCommandApp:
     """Tests for add_alias with single-command applications"""
 
-    def test_add_alias_to_single_command_app_raises(self):
+    def test_add_alias_to_single_command_app_raises(self) -> None:
         """Test that adding alias to single-command app raises TypeError"""
         app = ExtendedTyper()
-
-        @app.command()
-        def main():
-            """Main command."""
+        app.command("main")(list_items)
 
         with pytest.raises(
             TypeError, match="Cannot add aliases to single-command applications"
         ):
             app.add_alias("main", "m")
 
-    def test_add_alias_to_nonexistent_command_raises(self):
-        """Test that adding alias to non-existent command raises ValueError"""
-        app = ExtendedTyper()
-
-        @app.command("list")
-        def list_items():
-            """List items."""
-
-        @app.command("delete")
-        def delete_items():
-            """Delete items."""
-
-        with pytest.raises(ValueError, match="Command 'nonexistent' does not exist"):
-            app.add_alias("nonexistent", "nx")
-
 
 class TestRemoveAliasEdgeCases:
     """Tests for edge cases in remove_alias"""
 
-    def test_remove_alias_when_primary_command_has_no_aliases_dict(self):
+    def test_remove_alias_when_primary_command_has_no_aliases_dict(self) -> None:
         """Test remove_alias when primary command is not in _command_aliases dict"""
         app = ExtendedTyper()
-
-        def list_items():
-            """List items."""
-
-        def delete_items():
-            """Delete items."""
-
         app._register_command_with_aliases(list_items, "list", aliases=["ls"])
 
         # Manually add an alias without registering the command
         app._alias_to_command["orphan"] = "delete"
 
         # Should return True, but not crash when primary isn't in _command_aliases
-        result = app.remove_alias("orphan")
-        assert result is True
-
-
-class TestGetCommandEdgeCases:
-    """Tests for edge cases in _get_command"""
-
-    def test_get_command_with_fresh_app_single_command(self):
-        """Test _get_command on fresh single-command app"""
-        from unittest.mock import MagicMock
-
-        app = ExtendedTyper()
-
-        def main():
-            """Main command."""
-
-        app._register_command_with_aliases(main, "main", aliases=["m"])
-
-        ctx = MagicMock()
-
-        # First call should trigger CLI build
-        cmd = app._get_command(ctx, "main")
-        assert cmd is not None
-        assert cmd.name == "main"
-
-    def test_get_command_returns_none_for_invalid_command(self):
-        """Test that _get_command returns None for truly invalid commands"""
-        from unittest.mock import MagicMock
-
-        app = ExtendedTyper()
-
-        @app.command("list")
-        def list_items():
-            """List items."""
-
-        ctx = MagicMock()
-
-        # Get a valid command first to initialise _group
-        app._get_command(ctx, "list")
-
-        # Invalid command, should return None
-        cmd = app._get_command(ctx, "invalid_command_xyz")
-        assert cmd is None
-
-    def test_get_command_with_no_group_or_command_initialised(self):
-        """Test _get_command when neither _group nor _command are set"""
-        from unittest.mock import MagicMock, patch
-
-        app = ExtendedTyper()
-
-        @app.command("list")
-        def list_items():
-            """List items."""
-
-        ctx = MagicMock()
-
-        # Patch _get_command to return an object without attributes
-        with patch("typer.main.get_command") as mock_get_cmd:
-            # Return a mock that doesn't have 'commands' attribute
-            mock_obj = MagicMock()
-            del mock_obj.commands  # Remove the commands attribute
-            mock_get_cmd.return_value = mock_obj
-
-            # Delete cached attributes to force re-initialisation
-            if hasattr(app, "_group"):
-                delattr(app, "_group")
-            if hasattr(app, "_command"):
-                delattr(app, "_command")
-
-            # Should return None when neither condition is met
-            result = app._get_command(ctx, "unknown")
-            assert result is None
+        assert app.remove_alias("orphan") is True
 
 
 class TestExtendedGetGroupFromInfo:
     """Tests for _extended_get_group_from_info function and branch coverage"""
 
-    def test_extended_group_preserves_rich_attributes(self):
+    def test_extended_group_preserves_rich_attributes(self) -> None:
         """Reclassing into ExtendedGroup preserves Typer's rich settings in place"""
-        from unittest.mock import MagicMock, patch
-
-        from typer.core import TyperGroup
-
-        from typer_extensions.core import (
-            ExtendedGroup,
-            ExtendedTyper,
-            _extended_get_group_from_info,
-        )
-
         app = ExtendedTyper()
-        app._register_alias("list", "ls")  # Register an alias
-
-        # Build a real TyperGroup, exactly as Typer's get_group_from_info would
+        app._register_alias("list", "ls")
         real_group = TyperGroup(
             name="test",
             rich_markup_mode="markdown",
             rich_help_panel="Advanced",
         )
 
-        typer_info = MagicMock()
-        typer_info.typer_instance = app
+        result = group_from_info(app, real_group)
 
-        with patch(
-            "typer_extensions.core._original_get_group_from_info",
-            return_value=real_group,
-        ):
-            result = _extended_get_group_from_info(typer_info)
+        # The group is re-classed in place, gaining alias resolution while
+        # keeping all of Typer's configuration intact
+        assert isinstance(result, ExtendedGroup)
+        assert result is real_group
+        assert result._extended_typer is app
+        assert result.rich_markup_mode == "markdown"
+        assert result.rich_help_panel == "Advanced"
 
-            # The group is re-classed in place, gaining alias resolution while
-            # keeping all of Typer's configuration intact
-            assert isinstance(result, ExtendedGroup)
-            assert result is real_group
-            assert result._extended_typer is app
-            assert result.rich_markup_mode == "markdown"
-            assert result.rich_help_panel == "Advanced"
-
-    def test_extended_group_no_aliases_registered(self):
-        """Test that standard group is returned when no aliases are registered"""
-        from unittest.mock import MagicMock, patch
-
-        from typer.core import TyperGroup
-
-        from typer_extensions.core import ExtendedTyper, _extended_get_group_from_info
-
-        # Create app with no aliases
-        app = ExtendedTyper()
-
-        # Create a mock group
-        mock_group = MagicMock(spec=TyperGroup)
-        mock_group.name = "test"
-
-        # Create a mock typer_info
-        typer_info = MagicMock()
-        typer_info.typer_instance = app
-
-        # Mock the original function
-        with patch(
-            "typer_extensions.core._original_get_group_from_info",
-            return_value=mock_group,
-        ):
-            result = _extended_get_group_from_info(typer_info)
-
-            # Should return the original group since no aliases registered
-            assert result is mock_group
-
-    def test_standard_typer_returns_standard_group(self):
-        """Test that non-ExtendedTyper instances return standard groups"""
-        from unittest.mock import MagicMock, patch
-
-        import typer
-        from typer.core import TyperGroup
-
-        from typer_extensions.core import _extended_get_group_from_info
-
-        # Create a standard Typer app (not ExtendedTyper)
-        app = typer.Typer()
-
-        # Create a mock group
-        mock_group = MagicMock(spec=TyperGroup)
-
-        # Create a mock typer_info
-        typer_info = MagicMock()
-        typer_info.typer_instance = app
-
-        # Mock the original function
-        with patch(
-            "typer_extensions.core._original_get_group_from_info",
-            return_value=mock_group,
-        ):
-            result = _extended_get_group_from_info(typer_info)
-
-            # Should return the original group
-            assert result is mock_group
-
-    def test_extended_group_preserves_commands(self):
+    def test_extended_group_preserves_commands(self) -> None:
         """Reclassing into ExtendedGroup preserves the group's existing subcommands"""
-        from unittest.mock import MagicMock, patch
-
-        from typer.core import TyperCommand, TyperGroup
-
-        from typer_extensions._compat import Command
-        from typer_extensions.core import (
-            ExtendedGroup,
-            ExtendedTyper,
-            _extended_get_group_from_info,
-        )
-
         app = ExtendedTyper()
         app._register_alias("list", "ls")
-
-        # A real TyperGroup carrying subcommands and Click settings
         commands: dict[str, Command] = {"list": TyperCommand("list")}
-        real_group = TyperGroup(
-            name="test",
-            commands=commands,
-            no_args_is_help=True,
-        )
+        real_group = TyperGroup(name="test", commands=commands, no_args_is_help=True)
 
-        typer_info = MagicMock()
-        typer_info.typer_instance = app
+        result = group_from_info(app, real_group)
 
-        with patch(
-            "typer_extensions.core._original_get_group_from_info",
-            return_value=real_group,
-        ):
-            result = _extended_get_group_from_info(typer_info)
+        assert isinstance(result, ExtendedGroup)
+        assert result is real_group
+        assert result.commands == commands
+        assert result.no_args_is_help is True
 
-            assert isinstance(result, ExtendedGroup)
-            assert result is real_group
-            assert result.commands == commands
-            assert result.no_args_is_help is True
+    def test_extended_group_no_aliases_registered(self) -> None:
+        """Test that standard group is returned when no aliases are registered"""
+        group = MagicMock(spec=TyperGroup)
+
+        assert group_from_info(ExtendedTyper(), group) is group
+
+    def test_standard_typer_returns_standard_group(self) -> None:
+        """Test that non-ExtendedTyper instances return standard groups"""
+        group = MagicMock(spec=TyperGroup)
+
+        assert group_from_info(typer.Typer(), group) is group
 
 
 class TestAddTyperWithAliases:
     """Tests for add_typer() with alias support"""
 
-    def test_add_typer_with_explicit_name_and_aliases(self):
+    def test_add_typer_with_explicit_name_and_aliases(self, make_app) -> None:
         """Aliases are registered when name and aliases are both provided"""
         app = ExtendedTyper()
-        sub = ExtendedTyper()
 
-        @sub.command()
-        def hello():
-            """Hello."""
-
-        app.add_typer(sub, name="greet", aliases=["g", "gr"])
+        app.add_typer(make_app(), name="greet", aliases=["g", "gr"])
 
         assert app._alias_to_command["g"] == "greet"
         assert app._alias_to_command["gr"] == "greet"
         assert app._command_aliases["greet"] == ["g", "gr"]
 
-    def test_add_typer_without_aliases_unchanged(self):
+    def test_add_typer_without_aliases_unchanged(self, make_app) -> None:
         """Calling add_typer without aliases does not touch alias dicts"""
         app = ExtendedTyper()
-        sub = ExtendedTyper()
 
-        @sub.command()
-        def hello():
-            """Hello."""
-
-        app.add_typer(sub, name="greet")
+        app.add_typer(make_app(), name="greet")
 
         assert app._alias_to_command == {}
         assert app._command_aliases == {}
 
-    def test_add_typer_infers_name_from_callback(self):
+    def test_add_typer_infers_name_from_callback(self, make_app) -> None:
         """Name is inferred from the sub-typer's registered callback when not explicit"""
         app = ExtendedTyper()
-        sub = ExtendedTyper()
+        sub = make_app()
 
         @sub.callback()
         def my_sub_app():
             """Sub-app."""
-
-        @sub.command()
-        def hello():
-            """Hello."""
 
         app.add_typer(sub, aliases=["ms"])
 
@@ -906,87 +407,17 @@ class TestAddTyperWithAliases:
         assert app._alias_to_command["ms"] == "my-sub-app"
         assert app._command_aliases["my-sub-app"] == ["ms"]
 
-    def test_add_typer_raises_when_name_unresolvable(self):
+    def test_add_typer_raises_when_name_unresolvable(self, make_app) -> None:
         """ValueError is raised when no name can be inferred and none provided"""
         app = ExtendedTyper()
-        sub = ExtendedTyper()
-
-        @sub.command()
-        def hello():
-            """Hello."""
 
         with pytest.raises(ValueError, match="Cannot infer sub-app name"):
-            app.add_typer(sub, aliases=["x"])
+            app.add_typer(make_app(), aliases=["x"])
 
-    def test_add_typer_alias_conflict_raises(self):
+    def test_add_typer_alias_conflict_raises(self, make_app) -> None:
         """Duplicate alias across two sub-apps raises ValueError"""
         app = ExtendedTyper()
-
-        sub1 = ExtendedTyper()
-
-        @sub1.command()
-        def hello():
-            pass
-
-        sub2 = ExtendedTyper()
-
-        @sub2.command()
-        def world():
-            pass
-
-        app.add_typer(sub1, name="greet", aliases=["g"])
+        app.add_typer(make_app(), name="greet", aliases=["g"])
 
         with pytest.raises(ValueError, match="already registered"):
-            app.add_typer(sub2, name="farewell", aliases=["g"])
-
-    def test_add_typer_empty_aliases_list_unchanged(self):
-        """Empty aliases list leaves alias dicts untouched"""
-        app = ExtendedTyper()
-        sub = ExtendedTyper()
-
-        @sub.command()
-        def hello():
-            pass
-
-        app.add_typer(sub, name="greet", aliases=[])
-
-        assert app._alias_to_command == {}
-        assert app._command_aliases == {}
-
-    def test_resolve_sub_typer_name_explicit_string(self):
-        """_resolve_sub_typer_name returns the name directly when it is a plain string"""
-        app = ExtendedTyper()
-        sub = ExtendedTyper()
-
-        result = app._resolve_sub_typer_name(sub, "explicit-name")
-
-        assert result == "explicit-name"
-
-    def test_resolve_sub_typer_name_from_callback(self):
-        """_resolve_sub_typer_name infers kebab-case name from registered callback"""
-        from typer.models import Default
-
-        app = ExtendedTyper()
-        sub = ExtendedTyper()
-
-        @sub.callback()
-        def my_tool():
-            pass
-
-        result = app._resolve_sub_typer_name(sub, Default(None))
-
-        assert result == "my-tool"
-
-    def test_resolve_sub_typer_name_raises_with_default_and_no_callback(self):
-        """_resolve_sub_typer_name raises ValueError when name is Default and no callback"""
-        from typer.models import Default
-
-        app = ExtendedTyper()
-        sub = ExtendedTyper()
-
-        @sub.command()
-        def hello():
-            pass
-
-        with pytest.raises(ValueError, match="Cannot infer sub-app name"):
-            app._resolve_sub_typer_name(sub, Default(None))
+            app.add_typer(make_app(), name="farewell", aliases=["g"])

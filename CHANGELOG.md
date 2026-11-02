@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+### Changed
+
+- Aliases in Rich help are now rendered by Typer's own `rich_utils`, so help output follows the installed Typer version and other Typer apps in the same process are no longer affected
+
+### Removed
+
+- **BREAKING:** The bundled `rich_utils` replacement and the import hook that installed it (`_rich_utils.py`, `_import_hook.py`, `_patch.py`)
+- **BREAKING:** The `TYPER_EXTENSIONS_RICH` and `TYPER_EXTENSIONS_DEBUG` environment variables; use Typer's `TYPER_USE_RICH=0` to disable Rich output
+
+### Fixed
+
+- `remove_alias()` on a case-insensitive app no longer leaves the alias in `get_aliases()` and help output when its case differs from the registered alias
+
 ## [0.4.0] - 2026-09-22
 
 ### Changed

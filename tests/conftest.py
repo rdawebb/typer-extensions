@@ -1,16 +1,11 @@
-"""Pytest configuration for the typer-aliases tests"""
-
-from __future__ import annotations
+"""Pytest configuration for the typer-extensions tests"""
 
 import re
-import sys
-from pathlib import Path
 
 import pytest
 from typer.testing import CliRunner
 
-# Get the project root
-PROJECT_ROOT = Path(__file__).parent.parent
+from typer_extensions import ExtendedTyper
 
 
 def strip_ansi_codes(text: str) -> str:
@@ -30,94 +25,66 @@ def strip_ansi_codes(text: str) -> str:
     return ansi_pattern.sub("", text)
 
 
-def assert_formatted_command(
-    output: str, command: str, aliases: str, separator: str = ", "
-) -> None:
-    """Assert that a formatted command appears in the output with its aliases.
+@pytest.fixture(autouse=True)
+def _wide_terminal(monkeypatch) -> None:
+    """Fix Rich's width, so a narrow terminal can't wrap asserted help text
 
-    Ignores padding/spacing differences.
-
-    Args:
-        output: The output text to search.
-        command: The command name to find.
-        aliases: The expected aliases for the command.
-        separator: The separator used between aliases.
+    Typer reads TERMINAL_WIDTH once at import, so setting the variable here
+    would depend on import order
     """
-    pattern = rf"{re.escape(command)}\s+.*?{re.escape(aliases)}"
-    assert re.search(pattern, output), (
-        f"Command '{command}' with aliases '{aliases}' not found in output.\n"
-        f"Output:\n{output}"
-    )
+    monkeypatch.setattr("typer.rich_utils.MAX_WIDTH", 100)
 
 
 @pytest.fixture
-def cli_runner() -> CliRunner:
-    """Fixture for the CLI test runner"""
-    return CliRunner()
+def cli():
+    """Fixture to invoke an app, assert its outcome and return plain output"""
+    runner = CliRunner()
 
-
-@pytest.fixture
-def clean_output():
-    """Fixture providing the strip_ansi_codes function for use in tests"""
-    return strip_ansi_codes
-
-
-@pytest.fixture
-def assert_formatted_cmd():
-    """Fixture providing the assert_formatted_command function for use in tests"""
-    return assert_formatted_command
-
-
-def pytest_configure(config):
-    """Register custom markers."""
-    config.addinivalue_line(
-        "markers",
-        "isolated: mark test to run in isolated subprocess (deselect with '-m \"not isolated\"')",
-    )
-
-
-@pytest.fixture
-def subprocess_runner():
-    """Fixture for running code in isolated subprocess."""
-
-    def run_code(code: str, env: dict | None = None):
-        """Execute Python code in a subprocess with optional environment variables.
+    def run(app, *args: str, ok: bool = True, **kwargs) -> str:
+        """Invoke the app with the given arguments
 
         Args:
-            code: Python code to execute
-            env: Optional dict of environment variables to set
+            app: The Typer app to invoke
+            *args: The command line arguments
+            ok: Whether the invocation should succeed
+            **kwargs: Additional keyword arguments for CliRunner.invoke
 
         Returns:
-            subprocess.CompletedProcess with stdout, stderr, and returncode
+            The output with ANSI escape codes removed
         """
-        import os
-        import subprocess as sp
+        result = runner.invoke(app, list(args), **kwargs)
+        assert (result.exit_code == 0) is ok, result.output
+        return strip_ansi_codes(result.output)
 
-        # Start with current environment
-        run_env = os.environ.copy()
+    return run
 
-        # Update with any provided environment variables
-        if env:
-            run_env.update(env)
 
-        # Add src to Python path so the package can be imported
-        python_path = run_env.get("PYTHONPATH", "")
-        src_path = str(PROJECT_ROOT / "src")
-        if python_path:
-            python_path = f"{src_path}:{python_path}"
+@pytest.fixture
+def make_app():
+    """Fixture to build a multi-command app, with 'list' and 'delete' commands"""
 
-        else:
-            python_path = src_path
+    def build(*, aliases: bool = True, **kwargs) -> ExtendedTyper:
+        """Build the app
 
-        run_env["PYTHONPATH"] = python_path
+        Args:
+            aliases: Whether to register the commands with aliases
+            **kwargs: Keyword arguments for ExtendedTyper
 
-        return sp.run(
-            [sys.executable, "-c", code],
-            capture_output=True,
-            text=True,
-            cwd=str(PROJECT_ROOT),
-            env=run_env,
-            check=False,  # callers assert on returncode themselves
-        )
+        Returns:
+            The app, where 'list' has aliases 'ls' and 'l', and 'delete' has 'rm'
+        """
+        app = ExtendedTyper(**kwargs)
 
-    return run_code
+        @app.command("list", aliases=["ls", "l"] if aliases else None)
+        def list_items():
+            """List all items."""
+            print("Listing items...")
+
+        @app.command("delete", aliases=["rm"] if aliases else None)
+        def delete_item():
+            """Delete an item."""
+            print("Deleting item...")
+
+        return app
+
+    return build

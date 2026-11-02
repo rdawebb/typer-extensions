@@ -39,7 +39,6 @@ def clean() -> None:
         Path("build"),
         Path(".test-env"),
         Path(".pypi"),
-        Path(".testpypi"),
     ]
     for path in artifacts:
         if path.exists():

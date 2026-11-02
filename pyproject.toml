@@ -4,12 +4,12 @@ build-backend = "hatchling.build"
 
 [project]
 name = "typer-extensions"
-version = "0.4.0"
+dynamic = ["version"]
 description = "Command aliases for Typer CLI applications"
 readme = "README.md"
-authors = [{name = "Rob Webb"}]
+authors = [{ name = "Rob Webb" }]
 requires-python = ">=3.11"
-license = {text = "MIT"}
+license = { text = "MIT" }
 keywords = ["typer", "cli", "aliases", "command-line", "click"]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -20,24 +20,25 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.15",
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: System :: Shells",
     "Typing :: Typed",
 ]
 dependencies = [
-    "pygments>=2.20.0",
+    "pygments>=2.20.0",      # CVE-2026-4539
     "typer>=0.21.0,<0.28",
-    "wcwidth>=0.5.0,<1.0.0"
+    "wcwidth>=0.5.0,<1.0.0",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "prek>=0.5.3,<1.0.0",
+    "prek>=0.5.7,<1.0.0",
     "pytest>=9.0.3,<10.0.0",
     "pytest-cov>=7.0.0,<8.0.0",
-    "ruff>=0.16.0,<0.17.0",
-    "rust-just>=1.58.0,<2.0.0",
-    "ty>=0.0.83,<0.1.0"
+    "ruff>=0.17.0,<0.18.0",
+    "rust-just>=1.59.0,<2.0.0",
+    "ty>=0.0.91,<0.1.0",
 ]
 
 [project.urls]
@@ -47,13 +48,11 @@ Repository = "https://github.com/rdawebb/typer-extensions"
 Changelog = "https://github.com/rdawebb/typer-extensions/blob/main/CHANGELOG.md"
 Issues = "https://github.com/rdawebb/typer-extensions/issues"
 
+[tool.hatch.version]
+path = "src/typer_extensions/_version.py"
+
 [tool.hatch.build.targets.sdist]
-include = [
-    "/src",
-    "/tests",
-    "/README.md",
-    "/LICENSE"
-]
+include = ["/src", "/tests", "/README.md", "/LICENSE"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/typer_extensions"]
@@ -63,33 +62,26 @@ packages = ["src/typer_extensions"]
 extend-immutable-calls = ["typer.models.Default"]
 
 [tool.ruff.lint.per-file-ignores]
-"__init__.py" = ["F401"]    # allow unused imports in __init__.py
-"tests/**/*.py" = ["ARG"]   # allow unused arguments in tests
-# rich declares RegexHighlighter.highlights as an instance var, so ClassVar
-# would be an invalid override
-"src/typer_extensions/_rich_utils.py" = ["RUF012"]
+"__init__.py" = ["F401"]  # allow unused imports in __init__.py
+"tests/**/*.py" = ["ARG"] # allow unused arguments in tests
 
-[tool.pytest.ini_options]
-pythonpath = ["src"]
-testpaths = ["tests"]
+[tool.pytest]
+minversion = "9.0"
+strict = true
+testpaths = ["tests/*"]
+python_files = ["test_*.py"]
+addopts = ["-ra", "--showlocals"]
+filterwarnings = [
+    "error",
+    # Typer < 0.26 imports Click APIs that Click 8.5 deprecates
+    "ignore:.*will be removed in Click:DeprecationWarning",
+]
 
 [tool.coverage.run]
 source = ["src"]
 branch = true
-omit = [
-    "*/tests/*",
-    "*/__pycache__/*",
-    "*/.venv/*",
-]
 
 [tool.coverage.report]
-exclude_lines = [
-    "pragma: no cover",
-    "def __repr__",
-    "raise AssertionError",
-    "raise NotImplementedError",
-    "if __name__ == .__main__.:",
-    "if TYPE_CHECKING:",
-    "@abstractmethod",
-    "@abc.abstractmethod",
-]
+precision = 2
+show_missing = true
+exclude_lines = ["pragma: no cover", "if TYPE_CHECKING:"]

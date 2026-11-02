@@ -1,5 +1,6 @@
 """Core ExtendedTyper class extending typer.Typer with alias support"""
 
+import copy
 import logging
 import re
 from collections.abc import Callable
@@ -12,7 +13,7 @@ from typer.core import TyperGroup
 from typer.models import Default
 
 from typer_extensions._compat import Command, Context, HelpFormatter
-from typer_extensions.format import format_commands_with_aliases
+from typer_extensions.format import calculate_width, format_commands_with_aliases
 
 logger = logging.getLogger(__name__)
 
@@ -22,11 +23,28 @@ _ALIAS_PATTERN = re.compile(r"^[\w\-]+$", re.UNICODE)
 # below it no matter how wide the alias column grows
 _MIN_SHORT_HELP_WIDTH = 10
 
+# ctx.meta key holding alias-formatted command names while help renders
+_DISPLAY_NAMES_KEY = "typer_extensions.display_names"
+
 
 class HasName(Protocol):
     """Protocol for objects that have a name attribute"""
 
     __name__: str
+
+
+class _DisplayName(str):
+    """Command name whose len() is its terminal width
+
+    Typer sizes the commands column with len(command.name), which under-counts
+    wide characters such as CJK and truncates the aliases
+    """
+
+    __slots__ = ()
+
+    def __len__(self) -> int:
+        # Measure a plain str, as wcswidth calls len() and would recurse
+        return calculate_width(str(self))
 
 
 class ExtendedGroup(TyperGroup):
@@ -65,7 +83,64 @@ class ExtendedGroup(TyperGroup):
         if primary_cmd is not None:
             cmd_name = primary_cmd
 
-        return super().get_command(ctx, cmd_name)
+        cmd = super().get_command(ctx, cmd_name)
+
+        # While help renders, hand Typer a copy named with its aliases, as
+        # rich_utils reads only command.name for the commands column
+        display_name = ctx.meta.get(_DISPLAY_NAMES_KEY, {}).get(cmd_name)
+        if cmd is not None and display_name:
+            cmd = copy.copy(cmd)
+            cmd.name = _DisplayName(display_name)
+
+        return cmd
+
+    def format_help(self, ctx: Context, formatter: HelpFormatter) -> None:
+        """Override Typer's format_help to show aliases in Rich help
+
+        Args:
+            ctx: The Typer context
+            formatter: The Click help formatter to write into
+        """
+        extended_typer = self._extended_typer
+
+        if (
+            extended_typer is None
+            or not extended_typer.show_aliases_in_help
+            or not extended_typer._command_aliases
+        ):
+            super().format_help(ctx, formatter)
+            return
+
+        try:
+            names = self.list_commands(ctx)
+            formatted_names, _ = format_commands_with_aliases(
+                [(name, None) for name in names],
+                extended_typer._command_aliases,
+                display_format=extended_typer.alias_display_format,
+                max_num=extended_typer.max_num_aliases,
+                separator=extended_typer.alias_separator,
+            )
+
+            display_names = {
+                name: display_name
+                for name, (display_name, _) in zip(names, formatted_names, strict=True)
+            }
+
+        # Formatting must never break --help
+        except Exception:
+            logger.debug(
+                "Command name formatting failed, falling back to raw names",
+                exc_info=True,
+            )
+            super().format_help(ctx, formatter)
+            return
+
+        ctx.meta[_DISPLAY_NAMES_KEY] = display_names
+        try:
+            super().format_help(ctx, formatter)
+
+        finally:
+            del ctx.meta[_DISPLAY_NAMES_KEY]
 
     def format_commands(self, ctx: Context, formatter: HelpFormatter) -> None:
         """Override Typer's format_commands to keep aliases visible in plain help
@@ -521,14 +596,18 @@ class ExtendedTyper(typer.Typer):
         del self._alias_to_command[normalised_alias]
 
         if primary_name in self._command_aliases:
-            try:
-                self._command_aliases[primary_name].remove(alias)
+            # Aliases keep their registered case, so match on the normalised form
+            remaining = [
+                name
+                for name in self._command_aliases[primary_name]
+                if self._normalise_name(name) != normalised_alias
+            ]
 
-                if not self._command_aliases[primary_name]:
-                    del self._command_aliases[primary_name]
+            if remaining:
+                self._command_aliases[primary_name] = remaining
 
-            except ValueError:
-                pass
+            else:
+                del self._command_aliases[primary_name]
 
         return True
 

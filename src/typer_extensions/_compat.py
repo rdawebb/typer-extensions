@@ -1,16 +1,16 @@
 """Click compatibility shim
 
-Typer 0.26 vendored Click as ``typer._click`` and dropped its dependency on the
-standalone ``click`` package. Earlier versions import the standalone package
+Typer 0.26 vendored Click as `typer._click` and dropped its dependency on the
+standalone `click` package. Earlier versions import the standalone package
 instead, and always declare it as a dependency, so the fallback branch only runs
-where ``click`` is guaranteed to be installed.
+where `click` is guaranteed to be installed.
 
 All internal Click access goes through this module so the split is resolved in
 one place.
 
 Type checkers are pointed at the vendored copy unconditionally. Typer's own
-signatures are written in terms of ``typer._click``, so resolving both branches
-would widen every annotation to ``typer._click.core.X | click.core.X`` and make
+signatures are written in terms of `typer._click`, so resolving both branches
+would widen every annotation to `typer._click.core.X | click.core.X` and make
 the shim's types incompatible with the Typer API it wraps.
 """
 

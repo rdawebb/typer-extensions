@@ -1,5 +1,6 @@
-"""Script to install and test the latest release on PyPI."""
+"""Script to install and test the latest release on PyPI or TestPyPI."""
 
+import argparse
 import os
 import re
 import shutil
@@ -8,7 +9,9 @@ import sys
 from pathlib import Path
 
 PACKAGE_NAME = "typer-extensions"
+TESTPYPI_URL = "https://test.pypi.org/simple/"
 TEST_VENV = ".pypi"
+DIST_DIR = "dist"
 
 
 def expected_version() -> str:
@@ -61,12 +64,16 @@ def run_command(
         raise
 
 
-def install_pypi() -> int:
+def install_pypi(test: bool = False) -> int:
     """PyPI install & test script.
+
+    Args:
+        test (bool): Whether to install from TestPyPI rather than PyPI.
 
     Returns:
         int: The exit code of the script.
     """
+    index = "TestPyPI" if test else "PyPI"
     script_dir = Path(__file__).parent
     project_root = script_dir.parent
     os.chdir(project_root)
@@ -95,25 +102,44 @@ def install_pypi() -> int:
     # Determine the Python executable path in the venv
     python_path = Path(TEST_VENV) / "bin" / "python"
 
-    # Step 3: Install package from PyPI
-    print("\n💾 Installing typer-extensions from PyPI")
+    # Step 3: Install package from the index
+    print(f"\n💾 Installing typer-extensions from {index}")
+    pip_install = ["uv", "pip", "install", "--python", str(python_path)]
+    package = f"{PACKAGE_NAME}=={EXPECTED_VERSION}"
+
+    wheel_files = list(Path(DIST_DIR).glob("*.whl"))
+    if test and not wheel_files:
+        print("\n❌ No wheel file found in dist/ — run 'uv build' first.")
+        return 1
+
     try:
-        run_command(
-            [
-                "uv",
-                "pip",
-                "install",
-                "--python",
-                str(python_path),
-                f"{PACKAGE_NAME}=={EXPECTED_VERSION}",
-            ],
-            "Installing package",
-            capture_output=False,  # Show output for debugging
-        )
+        if test:
+            # Two-step: satisfy dependencies from PyPI via the local wheel metadata,
+            # since most deps aren't on TestPyPI, then replace the wheel with the
+            # TestPyPI build; must be this order or the local wheel gets tested
+            run_command(
+                [*pip_install, str(wheel_files[0])],
+                "Installing dependencies from PyPI via local wheel metadata",
+            )
+            run_command(
+                [
+                    *pip_install,
+                    "--index-url",
+                    TESTPYPI_URL,
+                    "--no-deps",
+                    "--reinstall-package",
+                    PACKAGE_NAME,
+                    package,
+                ],
+                "Installing package from TestPyPI (no deps)",
+            )
+
+        else:
+            run_command([*pip_install, package], "Installing package")
 
     except subprocess.CalledProcessError as e:
-        print(f"❌ Package installation from PyPI failed: {e}")
-        print("\nℹ️ Note: Ensure the package has been published to PyPI first.")
+        print(f"❌ Package installation from {index} failed: {e}")
+        print(f"\nℹ️ Note: Ensure the package has been published to {index} first.")
         return 1
 
     # Step 4: Test import and version
@@ -166,4 +192,6 @@ def install_pypi() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(install_pypi())
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--test", action="store_true", help="install from TestPyPI")
+    sys.exit(install_pypi(parser.parse_args().test))

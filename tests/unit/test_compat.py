@@ -7,14 +7,18 @@ import importlib
 import sys
 import types as pytypes
 
+import pytest
+
 import typer_extensions._compat as compat
 
 
 class TestVendoredClick:
     """Test the Typer >= 0.26 path, where Click is vendored as typer._click."""
 
-    def test_resolves_vendored_click(self):
+    def test_resolves_vendored_click(self) -> None:
         """Test the shim resolves Click from typer._click"""
+        pytest.importorskip("typer._click")
+
         assert compat.click.__name__ == "typer._click"
         assert compat.Command is compat.click.Command
         assert compat.Context is compat.click.Context
@@ -25,7 +29,7 @@ class TestVendoredClick:
 class TestStandaloneClickFallback:
     """Test the Typer < 0.26 path, where the standalone click package is used."""
 
-    def test_falls_back_to_standalone_click(self, monkeypatch):
+    def test_falls_back_to_standalone_click(self, monkeypatch) -> None:
         """Test the shim falls back to standalone click when typer._click is absent
 
         Typer >= 0.26 is installed, so the fallback is reached by making the
@@ -50,6 +54,7 @@ class TestStandaloneClickFallback:
             types=fake_types,
         )
 
+        real_click = compat.click
         real_import = builtins.__import__
 
         def fake_import(name, globals=None, locals=None, fromlist=(), level=0):
@@ -73,11 +78,9 @@ class TestStandaloneClickFallback:
             assert compat.types is fake_types
 
         finally:
-            # _print_options_panel re-imports types from _compat on every call,
-            # so the module must be restored before any later test runs; undo
-            # explicitly rather than at teardown, so the reload sees real typer
+            # Undo explicitly rather than at teardown, so the reload sees real typer
             monkeypatch.undo()
             importlib.reload(compat)
 
-        assert compat.click.__name__ == "typer._click"
-        assert compat.Command is compat.click.Command
+        assert compat.click is real_click
+        assert compat.Command is real_click.Command
