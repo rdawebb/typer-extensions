@@ -82,6 +82,17 @@ class ExtendedGroup(TyperGroup):
 
         return cmd
 
+    def _display_names(self, names: list[str]) -> list[str]:
+        """Format names with their aliases using the ExtendedTyper's display settings"""
+        extended_typer = self._extended_typer
+        return format_commands_with_aliases(
+            names,
+            extended_typer._command_aliases,
+            display_format=extended_typer.alias_display_format,
+            max_num=extended_typer.max_num_aliases,
+            separator=extended_typer.alias_separator,
+        )
+
     def format_help(self, ctx: Context, formatter: HelpFormatter) -> None:
         """Override Typer's format_help to show aliases in Rich help
 
@@ -100,15 +111,7 @@ class ExtendedGroup(TyperGroup):
 
         try:
             names = self.list_commands(ctx)
-            formatted_names = format_commands_with_aliases(
-                names,
-                extended_typer._command_aliases,
-                display_format=extended_typer.alias_display_format,
-                max_num=extended_typer.max_num_aliases,
-                separator=extended_typer.alias_separator,
-            )
-
-            display_names = dict(zip(names, formatted_names, strict=True))
+            display_names = dict(zip(names, self._display_names(names), strict=True))
 
         # Formatting must never break --help
         except Exception:
@@ -158,13 +161,7 @@ class ExtendedGroup(TyperGroup):
             return
 
         try:
-            formatted_names = format_commands_with_aliases(
-                [name for name, _ in commands],
-                extended_typer._command_aliases,
-                display_format=extended_typer.alias_display_format,
-                max_num=extended_typer.max_num_aliases,
-                separator=extended_typer.alias_separator,
-            )
+            formatted_names = self._display_names([name for name, _ in commands])
             max_name_len = max(map(calculate_width, formatted_names))
 
             # Allow for 3 times the default spacing, as Typer does
