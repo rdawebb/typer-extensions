@@ -100,18 +100,15 @@ class ExtendedGroup(TyperGroup):
 
         try:
             names = self.list_commands(ctx)
-            formatted_names, _ = format_commands_with_aliases(
-                [(name, None) for name in names],
+            formatted_names = format_commands_with_aliases(
+                names,
                 extended_typer._command_aliases,
                 display_format=extended_typer.alias_display_format,
                 max_num=extended_typer.max_num_aliases,
                 separator=extended_typer.alias_separator,
             )
 
-            display_names = {
-                name: display_name
-                for name, (display_name, _) in zip(names, formatted_names, strict=True)
-            }
+            display_names = dict(zip(names, formatted_names, strict=True))
 
         # Formatting must never break --help
         except Exception:
@@ -161,13 +158,14 @@ class ExtendedGroup(TyperGroup):
             return
 
         try:
-            formatted_names, max_name_len = format_commands_with_aliases(
-                [(name, None) for name, _ in commands],
+            formatted_names = format_commands_with_aliases(
+                [name for name, _ in commands],
                 extended_typer._command_aliases,
                 display_format=extended_typer.alias_display_format,
                 max_num=extended_typer.max_num_aliases,
                 separator=extended_typer.alias_separator,
             )
+            max_name_len = max(map(calculate_width, formatted_names))
 
             # Allow for 3 times the default spacing, as Typer does
             limit = max(formatter.width - 6 - max_name_len, _MIN_SHORT_HELP_WIDTH)
@@ -176,7 +174,7 @@ class ExtendedGroup(TyperGroup):
             # each other's help text, which is worse than dropping the aliases
             rows = [
                 (display_name, cmd.get_short_help_str(limit))
-                for (display_name, _), (_, cmd) in zip(
+                for display_name, (_, cmd) in zip(
                     formatted_names, commands, strict=True
                 )
             ]

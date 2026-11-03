@@ -652,28 +652,28 @@ Low-level formatting utilities (typically not called directly).
 
 ### `format_commands_with_aliases()`
 
-Format a list of commands with their aliases for help display. Returns the formatted command rows and the maximum formatted length (used for column alignment).
+Format command names with their aliases for help display. Returns the formatted names in the same order, with the aliased ones padded into aligned columns. Use `calculate_width()` for the column width.
 
 ```python
 from typer_extensions.format import format_commands_with_aliases
 
-formatted, max_len = format_commands_with_aliases(
-    commands: list[tuple[str, str | None]],
+formatted = format_commands_with_aliases(
+    names: Sequence[str],
     command_aliases: dict[str, list[str]],
     *,
     display_format: str = "({aliases})",
     max_num: int = 3,
     separator: str = ", ",
-) -> tuple[list[tuple[str, str | None]], int]
+) -> list[str]
 ```
 
 **Example:**
 ```python
-formatted, _ = format_commands_with_aliases(
-    [("list", "List items.")],
-    {"list": ["ls", "l"]},
-)
-print(formatted[0][0])  # "list   (ls, l)"
+from typer_extensions.format import calculate_width
+
+formatted = format_commands_with_aliases(["list"], {"list": ["ls", "l"]})
+print(formatted[0])  # "list   (ls, l)"
+width = max(map(calculate_width, formatted), default=0)
 ```
 
 ### `truncate_aliases()`

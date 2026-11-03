@@ -49,72 +49,44 @@ def calculate_width(text: str) -> int:
 
 
 def format_commands_with_aliases(
-    commands: Sequence[tuple[str, str | None]],
+    names: Sequence[str],
     command_aliases: dict[str, list[str]],
     *,
     display_format: str = "({aliases})",
     max_num: int = 3,
     separator: str = ", ",
-) -> tuple[list[tuple[str, str | None]], int]:
-    """Format a list of commands with their aliases
+) -> list[str]:
+    """Format command names with their aliases, padded into aligned columns
 
     Args:
-        commands: The list of commands to format
+        names: The command names to format
         command_aliases: A dictionary mapping command names to their aliases
         display_format: The format string for displaying aliases
         max_num: The maximum number of aliases to display
         separator: The separator to use between aliases
 
     Returns:
-        Tuple of (formatted_commands, max_formatted_length)
+        The formatted names, in the same order as names
     """
-    if not commands:
-        return [], 0
+    alias_displays = {
+        name: display_format.format(
+            aliases=truncate_aliases(command_aliases[name], max_num, separator)
+        )
+        for name in names
+        if name in command_aliases
+    }
+    if not alias_displays:
+        return list(names)
 
-    cmd_widths: dict[str, int] = {}
-    alias_widths: dict[str, int] = {}
-    alias_displays: dict[str, str] = {}
-    max_cmd_length = 0
-    max_aliases_length = 0
+    def pad(text: str, width: int) -> str:
+        return text + " " * (width - calculate_width(text))
 
-    for cmd_name, _ in commands:
-        cmd_width = calculate_width(cmd_name)
-        cmd_widths[cmd_name] = cmd_width
-        max_cmd_length = max(max_cmd_length, cmd_width)
+    name_width = max(map(calculate_width, names))
+    alias_width = max(map(calculate_width, alias_displays.values()))
 
-        if cmd_name in command_aliases:
-            aliases_str = truncate_aliases(
-                command_aliases[cmd_name],
-                max_num=max_num,
-                separator=separator,
-            )
-            aliases_display = display_format.format(aliases=aliases_str)
-            alias_displays[cmd_name] = aliases_display
-            alias_width = calculate_width(aliases_display)
-            alias_widths[cmd_name] = alias_width
-            max_aliases_length = max(max_aliases_length, alias_width)
-
-    formatted_cmds: list[tuple[str, str | None]] = []
-    max_formatted_length = 0
-
-    for cmd_name, help_text in commands:
-        if cmd_name in command_aliases:
-            cmd_width = cmd_widths[cmd_name]
-            alias_width = alias_widths[cmd_name]
-
-            padded_cmd = cmd_name + " " * (max_cmd_length - cmd_width)
-            aliases_display = alias_displays[cmd_name]
-            padded_aliases = aliases_display + " " * (max_aliases_length - alias_width)
-
-            formatted_cmd = f"{padded_cmd}   {padded_aliases}"
-            formatted_cmd_length = calculate_width(formatted_cmd)
-            max_formatted_length = max(max_formatted_length, formatted_cmd_length)
-
-        else:
-            formatted_cmd = cmd_name
-            formatted_cmd_length = cmd_widths[cmd_name]
-            max_formatted_length = max(max_formatted_length, formatted_cmd_length)
-
-        formatted_cmds.append((formatted_cmd, help_text))
-
-    return formatted_cmds, max_formatted_length
+    return [
+        f"{pad(name, name_width)}   {pad(alias_displays[name], alias_width)}"
+        if name in alias_displays
+        else name
+        for name in names
+    ]
