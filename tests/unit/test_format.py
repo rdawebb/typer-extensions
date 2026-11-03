@@ -1,7 +1,5 @@
 """Unit tests for formatters module."""
 
-from unittest.mock import patch
-
 import pytest
 
 from typer_extensions.format import (
@@ -145,9 +143,6 @@ class TestFormatCommandsWithAliases:
         assert result[2][0] == "mmm"
 
 
-def test_calculate_width_import_error_fallback() -> None:
-    """Test calculate_width falls back to len() when wcswidth raises ImportError"""
-    with patch(
-        "typer_extensions.format.wcswidth", side_effect=ImportError("Mock error")
-    ):
-        assert calculate_width("test string") == len("test string")
+def test_calculate_width_falls_back_to_len_for_non_printable() -> None:
+    """wcswidth returns -1 for control chars; calculate_width falls back to len()."""
+    assert calculate_width("a\x07b") == 3

@@ -44,13 +44,8 @@ def calculate_width(text: str) -> int:
     Returns:
         The display width of the text
     """
-    try:
-        width = wcswidth(text)
-        return width if width >= 0 else len(text)
-
-    except ImportError:
-        # wcwidth not available
-        return len(text)
+    width = wcswidth(text)
+    return width if width >= 0 else len(text)
 
 
 def format_commands_with_aliases(
