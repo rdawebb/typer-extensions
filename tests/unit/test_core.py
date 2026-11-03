@@ -154,9 +154,7 @@ class TestCommandWithAliases:
         """Test registering command with multiple aliases"""
         app = ExtendedTyper()
 
-        app._register_command_with_aliases(
-            list_items, "list", aliases=["ls", "l", "dir"]
-        )
+        app.add_command(list_items, "list", aliases=["ls", "l", "dir"])
 
         assert app._command_aliases["list"] == ["ls", "l", "dir"]
         assert all(
@@ -168,7 +166,7 @@ class TestCommandWithAliases:
         """Test registering command without aliases"""
         app = ExtendedTyper()
 
-        app._register_command_with_aliases(list_items, "list", aliases=aliases)
+        app.add_command(list_items, "list", aliases=aliases)
 
         assert app._command_aliases == {}
         assert app._alias_to_command == {}
@@ -180,8 +178,8 @@ class TestGetCommand:
     def test__get_command_by_alias_in_multi_command_app(self) -> None:
         """Test getting command by alias in multi-command app"""
         app = ExtendedTyper()
-        app._register_command_with_aliases(list_items, "list", aliases=["ls"])
-        app._register_command_with_aliases(delete_items, "delete", aliases=["del"])
+        app.add_command(list_items, "list", aliases=["ls"])
+        app.add_command(delete_items, "delete", aliases=["del"])
         ctx = MagicMock()
 
         cmd_ls = app._get_command(ctx, "ls")
@@ -202,8 +200,8 @@ class TestGetCommand:
     def test__get_command_case_insensitive_alias(self) -> None:
         """Test getting command by case-insensitive alias"""
         app = ExtendedTyper(alias_case_sensitive=False)
-        app._register_command_with_aliases(list_items, "list", aliases=["ls"])
-        app._register_command_with_aliases(delete_items, "delete", aliases=["del"])
+        app.add_command(list_items, "list", aliases=["ls"])
+        app.add_command(delete_items, "delete", aliases=["del"])
 
         assert app._get_command(MagicMock(), "LS") is not None
 
@@ -237,7 +235,7 @@ class TestExtendedGroup:
     def test__get_command_by_alias(self) -> None:
         """Test ExtendedGroup resolves a command by alias"""
         app = ExtendedTyper()
-        app._register_command_with_aliases(list_items, "list", aliases=["ls"])
+        app.add_command(list_items, "list", aliases=["ls"])
         group = ExtendedGroup()
         group._extended_typer = app
         ctx = Context(group)
@@ -298,7 +296,7 @@ class TestRemoveAliasEdgeCases:
     def test_remove_alias_when_primary_command_has_no_aliases_dict(self) -> None:
         """Test remove_alias when primary command is not in _command_aliases dict"""
         app = ExtendedTyper()
-        app._register_command_with_aliases(list_items, "list", aliases=["ls"])
+        app.add_command(list_items, "list", aliases=["ls"])
 
         # Manually add an alias without registering the command
         app._alias_to_command["orphan"] = "delete"

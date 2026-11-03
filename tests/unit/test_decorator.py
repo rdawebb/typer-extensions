@@ -65,6 +65,17 @@ class TestDecoratorSyntax:
         typer_command = typer.main.get_command(app)
         assert getattr(typer_command, "name", None) == "list"
 
+    def test_direct_call_keeps_aliases(self) -> None:
+        """Test app.command(func, aliases=[...]) registers the aliases"""
+        app = ExtendedTyper()
+
+        def quit():
+            """Quit."""
+
+        app.command(quit, aliases=["q"])
+
+        assert app.get_aliases("quit") == ["q"]
+
 
 class TestDecoratorNameInference:
     """Tests for name inference from function names."""

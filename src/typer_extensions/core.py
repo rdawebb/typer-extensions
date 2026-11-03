@@ -5,7 +5,7 @@ import logging
 import re
 from collections.abc import Callable
 from gettext import gettext as gt
-from typing import Any, Protocol, cast
+from typing import Any, cast
 
 import typer
 import typer.main
@@ -25,12 +25,6 @@ _MIN_SHORT_HELP_WIDTH = 10
 
 # ctx.meta key holding alias-formatted command names while help renders
 _DISPLAY_NAMES_KEY = "typer_extensions.display_names"
-
-
-class HasName(Protocol):
-    """Protocol for objects that have a name attribute"""
-
-    __name__: str
 
 
 class _DisplayName(str):
@@ -355,36 +349,6 @@ class ExtendedTyper(typer.Typer):
 
         self._command_aliases.setdefault(command_name, []).append(alias)
 
-    def _register_command_with_aliases(
-        self,
-        func: Callable[..., Any],
-        name: str,
-        aliases: list[str] | None = None,
-        **kwargs: Any,
-    ) -> Callable[..., Any]:
-        """Register a command with aliases
-
-        Args:
-            func: The command function
-            name: The command name
-            aliases: List of aliases for the command
-            **kwargs: Additional keyword arguments for command registration
-
-        Returns:
-            The registered command function
-
-        Raises:
-            ValueError: If any aliases conflict with existing commands/aliases
-        """
-        aliases = aliases or []
-
-        cmd = super().command(name, **kwargs)(func)
-
-        for alias in aliases:
-            self._register_alias(name, alias)
-
-        return cmd
-
     def _resolve_alias(self, name: str) -> str | None:
         """Resolve a command/alias name to its primary command name
 
@@ -460,32 +424,9 @@ class ExtendedTyper(typer.Typer):
             A decorator that registers the command with the specified name and aliases
         """
         if callable(name):
-            func = name
+            return self.add_command(name, None, aliases, **kwargs)
 
-            return self._register_command_with_aliases(
-                func, name=cast(HasName, func).__name__, aliases=None, **kwargs
-            )
-
-        def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
-            """Decorator to register a command with aliases
-
-            Args:
-                func: The command function
-
-            Returns:
-                The registered command function
-            """
-            if isinstance(name, str) and name:
-                command_name = name
-
-            else:
-                command_name = cast(HasName, func).__name__
-
-            return self._register_command_with_aliases(
-                func, name=command_name, aliases=aliases, **kwargs
-            )
-
-        return decorator
+        return lambda func: self.add_command(func, name, aliases, **kwargs)
 
     def add_command(
         self,
@@ -508,15 +449,12 @@ class ExtendedTyper(typer.Typer):
         Raises:
             ValueError: If any alias conflicts with existing commands/aliases
         """
-        if isinstance(name, str) and name:
-            command_name = name
+        name = name or func.__name__  # ty: ignore[unresolved-attribute]
+        cmd = super().command(name, **kwargs)(func)
+        for alias in aliases or []:
+            self._register_alias(name, alias)
 
-        else:
-            command_name = cast(HasName, func).__name__
-
-        return self._register_command_with_aliases(
-            func, name=command_name, aliases=aliases, **kwargs
-        )
+        return cmd
 
     def add_alias(self, command_name: str, alias: str) -> None:
         """Programmatically add an alias to an existing command
@@ -631,22 +569,7 @@ class ExtendedTyper(typer.Typer):
         *,
         aliases: list[str] | None = None,
         name: str | None = Default(None),
-        cls: type[TyperGroup] | None = Default(None),
-        invoke_without_command: bool = Default(False),
-        no_args_is_help: bool = Default(False),
-        subcommand_metavar: str | None = Default(None),
-        chain: bool = Default(False),
-        result_callback: Callable[..., Any] | None = Default(None),
-        context_settings: dict[Any, Any] | None = Default(None),
-        callback: Callable[..., Any] | None = Default(None),
-        help: str | None = Default(None),
-        epilog: str | None = Default(None),
-        short_help: str | None = Default(None),
-        options_metavar: str | None = Default(None),
-        add_help_option: bool = Default(True),
-        hidden: bool = Default(False),
-        deprecated: bool = Default(False),
-        rich_help_panel: str | None = Default(None),
+        **kwargs: Any,
     ) -> None:
         """Add a sub-application (Typer instance) to this app, with optional aliases
 
@@ -660,26 +583,10 @@ class ExtendedTyper(typer.Typer):
                 and the sub-app has no registered callback to infer a name from
             **kwargs: All other arguments are passed through to Typer's add_typer()
         """
-        super().add_typer(
-            typer_instance,
-            name=name,
-            cls=cls,
-            invoke_without_command=invoke_without_command,
-            no_args_is_help=no_args_is_help,
-            subcommand_metavar=subcommand_metavar,
-            chain=chain,
-            result_callback=result_callback,
-            context_settings=context_settings,
-            callback=callback,
-            help=help,
-            epilog=epilog,
-            short_help=short_help,
-            options_metavar=options_metavar,
-            add_help_option=add_help_option,
-            hidden=hidden,
-            deprecated=deprecated,
-            rich_help_panel=rich_help_panel,
-        )
+        # Typer defaults deprecated to a plain False rather than Default(False),
+        # which would override the sub-app's own deprecated=True
+        kwargs.setdefault("deprecated", Default(False))
+        super().add_typer(typer_instance, name=name, **kwargs)
 
         if aliases:
             sub_name = self._resolve_sub_typer_name(typer_instance, name)
