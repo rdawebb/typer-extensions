@@ -17,7 +17,7 @@ from typer_extensions.format import calculate_width, format_commands_with_aliase
 
 logger = logging.getLogger(__name__)
 
-_ALIAS_PATTERN = re.compile(r"^[\w\-]+$", re.UNICODE)
+_ALIAS_PATTERN = re.compile(r"[\w-]+")
 
 # Click wraps help text to at least this width, so never truncate short help
 # below it no matter how wide the alias column grows
@@ -269,8 +269,6 @@ class ExtendedTyper(typer.Typer):
     get_text_stream = staticmethod(typer.get_text_stream)
     run = staticmethod(typer.run)
 
-    _alias_case_sensitive: bool
-
     def __init__(
         self,
         *args: Any,
@@ -298,12 +296,9 @@ class ExtendedTyper(typer.Typer):
 
         # Sync with Typer's case_sensitive setting if not explicitly set
         if alias_case_sensitive is None:
-            context_settings: dict[str, Any] = kwargs.get("context_settings") or {}
-            typer_case_sensitive = context_settings.get("case_sensitive", True)
-            self._alias_case_sensitive = typer_case_sensitive
-
-        else:
-            self._alias_case_sensitive = alias_case_sensitive
+            context_settings = kwargs.get("context_settings") or {}
+            alias_case_sensitive = context_settings.get("case_sensitive", True)
+        self._alias_case_sensitive: bool = alias_case_sensitive
 
         self.show_aliases_in_help = show_aliases_in_help
         self.alias_display_format = alias_display_format
@@ -335,15 +330,10 @@ class ExtendedTyper(typer.Typer):
         Raises:
             ValueError: If the alias conflicts with an existing command/alias
         """
-        if not alias or not isinstance(alias, str):
-            raise ValueError("Alias must be a non-empty string")
-
-        if any(c.isspace() for c in alias):
-            raise ValueError("Alias cannot contain whitespace")
-
-        if not _ALIAS_PATTERN.match(alias):
+        if not isinstance(alias, str) or not _ALIAS_PATTERN.fullmatch(alias):
             raise ValueError(
-                "Alias must only contain alphanumeric characters, dashes, and underscores (Unicode allowed)"
+                f"Invalid alias {alias!r}: must be a non-empty string of letters, "
+                "digits, dashes and underscores (Unicode allowed)"
             )
 
         normalised_alias = self._normalise_name(alias)
@@ -363,10 +353,7 @@ class ExtendedTyper(typer.Typer):
         # Register the alias
         self._alias_to_command[normalised_alias] = command_name
 
-        # Add alias to command mapping
-        if command_name not in self._command_aliases:
-            self._command_aliases[command_name] = []
-        self._command_aliases[command_name].append(alias)
+        self._command_aliases.setdefault(command_name, []).append(alias)
 
     def _register_command_with_aliases(
         self,
@@ -601,10 +588,7 @@ class ExtendedTyper(typer.Typer):
         Returns:
             A list of aliases for the command, or an empty list if no aliases or command doesn't exist
         """
-        if command_name in self._command_aliases:
-            return self._command_aliases[command_name].copy()
-
-        return []
+        return list(self._command_aliases.get(command_name, []))
 
     def list_commands_with_aliases(self) -> dict[str, list[str]]:
         """List all aliased commands and their aliases

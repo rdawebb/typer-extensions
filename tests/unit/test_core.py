@@ -260,22 +260,13 @@ class TestRegisterAliasValidation:
     """Tests for alias registration input validation"""
 
     @pytest.mark.parametrize(
-        ("alias", "message"),
-        [
-            ("", "Alias must be a non-empty string"),
-            (None, "Alias must be a non-empty string"),
-            (123, "Alias must be a non-empty string"),
-            ("l s", "Alias cannot contain whitespace"),
-            ("l\ts", "Alias cannot contain whitespace"),
-            ("l@s", "Alias must only contain alphanumeric characters"),
-            ("l$s", "Alias must only contain alphanumeric characters"),
-        ],
+        "alias", ["", None, 123, "l s", "l\ts", "l@s", "l$s", "x\n"]
     )
-    def test_register_invalid_alias_raises(self, alias, message) -> None:
+    def test_register_invalid_alias_raises(self, alias) -> None:
         """Test that an invalid alias raises ValueError"""
         app = ExtendedTyper()
 
-        with pytest.raises(ValueError, match=message):
+        with pytest.raises(ValueError, match="Invalid alias"):
             app._register_alias("list", alias)
 
     @pytest.mark.parametrize("alias", ["list-all", "list_all", "liés"])
