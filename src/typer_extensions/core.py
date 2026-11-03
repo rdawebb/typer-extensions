@@ -5,7 +5,7 @@ import logging
 import re
 from collections.abc import Callable
 from gettext import gettext as gt
-from typing import Any, Optional, Protocol, cast
+from typing import Any, Protocol, cast
 
 import typer
 import typer.main
@@ -48,22 +48,13 @@ class _DisplayName(str):
 
 
 class ExtendedGroup(TyperGroup):
-    """Custom Typer Group that handles command aliases"""
+    """Custom Typer Group that handles command aliases
 
-    def __init__(
-        self,
-        *args: Any,
-        extended_typer: Optional["ExtendedTyper"] = None,
-        **kwargs: Any,
-    ) -> None:
-        """Initialise the ExtendedGroup
+    Never constructed directly: _extended_get_group_from_info re-classes the group
+    Typer builds and sets _extended_typer on it
+    """
 
-        Args:
-            extended_typer: Reference to the ExtendedTyper instance for alias resolution
-            *args, **kwargs: Arguments passed to Typer Group
-        """
-        super().__init__(*args, **kwargs)
-        self._extended_typer = extended_typer
+    _extended_typer: "ExtendedTyper"
 
     def get_command(self, ctx: Context, cmd_name: str) -> Command | None:
         """Override Typer's get_command to support aliases
@@ -75,9 +66,6 @@ class ExtendedGroup(TyperGroup):
         Returns:
             The command if found, None otherwise
         """
-        if self._extended_typer is None:
-            return super().get_command(ctx, cmd_name)
-
         # Try to resolve as an active alias first
         primary_cmd = self._extended_typer._resolve_alias(cmd_name)
         if primary_cmd is not None:
@@ -104,8 +92,7 @@ class ExtendedGroup(TyperGroup):
         extended_typer = self._extended_typer
 
         if (
-            extended_typer is None
-            or not extended_typer.show_aliases_in_help
+            not extended_typer.show_aliases_in_help
             or not extended_typer._command_aliases
         ):
             super().format_help(ctx, formatter)
@@ -153,11 +140,10 @@ class ExtendedGroup(TyperGroup):
             ctx: The Typer context
             formatter: The Click help formatter to write into
         """
-        extended_typer = getattr(self, "_extended_typer", None)
+        extended_typer = self._extended_typer
 
         if (
-            extended_typer is None
-            or not getattr(extended_typer, "show_aliases_in_help", False)
+            not extended_typer.show_aliases_in_help
             or not extended_typer._command_aliases
         ):
             super().format_commands(ctx, formatter)
@@ -238,7 +224,7 @@ def _extended_get_group_from_info(
         # Re-class the group Typer just built into an ExtendedGroup, which keeps
         # Typer's configuration and layers alias resolution on top
         group.__class__ = ExtendedGroup
-        group._extended_typer = extended_typer  # ty: ignore[unresolved-attribute]
+        cast(ExtendedGroup, group)._extended_typer = extended_typer
         return group
 
     # Standard TyperGroup

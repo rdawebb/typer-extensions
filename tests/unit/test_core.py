@@ -238,7 +238,8 @@ class TestExtendedGroup:
         """Test ExtendedGroup resolves a command by alias"""
         app = ExtendedTyper()
         app._register_command_with_aliases(list_items, "list", aliases=["ls"])
-        group = ExtendedGroup(extended_typer=app)
+        group = ExtendedGroup()
+        group._extended_typer = app
         ctx = Context(group)
 
         cmd = app._get_command(ctx, "list")
@@ -249,13 +250,8 @@ class TestExtendedGroup:
 
     def test__get_command_with_unknown_command(self) -> None:
         """Test ExtendedGroup returns None for unknown command/alias"""
-        group = ExtendedGroup(extended_typer=ExtendedTyper())
-
-        assert group.get_command(Context(group), "unknown") is None
-
-    def test__get_command_without_extended_typer(self) -> None:
-        """Test ExtendedGroup falls back to Typer when extended_typer is None"""
-        group = ExtendedGroup(extended_typer=None)
+        group = ExtendedGroup()
+        group._extended_typer = ExtendedTyper()
 
         assert group.get_command(Context(group), "unknown") is None
 
