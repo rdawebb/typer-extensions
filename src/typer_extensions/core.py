@@ -493,27 +493,16 @@ class ExtendedTyper(typer.Typer):
         Returns:
             True if the alias was removed, False if it doesn't exist
         """
-        normalised_alias = self._normalise_name(alias)
-
-        if normalised_alias not in self._alias_to_command:
+        normalised = self._normalise_name(alias)
+        primary = self._alias_to_command.pop(normalised, None)
+        if primary is None:
             return False
 
-        primary_name = self._alias_to_command[normalised_alias]
-        del self._alias_to_command[normalised_alias]
-
-        if primary_name in self._command_aliases:
-            # Aliases keep their registered case, so match on the normalised form
-            remaining = [
-                name
-                for name in self._command_aliases[primary_name]
-                if self._normalise_name(name) != normalised_alias
-            ]
-
-            if remaining:
-                self._command_aliases[primary_name] = remaining
-
-            else:
-                del self._command_aliases[primary_name]
+        # Aliases keep their registered case, so match on the normalised form
+        aliases = self._command_aliases[primary]
+        aliases[:] = [a for a in aliases if self._normalise_name(a) != normalised]
+        if not aliases:
+            del self._command_aliases[primary]
 
         return True
 

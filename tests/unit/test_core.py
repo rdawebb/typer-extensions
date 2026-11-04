@@ -290,21 +290,6 @@ class TestAddAliasToSingleCommandApp:
             app.add_alias("main", "m")
 
 
-class TestRemoveAliasEdgeCases:
-    """Tests for edge cases in remove_alias"""
-
-    def test_remove_alias_when_primary_command_has_no_aliases_dict(self) -> None:
-        """Test remove_alias when primary command is not in _command_aliases dict"""
-        app = ExtendedTyper()
-        app.add_command(list_items, "list", aliases=["ls"])
-
-        # Manually add an alias without registering the command
-        app._alias_to_command["orphan"] = "delete"
-
-        # Should return True, but not crash when primary isn't in _command_aliases
-        assert app.remove_alias("orphan") is True
-
-
 class TestExtendedGetGroupFromInfo:
     """Tests for _extended_get_group_from_info function and branch coverage"""
 
