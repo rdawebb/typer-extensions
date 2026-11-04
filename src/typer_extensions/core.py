@@ -5,7 +5,7 @@ import logging
 import re
 from collections.abc import Callable
 from gettext import gettext as gt
-from typing import Any, Optional, Protocol, cast
+from typing import Any, cast
 
 import typer
 import typer.main
@@ -17,7 +17,7 @@ from typer_extensions.format import calculate_width, format_commands_with_aliase
 
 logger = logging.getLogger(__name__)
 
-_ALIAS_PATTERN = re.compile(r"^[\w\-]+$", re.UNICODE)
+_ALIAS_PATTERN = re.compile(r"[\w-]+")
 
 # Click wraps help text to at least this width, so never truncate short help
 # below it no matter how wide the alias column grows
@@ -25,12 +25,6 @@ _MIN_SHORT_HELP_WIDTH = 10
 
 # ctx.meta key holding alias-formatted command names while help renders
 _DISPLAY_NAMES_KEY = "typer_extensions.display_names"
-
-
-class HasName(Protocol):
-    """Protocol for objects that have a name attribute"""
-
-    __name__: str
 
 
 class _DisplayName(str):
@@ -48,22 +42,13 @@ class _DisplayName(str):
 
 
 class ExtendedGroup(TyperGroup):
-    """Custom Typer Group that handles command aliases"""
+    """Custom Typer Group that handles command aliases
 
-    def __init__(
-        self,
-        *args: Any,
-        extended_typer: Optional["ExtendedTyper"] = None,
-        **kwargs: Any,
-    ) -> None:
-        """Initialise the ExtendedGroup
+    Never constructed directly: _extended_get_group_from_info re-classes the group
+    Typer builds and sets _extended_typer on it
+    """
 
-        Args:
-            extended_typer: Reference to the ExtendedTyper instance for alias resolution
-            *args, **kwargs: Arguments passed to Typer Group
-        """
-        super().__init__(*args, **kwargs)
-        self._extended_typer = extended_typer
+    _extended_typer: "ExtendedTyper"
 
     def get_command(self, ctx: Context, cmd_name: str) -> Command | None:
         """Override Typer's get_command to support aliases
@@ -75,9 +60,6 @@ class ExtendedGroup(TyperGroup):
         Returns:
             The command if found, None otherwise
         """
-        if self._extended_typer is None:
-            return super().get_command(ctx, cmd_name)
-
         # Try to resolve as an active alias first
         primary_cmd = self._extended_typer._resolve_alias(cmd_name)
         if primary_cmd is not None:
@@ -94,6 +76,24 @@ class ExtendedGroup(TyperGroup):
 
         return cmd
 
+    def _display_names(self, names: list[str]) -> list[str]:
+        """Format names with their aliases using the ExtendedTyper's display settings
+
+        Args:
+            names: List of command names to format
+
+        Returns:
+            List of formatted command names
+        """
+        extended_typer = self._extended_typer
+        return format_commands_with_aliases(
+            names,
+            extended_typer._command_aliases,
+            display_format=extended_typer.alias_display_format,
+            max_num=extended_typer.max_num_aliases,
+            separator=extended_typer.alias_separator,
+        )
+
     def format_help(self, ctx: Context, formatter: HelpFormatter) -> None:
         """Override Typer's format_help to show aliases in Rich help
 
@@ -104,8 +104,7 @@ class ExtendedGroup(TyperGroup):
         extended_typer = self._extended_typer
 
         if (
-            extended_typer is None
-            or not extended_typer.show_aliases_in_help
+            not extended_typer.show_aliases_in_help
             or not extended_typer._command_aliases
         ):
             super().format_help(ctx, formatter)
@@ -113,18 +112,7 @@ class ExtendedGroup(TyperGroup):
 
         try:
             names = self.list_commands(ctx)
-            formatted_names, _ = format_commands_with_aliases(
-                [(name, None) for name in names],
-                extended_typer._command_aliases,
-                display_format=extended_typer.alias_display_format,
-                max_num=extended_typer.max_num_aliases,
-                separator=extended_typer.alias_separator,
-            )
-
-            display_names = {
-                name: display_name
-                for name, (display_name, _) in zip(names, formatted_names, strict=True)
-            }
+            display_names = dict(zip(names, self._display_names(names), strict=True))
 
         # Formatting must never break --help
         except Exception:
@@ -153,11 +141,10 @@ class ExtendedGroup(TyperGroup):
             ctx: The Typer context
             formatter: The Click help formatter to write into
         """
-        extended_typer = getattr(self, "_extended_typer", None)
+        extended_typer = self._extended_typer
 
         if (
-            extended_typer is None
-            or not getattr(extended_typer, "show_aliases_in_help", False)
+            not extended_typer.show_aliases_in_help
             or not extended_typer._command_aliases
         ):
             super().format_commands(ctx, formatter)
@@ -175,13 +162,8 @@ class ExtendedGroup(TyperGroup):
             return
 
         try:
-            formatted_names, max_name_len = format_commands_with_aliases(
-                [(name, None) for name, _ in commands],
-                extended_typer._command_aliases,
-                display_format=extended_typer.alias_display_format,
-                max_num=extended_typer.max_num_aliases,
-                separator=extended_typer.alias_separator,
-            )
+            formatted_names = self._display_names([name for name, _ in commands])
+            max_name_len = max(map(calculate_width, formatted_names))
 
             # Allow for 3 times the default spacing, as Typer does
             limit = max(formatter.width - 6 - max_name_len, _MIN_SHORT_HELP_WIDTH)
@@ -190,7 +172,7 @@ class ExtendedGroup(TyperGroup):
             # each other's help text, which is worse than dropping the aliases
             rows = [
                 (display_name, cmd.get_short_help_str(limit))
-                for (display_name, _), (_, cmd) in zip(
+                for display_name, (_, cmd) in zip(
                     formatted_names, commands, strict=True
                 )
             ]
@@ -238,7 +220,7 @@ def _extended_get_group_from_info(
         # Re-class the group Typer just built into an ExtendedGroup, which keeps
         # Typer's configuration and layers alias resolution on top
         group.__class__ = ExtendedGroup
-        group._extended_typer = extended_typer  # ty: ignore[unresolved-attribute]
+        cast(ExtendedGroup, group)._extended_typer = extended_typer
         return group
 
     # Standard TyperGroup
@@ -247,10 +229,6 @@ def _extended_get_group_from_info(
 
 # Apply monkey-patch to Typer's group creation function
 typer.main.get_group_from_info = _extended_get_group_from_info  # ty: ignore[invalid-assignment]
-
-
-class Context(typer.Context):
-    """Context for ExtendedTyper commands."""
 
 
 class ExtendedTyper(typer.Typer):
@@ -288,8 +266,6 @@ class ExtendedTyper(typer.Typer):
     get_text_stream = staticmethod(typer.get_text_stream)
     run = staticmethod(typer.run)
 
-    _alias_case_sensitive: bool
-
     def __init__(
         self,
         *args: Any,
@@ -317,12 +293,9 @@ class ExtendedTyper(typer.Typer):
 
         # Sync with Typer's case_sensitive setting if not explicitly set
         if alias_case_sensitive is None:
-            context_settings: dict[str, Any] = kwargs.get("context_settings") or {}
-            typer_case_sensitive = context_settings.get("case_sensitive", True)
-            self._alias_case_sensitive = typer_case_sensitive
-
-        else:
-            self._alias_case_sensitive = alias_case_sensitive
+            context_settings = kwargs.get("context_settings") or {}
+            alias_case_sensitive = context_settings.get("case_sensitive", True)
+        self._alias_case_sensitive: bool = alias_case_sensitive
 
         self.show_aliases_in_help = show_aliases_in_help
         self.alias_display_format = alias_display_format
@@ -354,15 +327,10 @@ class ExtendedTyper(typer.Typer):
         Raises:
             ValueError: If the alias conflicts with an existing command/alias
         """
-        if not alias or not isinstance(alias, str):
-            raise ValueError("Alias must be a non-empty string")
-
-        if any(c.isspace() for c in alias):
-            raise ValueError("Alias cannot contain whitespace")
-
-        if not _ALIAS_PATTERN.match(alias):
+        if not isinstance(alias, str) or not _ALIAS_PATTERN.fullmatch(alias):
             raise ValueError(
-                "Alias must only contain alphanumeric characters, dashes, and underscores (Unicode allowed)"
+                f"Invalid alias {alias!r}: must be a non-empty string of letters, "
+                "digits, dashes and underscores (Unicode allowed)"
             )
 
         normalised_alias = self._normalise_name(alias)
@@ -382,40 +350,7 @@ class ExtendedTyper(typer.Typer):
         # Register the alias
         self._alias_to_command[normalised_alias] = command_name
 
-        # Add alias to command mapping
-        if command_name not in self._command_aliases:
-            self._command_aliases[command_name] = []
-        self._command_aliases[command_name].append(alias)
-
-    def _register_command_with_aliases(
-        self,
-        func: Callable[..., Any],
-        name: str,
-        aliases: list[str] | None = None,
-        **kwargs: Any,
-    ) -> Callable[..., Any]:
-        """Register a command with aliases
-
-        Args:
-            func: The command function
-            name: The command name
-            aliases: List of aliases for the command
-            **kwargs: Additional keyword arguments for command registration
-
-        Returns:
-            The registered command function
-
-        Raises:
-            ValueError: If any aliases conflict with existing commands/aliases
-        """
-        aliases = aliases or []
-
-        cmd = super().command(name, **kwargs)(func)
-
-        for alias in aliases:
-            self._register_alias(name, alias)
-
-        return cmd
+        self._command_aliases.setdefault(command_name, []).append(alias)
 
     def _resolve_alias(self, name: str) -> str | None:
         """Resolve a command/alias name to its primary command name
@@ -492,32 +427,9 @@ class ExtendedTyper(typer.Typer):
             A decorator that registers the command with the specified name and aliases
         """
         if callable(name):
-            func = name
+            return self.add_command(name, None, aliases, **kwargs)
 
-            return self._register_command_with_aliases(
-                func, name=cast(HasName, func).__name__, aliases=None, **kwargs
-            )
-
-        def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
-            """Decorator to register a command with aliases
-
-            Args:
-                func: The command function
-
-            Returns:
-                The registered command function
-            """
-            if isinstance(name, str) and name:
-                command_name = name
-
-            else:
-                command_name = cast(HasName, func).__name__
-
-            return self._register_command_with_aliases(
-                func, name=command_name, aliases=aliases, **kwargs
-            )
-
-        return decorator
+        return lambda func: self.add_command(func, name, aliases, **kwargs)
 
     def add_command(
         self,
@@ -540,15 +452,12 @@ class ExtendedTyper(typer.Typer):
         Raises:
             ValueError: If any alias conflicts with existing commands/aliases
         """
-        if isinstance(name, str) and name:
-            command_name = name
+        name = name or func.__name__  # ty: ignore[unresolved-attribute]
+        cmd = super().command(name, **kwargs)(func)
+        for alias in aliases or []:
+            self._register_alias(name, alias)
 
-        else:
-            command_name = cast(HasName, func).__name__
-
-        return self._register_command_with_aliases(
-            func, name=command_name, aliases=aliases, **kwargs
-        )
+        return cmd
 
     def add_alias(self, command_name: str, alias: str) -> None:
         """Programmatically add an alias to an existing command
@@ -587,27 +496,16 @@ class ExtendedTyper(typer.Typer):
         Returns:
             True if the alias was removed, False if it doesn't exist
         """
-        normalised_alias = self._normalise_name(alias)
-
-        if normalised_alias not in self._alias_to_command:
+        normalised = self._normalise_name(alias)
+        primary = self._alias_to_command.pop(normalised, None)
+        if primary is None:
             return False
 
-        primary_name = self._alias_to_command[normalised_alias]
-        del self._alias_to_command[normalised_alias]
-
-        if primary_name in self._command_aliases:
-            # Aliases keep their registered case, so match on the normalised form
-            remaining = [
-                name
-                for name in self._command_aliases[primary_name]
-                if self._normalise_name(name) != normalised_alias
-            ]
-
-            if remaining:
-                self._command_aliases[primary_name] = remaining
-
-            else:
-                del self._command_aliases[primary_name]
+        # Aliases keep their registered case, so match on the normalised form
+        aliases = self._command_aliases[primary]
+        aliases[:] = [a for a in aliases if self._normalise_name(a) != normalised]
+        if not aliases:
+            del self._command_aliases[primary]
 
         return True
 
@@ -620,10 +518,7 @@ class ExtendedTyper(typer.Typer):
         Returns:
             A list of aliases for the command, or an empty list if no aliases or command doesn't exist
         """
-        if command_name in self._command_aliases:
-            return self._command_aliases[command_name].copy()
-
-        return []
+        return list(self._command_aliases.get(command_name, []))
 
     def list_commands_with_aliases(self) -> dict[str, list[str]]:
         """List all aliased commands and their aliases
@@ -666,22 +561,7 @@ class ExtendedTyper(typer.Typer):
         *,
         aliases: list[str] | None = None,
         name: str | None = Default(None),
-        cls: type[TyperGroup] | None = Default(None),
-        invoke_without_command: bool = Default(False),
-        no_args_is_help: bool = Default(False),
-        subcommand_metavar: str | None = Default(None),
-        chain: bool = Default(False),
-        result_callback: Callable[..., Any] | None = Default(None),
-        context_settings: dict[Any, Any] | None = Default(None),
-        callback: Callable[..., Any] | None = Default(None),
-        help: str | None = Default(None),
-        epilog: str | None = Default(None),
-        short_help: str | None = Default(None),
-        options_metavar: str | None = Default(None),
-        add_help_option: bool = Default(True),
-        hidden: bool = Default(False),
-        deprecated: bool = Default(False),
-        rich_help_panel: str | None = Default(None),
+        **kwargs: Any,
     ) -> None:
         """Add a sub-application (Typer instance) to this app, with optional aliases
 
@@ -695,26 +575,10 @@ class ExtendedTyper(typer.Typer):
                 and the sub-app has no registered callback to infer a name from
             **kwargs: All other arguments are passed through to Typer's add_typer()
         """
-        super().add_typer(
-            typer_instance,
-            name=name,
-            cls=cls,
-            invoke_without_command=invoke_without_command,
-            no_args_is_help=no_args_is_help,
-            subcommand_metavar=subcommand_metavar,
-            chain=chain,
-            result_callback=result_callback,
-            context_settings=context_settings,
-            callback=callback,
-            help=help,
-            epilog=epilog,
-            short_help=short_help,
-            options_metavar=options_metavar,
-            add_help_option=add_help_option,
-            hidden=hidden,
-            deprecated=deprecated,
-            rich_help_panel=rich_help_panel,
-        )
+        # Typer defaults deprecated to a plain False rather than Default(False),
+        # which would override the sub-app's own deprecated=True
+        kwargs.setdefault("deprecated", Default(False))
+        super().add_typer(typer_instance, name=name, **kwargs)
 
         if aliases:
             sub_name = self._resolve_sub_typer_name(typer_instance, name)

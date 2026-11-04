@@ -2,8 +2,10 @@
 
 from typing import Any
 
+from typer import Context
+
 from typer_extensions._version import __version__
-from typer_extensions.core import Context, ExtendedTyper
+from typer_extensions.core import ExtendedTyper
 
 __all__ = [  # noqa: RUF022 - grouped by category rather than sorted
     # Core

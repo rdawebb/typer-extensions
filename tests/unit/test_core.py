@@ -154,9 +154,7 @@ class TestCommandWithAliases:
         """Test registering command with multiple aliases"""
         app = ExtendedTyper()
 
-        app._register_command_with_aliases(
-            list_items, "list", aliases=["ls", "l", "dir"]
-        )
+        app.add_command(list_items, "list", aliases=["ls", "l", "dir"])
 
         assert app._command_aliases["list"] == ["ls", "l", "dir"]
         assert all(
@@ -168,7 +166,7 @@ class TestCommandWithAliases:
         """Test registering command without aliases"""
         app = ExtendedTyper()
 
-        app._register_command_with_aliases(list_items, "list", aliases=aliases)
+        app.add_command(list_items, "list", aliases=aliases)
 
         assert app._command_aliases == {}
         assert app._alias_to_command == {}
@@ -180,8 +178,8 @@ class TestGetCommand:
     def test__get_command_by_alias_in_multi_command_app(self) -> None:
         """Test getting command by alias in multi-command app"""
         app = ExtendedTyper()
-        app._register_command_with_aliases(list_items, "list", aliases=["ls"])
-        app._register_command_with_aliases(delete_items, "delete", aliases=["del"])
+        app.add_command(list_items, "list", aliases=["ls"])
+        app.add_command(delete_items, "delete", aliases=["del"])
         ctx = MagicMock()
 
         cmd_ls = app._get_command(ctx, "ls")
@@ -202,8 +200,8 @@ class TestGetCommand:
     def test__get_command_case_insensitive_alias(self) -> None:
         """Test getting command by case-insensitive alias"""
         app = ExtendedTyper(alias_case_sensitive=False)
-        app._register_command_with_aliases(list_items, "list", aliases=["ls"])
-        app._register_command_with_aliases(delete_items, "delete", aliases=["del"])
+        app.add_command(list_items, "list", aliases=["ls"])
+        app.add_command(delete_items, "delete", aliases=["del"])
 
         assert app._get_command(MagicMock(), "LS") is not None
 
@@ -237,8 +235,9 @@ class TestExtendedGroup:
     def test__get_command_by_alias(self) -> None:
         """Test ExtendedGroup resolves a command by alias"""
         app = ExtendedTyper()
-        app._register_command_with_aliases(list_items, "list", aliases=["ls"])
-        group = ExtendedGroup(extended_typer=app)
+        app.add_command(list_items, "list", aliases=["ls"])
+        group = ExtendedGroup()
+        group._extended_typer = app
         ctx = Context(group)
 
         cmd = app._get_command(ctx, "list")
@@ -249,13 +248,8 @@ class TestExtendedGroup:
 
     def test__get_command_with_unknown_command(self) -> None:
         """Test ExtendedGroup returns None for unknown command/alias"""
-        group = ExtendedGroup(extended_typer=ExtendedTyper())
-
-        assert group.get_command(Context(group), "unknown") is None
-
-    def test__get_command_without_extended_typer(self) -> None:
-        """Test ExtendedGroup falls back to Typer when extended_typer is None"""
-        group = ExtendedGroup(extended_typer=None)
+        group = ExtendedGroup()
+        group._extended_typer = ExtendedTyper()
 
         assert group.get_command(Context(group), "unknown") is None
 
@@ -264,22 +258,13 @@ class TestRegisterAliasValidation:
     """Tests for alias registration input validation"""
 
     @pytest.mark.parametrize(
-        ("alias", "message"),
-        [
-            ("", "Alias must be a non-empty string"),
-            (None, "Alias must be a non-empty string"),
-            (123, "Alias must be a non-empty string"),
-            ("l s", "Alias cannot contain whitespace"),
-            ("l\ts", "Alias cannot contain whitespace"),
-            ("l@s", "Alias must only contain alphanumeric characters"),
-            ("l$s", "Alias must only contain alphanumeric characters"),
-        ],
+        "alias", ["", None, 123, "l s", "l\ts", "l@s", "l$s", "x\n"]
     )
-    def test_register_invalid_alias_raises(self, alias, message) -> None:
+    def test_register_invalid_alias_raises(self, alias) -> None:
         """Test that an invalid alias raises ValueError"""
         app = ExtendedTyper()
 
-        with pytest.raises(ValueError, match=message):
+        with pytest.raises(ValueError, match="Invalid alias"):
             app._register_alias("list", alias)
 
     @pytest.mark.parametrize("alias", ["list-all", "list_all", "liés"])
@@ -303,21 +288,6 @@ class TestAddAliasToSingleCommandApp:
             TypeError, match="Cannot add aliases to single-command applications"
         ):
             app.add_alias("main", "m")
-
-
-class TestRemoveAliasEdgeCases:
-    """Tests for edge cases in remove_alias"""
-
-    def test_remove_alias_when_primary_command_has_no_aliases_dict(self) -> None:
-        """Test remove_alias when primary command is not in _command_aliases dict"""
-        app = ExtendedTyper()
-        app._register_command_with_aliases(list_items, "list", aliases=["ls"])
-
-        # Manually add an alias without registering the command
-        app._alias_to_command["orphan"] = "delete"
-
-        # Should return True, but not crash when primary isn't in _command_aliases
-        assert app.remove_alias("orphan") is True
 
 
 class TestExtendedGetGroupFromInfo:
