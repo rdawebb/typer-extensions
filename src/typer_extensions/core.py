@@ -77,7 +77,14 @@ class ExtendedGroup(TyperGroup):
         return cmd
 
     def _display_names(self, names: list[str]) -> list[str]:
-        """Format names with their aliases using the ExtendedTyper's display settings"""
+        """Format names with their aliases using the ExtendedTyper's display settings
+
+        Args:
+            names: List of command names to format
+
+        Returns:
+            List of formatted command names
+        """
         extended_typer = self._extended_typer
         return format_commands_with_aliases(
             names,
@@ -222,10 +229,6 @@ def _extended_get_group_from_info(
 
 # Apply monkey-patch to Typer's group creation function
 typer.main.get_group_from_info = _extended_get_group_from_info  # ty: ignore[invalid-assignment]
-
-
-class Context(typer.Context):
-    """Context for ExtendedTyper commands."""
 
 
 class ExtendedTyper(typer.Typer):

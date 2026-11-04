@@ -57,9 +57,9 @@ def test_extended_typer_is_a_typer() -> None:
     assert issubclass(ExtendedTyper, typer.Typer)
 
 
-def test_context_is_a_typer_context() -> None:
-    """Test that Context is a subclass of typer.Context"""
-    assert issubclass(typer_extensions.Context, typer.Context)
+def test_context_is_typer_context() -> None:
+    """Test that Context is Typer's own Context"""
+    assert typer_extensions.Context is typer.Context
 
 
 def test_version_is_semantic() -> None:
